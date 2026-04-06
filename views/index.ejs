@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learner Dashboard | Skill Exchange</title>
+    <link rel="stylesheet" href="/index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="profile-section">
+                <div class="avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <% if (user) { %>
+                    <h2 class="user-name"><%= user.name %></h2>
+                    <span class="user-role"><%= user.role === 'admin' ? 'Administrator' : 'Learner' %></span>
+                <% } else { %>
+                    <h2 class="user-name">Guest User</h2>
+                    <span class="user-role">Visitor</span>
+                <% } %>
+            </div>
+            
+            <nav class="nav-menu">
+                <a href="/" class="nav-item active">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>Learn</span>
+                </a>
+                <a href="/skills" class="nav-item">
+                    <i class="fas fa-chalkboard-user"></i>
+                    <span>Teach</span>
+                </a>
+                <a href="/roadmap" class="nav-item">
+                    <i class="fas fa-map"></i>
+                    <span>Roadmap</span>
+                </a>
+                <a href="/history" class="nav-item">
+                    <i class="fas fa-history"></i>
+                    <span>History</span>
+                </a>
+                <a href="/store" class="nav-item">
+                    <i class="fas fa-store"></i>
+                    <span>Store</span>
+                </a>
+                <% if (user && user.role === 'admin') { %>
+                <a href="/admin" class="nav-item">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Admin Panel</span>
+                </a>
+                <% } %>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <a href="/settings" class="nav-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+                <% if (user) { %>
+                    <a href="/auth/logout" class="nav-item logout">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </a>
+                <% } else { %>
+                    <div class="auth-buttons-sidebar">
+                        <a href="/auth/login" class="btn-login-sidebar">Login</a>
+                        <a href="/auth/register" class="btn-register-sidebar">Register</a>
+                    </div>
+                <% } %>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar with Auth Buttons for Mobile/Desktop -->
+            <div class="top-bar">
+                <div class="search-section">
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search skills, teachers, or resources..." class="search-input">
+                    </div>
+                </div>
+                
+                <% if (!user) { %>
+                <div class="auth-buttons-top">
+                    <a href="/auth/login" class="btn-login-top">Login</a>
+                    <a href="/auth/register" class="btn-register-top">Register</a>
+                </div>
+                <% } %>
+            </div>
+
+            <!-- Stats Row: Active Session + Credits -->
+            <div class="stats-row">
+                <!-- Active Session Card -->
+                <div class="active-session-card">
+                    <div class="card-header">
+                        <i class="fas fa-video"></i>
+                        <h3>Active Session</h3>
+                    </div>
+                    <div class="session-info">
+                        <p class="session-title">Python Fundamentals - Session 3</p>
+                        <div class="join-code">
+                            <span>Join Code:</span>
+                            <code>PT3X4K</code>
+                            <button class="copy-btn" onclick="copyJoinCode()">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button class="btn-join-session">Join Session <i class="fas fa-arrow-right"></i></button>
+                </div>
+
+                <!-- Credits Card -->
+                <div class="credits-card">
+                    <div class="card-header">
+                        <i class="fas fa-coins"></i>
+                        <h3>My Credits</h3>
+                    </div>
+                    <div class="credits-amount">
+                        <span class="credits-number"><%= user ? user.credits || 120 : 0 %></span>
+                        <span class="credits-label">credits</span>
+                    </div>
+                    <div class="credits-usage">
+                        <div class="usage-bar">
+                            <div class="usage-fill" style="width: 37.5%"></div>
+                        </div>
+                        <p class="usage-text">45 used this month</p>
+                    </div>
+                    <button class="btn-buy-credits">Buy More Credits <i class="fas fa-plus-circle"></i></button>
+                </div>
+            </div>
+
+            <!-- Teacher Search Section -->
+            <div class="teacher-search-section">
+                <div class="teacher-search-bar">
+                    <i class="fas fa-user-graduate"></i>
+                    <input type="text" placeholder="Search teacher by name or skill..." id="teacherSearchInput" class="teacher-search-input">
+                </div>
+            </div>
+
+            <!-- Teachers Grid -->
+            <div class="teachers-grid" id="teachersGrid">
+                <!-- Teacher cards will be populated dynamically -->
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Teacher data
+        const teachers = [
+            {
+                name: "Alex Chen",
+                skills: ["Python", "Data Science", "Machine Learning"],
+                rating: 49,
+                students: 24,
+                creditsPerSession: 20,
+                avatar: "AC"
+            },
+            {
+                name: "David Park",
+                skills: ["JavaScript", "React", "Node.js"],
+                rating: 47,
+                students: 31,
+                creditsPerSession: 22,
+                avatar: "DP"
+            },
+            {
+                name: "Raj Patel",
+                skills: ["Agile", "DevOps", "Docker"],
+                rating: 46,
+                students: 22,
+                creditsPerSession: 28,
+                avatar: "RP"
+            },
+            {
+                name: "Maria Garcia",
+                skills: ["UI Design", "Figma", "Prototyping"],
+                rating: 48,
+                students: 18,
+                creditsPerSession: 25,
+                avatar: "MG"
+            },
+            {
+                name: "Emma Wilson",
+                skills: ["Spanish", "French", "Language"],
+                rating: 5,
+                students: 15,
+                creditsPerSession: 18,
+                avatar: "EW"
+            },
+            {
+                name: "Sophie Laurent",
+                skills: ["Programming", "Algorithm", "Composition"],
+                rating: 43,
+                students: 19,
+                creditsPerSession: 20,
+                avatar: "SL"
+            }
+        ];
+
+        // Render teachers
+        function renderTeachers(filterText = "") {
+            const grid = document.getElementById("teachersGrid");
+            const filteredTeachers = teachers.filter(teacher => 
+                teacher.name.toLowerCase().includes(filterText.toLowerCase()) ||
+                teacher.skills.some(skill => skill.toLowerCase().includes(filterText.toLowerCase()))
+            );
+            
+            grid.innerHTML = filteredTeachers.map(teacher => `
+                <div class="teacher-card">
+                    <div class="teacher-header">
+                        <div class="teacher-avatar">${teacher.avatar}</div>
+                        <div class="teacher-info">
+                            <h4 class="teacher-name">${teacher.name}</h4>
+                            <div class="teacher-skills">
+                                ${teacher.skills.map(skill => `<span class="skill-tag">${skill}</span>`).join('')}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="teacher-stats">
+                        <div class="stat">
+                            <i class="fas fa-key"></i>
+                            <span>${teacher.rating}</span>
+                        </div>
+                        <div class="stat">
+                            <i class="fas fa-users"></i>
+                            <span>${teacher.students} students</span>
+                        </div>
+                        <div class="stat">
+                            <i class="fas fa-coins"></i>
+                            <span>${teacher.creditsPerSession} credits/session</span>
+                        </div>
+                    </div>
+                    <button class="btn-request-session" onclick="requestSession('${teacher.name}')">
+                        Request Session <i class="fas fa-calendar-plus"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // Search functionality
+        document.addEventListener("DOMContentLoaded", () => {
+            renderTeachers();
+            
+            const searchInput = document.getElementById("teacherSearchInput");
+            if (searchInput) {
+                searchInput.addEventListener("input", (e) => {
+                    renderTeachers(e.target.value);
+                });
+            }
+        });
+
+        // Copy join code function
+        function copyJoinCode() {
+            const code = "PT3X4K";
+            navigator.clipboard.writeText(code).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                const originalIcon = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                setTimeout(() => {
+                    btn.innerHTML = originalIcon;
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('Failed to copy join code');
+            });
+        }
+
+        // Request session function
+        function requestSession(teacherName) {
+             if (user) {
+                alert(`Session requested with ${teacherName}! You will be contacted shortly.`);
+             } else { 
+                alert(`Please login to request a session with ${teacherName}.`);
+                window.location.href = '/auth/login';
+            } 
+        }
+    </script>
+</body>
+</html>

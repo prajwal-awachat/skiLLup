@@ -1,0 +1,556 @@
+/* store.css - Credits Store with modern pricing cards and transaction table */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
+    color: #0f172a;
+    line-height: 1.5;
+    min-height: 100vh;
+}
+
+.store-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+/* Header Section */
+.store-header {
+    text-align: center;
+    padding: 2rem 1rem 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.header-content h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #1e293b, #4f46e5);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.header-content p {
+    font-size: 1.1rem;
+    color: #475569;
+}
+
+/* Main Grid Layout */
+.store-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 2rem;
+}
+
+/* Credit Plans Section */
+.credit-plans {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+
+/* Plan Cards - Rounded & Spacious */
+.plan-card {
+    background: white;
+    border-radius: 28px;
+    padding: 1.8rem;
+    position: relative;
+    transition: all 0.3s ease;
+    border: 1px solid #eef2ff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+.plan-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 32px -12px rgba(0, 0, 0, 0.12);
+    border-color: #cbd5e1;
+}
+
+.plan-card.featured {
+    border: 2px solid #4f46e5;
+    background: linear-gradient(135deg, #ffffff, #fef9ff);
+    position: relative;
+}
+
+.plan-badge {
+    position: absolute;
+    top: -12px;
+    left: 20px;
+    background: linear-gradient(135deg, #4f46e5, #6366f1);
+    color: white;
+    padding: 0.25rem 1rem;
+    border-radius: 60px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.plan-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+.plan-credits {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 0.75rem;
+}
+
+.plan-price {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 4px;
+}
+
+.currency {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #4f46e5;
+}
+
+.amount {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #4f46e5;
+}
+
+.plan-savings {
+    font-size: 0.75rem;
+    color: #10b981;
+    margin-top: 0.5rem;
+    font-weight: 600;
+}
+
+/* Plan Features */
+.plan-features {
+    margin-bottom: 1.8rem;
+}
+
+.feature-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0.6rem 0;
+    font-size: 0.9rem;
+    color: #475569;
+}
+
+.feature-item i {
+    font-size: 1rem;
+    color: #10b981;
+    width: 22px;
+}
+
+/* Buy Button - Larger & Rounded */
+.btn-buy {
+    width: 100%;
+    background: linear-gradient(135deg, #4f46e5, #6366f1);
+    color: white;
+    border: none;
+    padding: 0.9rem 1.5rem;
+    border-radius: 60px;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-buy:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.3);
+}
+
+/* Right Column Cards */
+.info-column {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.transaction-card,
+.account-card,
+.offers-card {
+    background: white;
+    border-radius: 28px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    border: 1px solid #eef2ff;
+    transition: all 0.3s ease;
+}
+
+.transaction-card:hover,
+.account-card:hover,
+.offers-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+}
+
+.card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+.card-header i {
+    font-size: 1.3rem;
+    color: #4f46e5;
+}
+
+.card-header h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #0f172a;
+    flex: 1;
+}
+
+.btn-refresh {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 0.4rem;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.btn-refresh:hover {
+    color: #4f46e5;
+    background: #f1f5f9;
+}
+
+/* Transaction Table */
+.transaction-table-container {
+    overflow-x: auto;
+    margin-bottom: 1rem;
+}
+
+.transaction-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.transaction-table thead {
+    background: #f8fafc;
+    border-radius: 12px;
+}
+
+.transaction-table th {
+    text-align: left;
+    padding: 0.75rem 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.transaction-table td {
+    padding: 0.85rem 0.5rem;
+    font-size: 0.9rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.transaction-table tbody tr:hover {
+    background: #f8fafc;
+}
+
+.amount-cell {
+    font-weight: 600;
+    color: #0f172a;
+}
+
+/* Status Badges */
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 0.25rem 0.75rem;
+    border-radius: 60px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.status-badge.success {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.status-badge.pending {
+    background: #fed7aa;
+    color: #b45309;
+}
+
+.status-badge i {
+    font-size: 0.65rem;
+}
+
+.transaction-footer {
+    text-align: right;
+    padding-top: 0.75rem;
+    border-top: 1px solid #f1f5f9;
+}
+
+.view-all-link {
+    color: #4f46e5;
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+}
+
+.view-all-link:hover {
+    gap: 8px;
+    color: #6366f1;
+}
+
+/* Account Information */
+.account-info {
+    margin-bottom: 1.25rem;
+}
+
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.info-label i {
+    width: 20px;
+    color: #4f46e5;
+}
+
+.info-value {
+    font-size: 0.9rem;
+    color: #0f172a;
+    font-weight: 500;
+}
+
+.info-value a {
+    color: #4f46e5;
+    text-decoration: none;
+}
+
+.info-value a:hover {
+    text-decoration: underline;
+}
+
+.info-value i {
+    font-size: 1.1rem;
+    margin: 0 3px;
+    color: #94a3b8;
+}
+
+.account-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding-top: 1rem;
+    border-top: 2px solid #f1f5f9;
+}
+
+.stat-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: #475569;
+    background: #f8fafc;
+    padding: 0.6rem 1rem;
+    border-radius: 16px;
+}
+
+.stat-badge i {
+    color: #4f46e5;
+    width: 20px;
+}
+
+.stat-badge strong {
+    color: #0f172a;
+}
+
+/* Offers Card */
+.offers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.offer-item {
+    display: flex;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: #f8fafc;
+    border-radius: 20px;
+    transition: all 0.2s ease;
+}
+
+.offer-item:hover {
+    background: #f1f5f9;
+    transform: translateX(4px);
+}
+
+.offer-icon {
+    width: 44px;
+    height: 44px;
+    background: linear-gradient(135deg, #4f46e5, #6366f1);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.offer-info h4 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+    color: #0f172a;
+}
+
+.offer-info p {
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .store-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .credit-plans {
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .store-container {
+        padding: 1rem;
+    }
+    
+    .header-content h1 {
+        font-size: 1.8rem;
+        flex-direction: column;
+    }
+    
+    .credit-plans {
+        grid-template-columns: 1fr;
+    }
+    
+    .plan-card {
+        padding: 1.5rem;
+    }
+    
+    .plan-credits {
+        font-size: 1.5rem;
+    }
+    
+    .amount {
+        font-size: 2rem;
+    }
+    
+    .transaction-table-container {
+        overflow-x: auto;
+    }
+    
+    .info-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .offer-item {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .offer-icon {
+        width: 48px;
+        height: 48px;
+    }
+}
+
+@media (max-width: 480px) {
+    .plan-header {
+        text-align: center;
+    }
+    
+    .feature-item {
+        font-size: 0.85rem;
+    }
+    
+    .btn-buy {
+        padding: 0.75rem;
+        font-size: 0.9rem;
+    }
+    
+    .transaction-table th,
+    .transaction-table td {
+        padding: 0.6rem 0.25rem;
+        font-size: 0.8rem;
+    }
+    
+    .card-header h3 {
+        font-size: 1rem;
+    }
+}
+
+/* Animation for new transactions */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.transaction-table tbody tr {
+    animation: fadeInUp 0.3s ease;
+}

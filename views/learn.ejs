@@ -1,0 +1,943 @@
+<!-- views/learn.ejs -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learn Dashboard - Peer Learning Platform</title>
+    <link rel="stylesheet" href="/learn.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Socket.io Client -->
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <span class="logo-icon">📚</span>
+                <span class="logo-text">SkillBridge</span>
+            </div>
+            <nav class="nav-menu">
+                <a href="/learn" class="nav-item active">
+                    <span class="nav-icon">🎓</span>
+                    <span>Learn</span>
+                </a>
+                <a href="/teach" class="nav-item">
+                    <span class="nav-icon">👨‍🏫</span>
+                    <span>Teach</span>
+                </a>
+                <a href="/store" class="nav-item">
+                    <span class="nav-icon">🛒</span>
+                    <span>Store</span>
+                </a>
+                <a href="/history" class="nav-item">
+                    <span class="nav-icon">📜</span>
+                    <span>History</span>
+                </a>
+                <a href="/roadmap" class="nav-item">
+                    <span class="nav-icon">🗺️</span>
+                    <span>Roadmap</span>
+                </a>
+                <a href="/settings" class="nav-item">
+                    <span class="nav-icon">⚙️</span>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            <div class="user-profile">
+                <div class="avatar"><%= user ? user.name.charAt(0).toUpperCase() + (user.name.split(' ')[1] ? user.name.split(' ')[1].charAt(0).toUpperCase() : '') : 'U' %></div>
+                <div class="user-info">
+                    <span class="user-name"><%= user ? user.name : 'User' %></span>
+                    <span class="user-email"><%= user ? user.email : 'user@example.com' %></span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header with Credits Card -->
+            <div class="top-bar">
+                <div class="header-section">
+                    <h1>Learn Dashboard</h1>
+                    <p class="header-subtitle">Find teachers and join live sessions</p>
+                </div>
+                
+                <!-- Credits Card -->
+                <div class="credits-card">
+                    <div class="credits-icon">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <div class="credits-info">
+                        <span class="credits-label">Available Credits</span>
+                        <span class="credits-amount" id="creditAmount">0</span>
+                    </div>
+                    <button class="add-credits-btn" id="addCreditsBtn">
+                        <i class="fas fa-plus"></i> Add
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search Section -->
+            <section class="search-section">
+                <div class="search-bar">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="searchInput" placeholder="Search for teachers by name or skill..." class="search-input">
+                    <button class="filter-btn" id="filterBtn">
+                        <i class="fas fa-sliders-h"></i>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Main Two-Column Layout -->
+            <div class="content-grid">
+                <!-- Left Column: Teacher List -->
+                <div class="teachers-column">
+                    <div class="section-header">
+                        <h2><i class="fas fa-chalkboard-user"></i> Available Teachers</h2>
+                        <span class="result-count" id="resultCount">Loading...</span>
+                    </div>
+                    
+                    <div class="teachers-scroll-container" id="teachersContainer">
+                        <div class="teachers-list" id="teachersList">
+                            <div class="loading-spinner">Loading teachers...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Session Requests -->
+                <div class="sessions-column">
+                    <!-- Accepted Sessions Section -->
+                    <div class="sessions-section accepted-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-check-circle" style="color: #10b981;"></i> Accepted Sessions</h3>
+                            <span class="badge accepted-badge" id="acceptedCount">0</span>
+                        </div>
+                        <div class="sessions-list" id="acceptedSessionsList">
+                            <div class="loading-sessions">Loading...</div>
+                        </div>
+                    </div>
+
+                    <!-- Rejected Sessions Section -->
+                    <div class="sessions-section rejected-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-times-circle" style="color: #ef4444;"></i> Rejected Sessions</h3>
+                            <span class="badge rejected-badge" id="rejectedCount">0</span>
+                        </div>
+                        <div class="sessions-list" id="rejectedSessionsList">
+                            <div class="loading-sessions">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Request Session Modal -->
+    <div class="modal" id="requestModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-calendar-plus"></i> Request Session with <span id="requestTeacherName"></span></h3>
+                <button class="close-modal" id="closeRequestModalBtn">&times;</button>
+            </div>
+            <form id="sessionRequestForm">
+                <input type="hidden" id="requestTeacherId">
+                <div class="form-group">
+                    <label>Skill to Learn *</label>
+                    <select id="requestSkillId" required>
+                        <option value="">Select a skill</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Session Title *</label>
+                    <input type="text" id="requestTitle" placeholder="e.g., React Hooks Deep Dive" required>
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="requestDescription" rows="3" placeholder="What would you like to learn?"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Preferred Date *</label>
+                        <input type="date" id="requestDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Preferred Time *</label>
+                        <input type="time" id="requestTime" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Duration (minutes) *</label>
+                        <select id="requestDuration" required>
+                            <option value="30">30 minutes</option>
+                            <option value="60">60 minutes</option>
+                            <option value="90">90 minutes</option>
+                            <option value="120">120 minutes</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Proposed Credits *</label>
+                        <input type="number" id="requestCredits" min="1" required>
+                        <small id="creditHint"></small>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Message to Teacher</label>
+                    <textarea id="studentMessage" rows="2" placeholder="Any specific topics or questions?"></textarea>
+                </div>
+                <button type="submit" class="submit-request-btn">Send Request</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Chat Modal -->
+    <div class="modal" id="chatModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-comment-dots"></i> Chat with <span id="chatTeacherName"></span></h3>
+                <button class="close-modal" id="closeModalBtn">&times;</button>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div class="chat-message system">
+                    <i class="fas fa-comment"></i> Loading conversation...
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chatInput" placeholder="Type your message...">
+                <button id="sendMessageBtn"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get user data from server
+        const currentUser = {
+            id: '<%= user ? user._id : "" %>',
+            name: '<%= user ? user.name : "" %>',
+            email: '<%= user ? user.email : "" %>'
+        };
+        
+        // Socket.io connection
+        let socket = null;
+        
+        // Global state
+        let currentPage = 1;
+        let isLoading = false;
+        let hasMore = true;
+        let currentSearchTerm = '';
+        let currentChatTeacher = null;
+        let currentConversationId = null;
+        let skillsList = [];
+        
+        // Helper function to show toast
+        function showToast(message, type = "info") {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('show');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }, 100);
+        }
+        
+        // API Calls
+        async function fetchCredits() {
+            try {
+                const response = await fetch('/api/learn/credits');
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('creditAmount').textContent = data.data.credits.toLocaleString();
+                    return data.data;
+                }
+            } catch (error) {
+                console.error('Error fetching credits:', error);
+            }
+            return null;
+        }
+        
+        async function fetchSkills() {
+            try {
+                const response = await fetch('/api/learn/skills');
+                const data = await response.json();
+                if (data.success) {
+                    skillsList = data.data;
+                    const skillSelect = document.getElementById('requestSkillId');
+                    if (skillSelect) {
+                        skillSelect.innerHTML = '<option value="">Select a skill</option>' + 
+                            data.data.map(skill => `<option value="${skill._id}">${skill.name} (${skill.category})</option>`).join('');
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching skills:', error);
+            }
+        }
+        
+        async function fetchTeachers(searchTerm = '', page = 1, append = false) {
+            if (isLoading) return;
+            isLoading = true;
+            
+            try {
+                const url = `/api/learn/teachers/search?q=${encodeURIComponent(searchTerm)}&page=${page}&limit=10`;
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    if (append) {
+                        appendTeachers(data.data);
+                    } else {
+                        renderTeachers(data.data);
+                    }
+                    hasMore = data.data.length === 10;
+                    document.getElementById('resultCount').textContent = `${data.pagination.total} teacher${data.pagination.total !== 1 ? 's' : ''} found`;
+                }
+            } catch (error) {
+                console.error('Error fetching teachers:', error);
+                showToast('Failed to load teachers', 'error');
+            } finally {
+                isLoading = false;
+            }
+        }
+        
+        function renderTeachers(teachers) {
+            const container = document.getElementById('teachersList');
+            
+            if (teachers.length === 0) {
+                container.innerHTML = `
+                    <div class="no-results">
+                        <i class="fas fa-search"></i>
+                        <p>No teachers found matching your search.</p>
+                        <small>Try searching by name or skill</small>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = teachers.map(teacher => {
+                // Get first letter of first and last name for avatar
+                const initials = teacher.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                const avatarColor = `linear-gradient(135deg, ${getRandomColor(teacher._id)}, ${getRandomColor(teacher._id + '2')})`;
+                const teachingSkills = teacher.teachingSkills?.map(s => s.name).join(', ') || 'Teaching';
+                const requestStatus = teacher.requestStatus;
+                
+                let actionButton = '';
+                if (!requestStatus) {
+                    actionButton = `<button class="request-btn" data-teacher='${JSON.stringify(teacher)}'>
+                                        <i class="fas fa-calendar-plus"></i> Request Session
+                                    </button>`;
+                } else if (requestStatus === 'accepted') {
+                    actionButton = `<button class="chat-btn" data-teacher='${JSON.stringify(teacher)}'>
+                                        <i class="fas fa-comment-dots"></i> Chat with Teacher
+                                    </button>`;
+                } else if (requestStatus === 'rejected') {
+                    actionButton = `<button class="disabled-btn" disabled>
+                                        <i class="fas fa-ban"></i> Request Rejected
+                                    </button>`;
+                } else if (requestStatus === 'pending') {
+                    actionButton = `<button class="pending-btn" disabled>
+                                        <i class="fas fa-clock"></i> Request Pending
+                                    </button>`;
+                }
+                
+                return `
+                    <div class="teacher-card" data-teacher-id="${teacher._id}">
+                        <div class="teacher-avatar" style="background: ${avatarColor}">
+                            ${initials}
+                        </div>
+                        <div class="teacher-info">
+                            <div class="teacher-name">${escapeHtml(teacher.name)}</div>
+                            <div class="teacher-skill">${escapeHtml(teachingSkills)}</div>
+                            <div class="teacher-bio">${escapeHtml(teacher.bio?.substring(0, 80) || 'No bio available')}${teacher.bio?.length > 80 ? '...' : ''}</div>
+                            <div class="teacher-rating">
+                                <i class="fas fa-star" style="color: #fbbf24; font-size: 12px;"></i>
+                                <span class="rating-value">${teacher.rating || 0}</span>
+                                <span class="rating-max">/ 5.0</span>
+                                <span class="rating-count">(${teacher.totalReviews || 0} reviews)</span>
+                            </div>
+                        </div>
+                        <div class="teacher-actions">
+                            ${actionButton}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Attach event listeners
+            document.querySelectorAll('.request-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const teacherData = JSON.parse(btn.dataset.teacher);
+                    openRequestModal(teacherData);
+                });
+            });
+            
+            document.querySelectorAll('.chat-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const teacherData = JSON.parse(btn.dataset.teacher);
+                    openChat(teacherData);
+                });
+            });
+        }
+        
+        function appendTeachers(newTeachers) {
+            const container = document.getElementById('teachersList');
+            newTeachers.forEach(teacher => {
+                const initials = teacher.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                const avatarColor = `linear-gradient(135deg, ${getRandomColor(teacher._id)}, ${getRandomColor(teacher._id + '2')})`;
+                const teachingSkills = teacher.teachingSkills?.map(s => s.name).join(', ') || 'Teaching';
+                const requestStatus = teacher.requestStatus;
+                
+                let actionButton = '';
+                if (!requestStatus) {
+                    actionButton = `<button class="request-btn" data-teacher='${JSON.stringify(teacher)}'>
+                                        <i class="fas fa-calendar-plus"></i> Request Session
+                                    </button>`;
+                } else if (requestStatus === 'accepted') {
+                    actionButton = `<button class="chat-btn" data-teacher='${JSON.stringify(teacher)}'>
+                                        <i class="fas fa-comment-dots"></i> Chat with Teacher
+                                    </button>`;
+                } else if (requestStatus === 'rejected') {
+                    actionButton = `<button class="disabled-btn" disabled>
+                                        <i class="fas fa-ban"></i> Request Rejected
+                                    </button>`;
+                } else if (requestStatus === 'pending') {
+                    actionButton = `<button class="pending-btn" disabled>
+                                        <i class="fas fa-clock"></i> Request Pending
+                                    </button>`;
+                }
+                
+                const cardHtml = `
+                    <div class="teacher-card" data-teacher-id="${teacher._id}">
+                        <div class="teacher-avatar" style="background: ${avatarColor}">
+                            ${initials}
+                        </div>
+                        <div class="teacher-info">
+                            <div class="teacher-name">${escapeHtml(teacher.name)}</div>
+                            <div class="teacher-skill">${escapeHtml(teachingSkills)}</div>
+                            <div class="teacher-bio">${escapeHtml(teacher.bio?.substring(0, 80) || 'No bio available')}${teacher.bio?.length > 80 ? '...' : ''}</div>
+                            <div class="teacher-rating">
+                                <i class="fas fa-star" style="color: #fbbf24; font-size: 12px;"></i>
+                                <span class="rating-value">${teacher.rating || 0}</span>
+                                <span class="rating-max">/ 5.0</span>
+                                <span class="rating-count">(${teacher.totalReviews || 0} reviews)</span>
+                            </div>
+                        </div>
+                        <div class="teacher-actions">
+                            ${actionButton}
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', cardHtml);
+            });
+            
+            // Re-attach event listeners for new buttons
+            document.querySelectorAll('.request-btn').forEach(btn => {
+                btn.removeEventListener('click', () => {});
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const teacherData = JSON.parse(btn.dataset.teacher);
+                    openRequestModal(teacherData);
+                });
+            });
+            
+            document.querySelectorAll('.chat-btn').forEach(btn => {
+                btn.removeEventListener('click', () => {});
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const teacherData = JSON.parse(btn.dataset.teacher);
+                    openChat(teacherData);
+                });
+            });
+        }
+        
+        function getRandomColor(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const hue = hash % 360;
+            return `hsl(${hue}, 70%, 60%)`;
+        }
+        
+        async function fetchSessionRequests() {
+            try {
+                const response = await fetch('/api/learn/session-requests');
+                const data = await response.json();
+                if (data.success) {
+                    renderAcceptedSessions(data.data.accepted);
+                    renderRejectedSessions(data.data.rejected);
+                    document.getElementById('acceptedCount').textContent = data.data.counts.accepted;
+                    document.getElementById('rejectedCount').textContent = data.data.counts.rejected;
+                }
+            } catch (error) {
+                console.error('Error fetching session requests:', error);
+            }
+        }
+        
+        function renderAcceptedSessions(acceptedSessions) {
+            const container = document.getElementById('acceptedSessionsList');
+            
+            if (!acceptedSessions || acceptedSessions.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-sessions">
+                        <i class="fas fa-calendar-check"></i>
+                        <p>No accepted sessions yet</p>
+                        <small>Request a session from a teacher above</small>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = acceptedSessions.map(session => {
+                const teacher = session.teacher;
+                const teacherInitials = teacher.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                const sessionDate = new Date(session.preferredDate);
+                const formattedDate = sessionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                
+                return `
+                    <div class="session-card-item accepted">
+                        <div class="session-card-header">
+                            <div class="session-teacher">
+                                <div class="session-avatar small" style="background: ${getRandomColor(teacher._id)}">${teacherInitials}</div>
+                                <div class="session-info">
+                                    <h4>${escapeHtml(teacher.name)}</h4>
+                                    <span class="session-skill-tag">${session.skill?.name || 'Skill'}</span>
+                                </div>
+                            </div>
+                            <div class="session-status accepted">
+                                <i class="fas fa-check-circle"></i> Accepted
+                            </div>
+                        </div>
+                        <div class="session-details">
+                            <div class="session-detail-item">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>${formattedDate} at ${session.preferredTime}</span>
+                            </div>
+                            <div class="session-detail-item">
+                                <i class="fas fa-clock"></i>
+                                <span>${session.duration} minutes</span>
+                            </div>
+                            <div class="session-detail-item">
+                                <i class="fas fa-coins"></i>
+                                <span>${session.proposedCredits} credits</span>
+                            </div>
+                            ${session.session ? `
+                                <div class="session-code-box">
+                                    <span class="code-label">Session Code:</span>
+                                    <span class="code-value">${session.session.joinCode || session.session.roomId?.substring(0, 8)}</span>
+                                    <button class="copy-code-btn" data-code="${session.session.joinCode || session.session.roomId?.substring(0, 8)}">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                                <div class="session-actions">
+                                    ${session.session.meetingLink ? 
+                                        `<a href="${session.session.meetingLink}" target="_blank" class="join-class-btn">
+                                            <i class="fas fa-video"></i> Join Class
+                                        </a>` : ''
+                                    }
+                                    <button class="chat-session-btn" data-teacher='${JSON.stringify({name: teacher.name, id: teacher._id})}'>
+                                        <i class="fas fa-comment-dots"></i> Chat
+                                    </button>
+                                </div>
+                            ` : `
+                                <div class="session-pending-message">
+                                    <i class="fas fa-hourglass-half"></i>
+                                    <span>Waiting for teacher to confirm session details</span>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.querySelectorAll('.copy-code-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const code = btn.dataset.code;
+                    navigator.clipboard.writeText(code);
+                    showToast("Session code copied!", "success");
+                });
+            });
+            
+            document.querySelectorAll('.chat-session-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const teacherData = JSON.parse(btn.dataset.teacher);
+                    openChat(teacherData);
+                });
+            });
+        }
+        
+        function renderRejectedSessions(rejectedSessions) {
+            const container = document.getElementById('rejectedSessionsList');
+            
+            if (!rejectedSessions || rejectedSessions.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-sessions">
+                        <i class="fas fa-ban"></i>
+                        <p>No rejected sessions</p>
+                        <small>All your requests are in good standing</small>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = rejectedSessions.map(session => {
+                const teacher = session.teacher;
+                const teacherInitials = teacher.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                const sessionDate = new Date(session.preferredDate);
+                const formattedDate = sessionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                
+                return `
+                    <div class="session-card-item rejected">
+                        <div class="session-card-header">
+                            <div class="session-teacher">
+                                <div class="session-avatar small" style="background: #fee2e2;">${teacherInitials}</div>
+                                <div class="session-info">
+                                    <h4>${escapeHtml(teacher.name)}</h4>
+                                    <span class="session-skill-tag">${session.skill?.name || 'Skill'}</span>
+                                </div>
+                            </div>
+                            <div class="session-status rejected">
+                                <i class="fas fa-times-circle"></i> Rejected
+                            </div>
+                        </div>
+                        <div class="session-details">
+                            <div class="session-detail-item">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>${formattedDate} at ${session.preferredTime}</span>
+                            </div>
+                            ${session.teacherMessage ? `
+                                <div class="rejection-reason">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>Reason: ${escapeHtml(session.teacherMessage)}</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Request Modal Functions
+        function openRequestModal(teacher) {
+            currentChatTeacher = teacher;
+            document.getElementById('requestTeacherId').value = teacher._id;
+            document.getElementById('requestTeacherName').textContent = teacher.name;
+            
+            // Set default credits based on teacher's rate
+            const defaultCredits = teacher.creditRate || 2;
+            document.getElementById('requestCredits').value = defaultCredits;
+            document.getElementById('creditHint').textContent = `Teacher's rate: ${defaultCredits} credits per hour`;
+            
+            // Set min date to tomorrow
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            document.getElementById('requestDate').min = tomorrow.toISOString().split('T')[0];
+            
+            document.getElementById('requestModal').classList.add('show');
+        }
+        
+        // Submit session request
+        document.getElementById('sessionRequestForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const requestData = {
+                teacherId: document.getElementById('requestTeacherId').value,
+                skillId: document.getElementById('requestSkillId').value,
+                title: document.getElementById('requestTitle').value,
+                description: document.getElementById('requestDescription').value,
+                preferredDate: document.getElementById('requestDate').value,
+                preferredTime: document.getElementById('requestTime').value,
+                duration: parseInt(document.getElementById('requestDuration').value),
+                proposedCredits: parseInt(document.getElementById('requestCredits').value),
+                studentMessage: document.getElementById('studentMessage').value
+            };
+            
+            // Validate
+            if (!requestData.skillId || !requestData.title || !requestData.preferredDate || !requestData.preferredTime) {
+                showToast('Please fill all required fields', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/learn/session-request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Session request sent successfully!', 'success');
+                    document.getElementById('requestModal').classList.remove('show');
+                    document.getElementById('sessionRequestForm').reset();
+                    // Refresh data
+                    fetchSessionRequests();
+                    fetchTeachers(currentSearchTerm, 1, false);
+                } else {
+                    showToast(data.message || 'Failed to send request', 'error');
+                }
+            } catch (error) {
+                console.error('Error sending request:', error);
+                showToast('Failed to send request', 'error');
+            }
+        });
+        
+        // Chat Functions
+        async function openChat(teacher) {
+            currentChatTeacher = teacher;
+            
+            // Check if chat is allowed
+            try {
+                const checkResponse = await fetch(`/api/learn/chat/check/${teacher._id}`);
+                const checkData = await checkResponse.json();
+                
+                if (!checkData.success || !checkData.data.canChat) {
+                    showToast(checkData.data?.message || 'You can only chat with teachers who have accepted your session request', 'error');
+                    return;
+                }
+            } catch (error) {
+                console.error('Error checking chat access:', error);
+                showToast('Cannot access chat at this time', 'error');
+                return;
+            }
+            
+            // Get or create conversation
+            try {
+                const response = await fetch(`/api/learn/chat/conversation/${teacher._id}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    currentConversationId = data.data.conversation._id;
+                    renderChatMessages(data.data.messages, teacher.name);
+                    
+                    const modal = document.getElementById('chatModal');
+                    document.getElementById('chatTeacherName').textContent = teacher.name;
+                    modal.classList.add('show');
+                    
+                    // Join socket room
+                    if (socket) {
+                        socket.emit('join_conversation', currentConversationId);
+                    }
+                }
+            } catch (error) {
+                console.error('Error opening chat:', error);
+                showToast('Failed to load chat', 'error');
+            }
+        }
+        
+        function renderChatMessages(messages, teacherName) {
+            const container = document.getElementById('chatMessages');
+            
+            if (!messages || messages.length === 0) {
+                container.innerHTML = `
+                    <div class="chat-message system">
+                        <i class="fas fa-comment"></i> Start chatting with ${teacherName}!
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = messages.map(msg => {
+                const isUser = msg.sender._id === currentUser.id;
+                return `
+                    <div class="chat-message ${isUser ? 'user' : 'teacher'}">
+                        <div class="message-bubble">
+                            ${!isUser ? `<strong>${escapeHtml(msg.sender.name)}:</strong> ` : ''}
+                            <span>${escapeHtml(msg.content)}</span>
+                            <small>${new Date(msg.createdAt).toLocaleTimeString()}</small>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message || !currentChatTeacher) return;
+            
+            try {
+                const response = await fetch('/api/learn/chat/message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        receiverId: currentChatTeacher._id,
+                        content: message,
+                        type: 'text'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Add message to UI
+                    const container = document.getElementById('chatMessages');
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'chat-message user';
+                    messageDiv.innerHTML = `
+                        <div class="message-bubble">
+                            <span>${escapeHtml(message)}</span>
+                            <small>${new Date().toLocaleTimeString()}</small>
+                        </div>
+                    `;
+                    container.appendChild(messageDiv);
+                    container.scrollTop = container.scrollHeight;
+                    input.value = '';
+                } else {
+                    showToast('Failed to send message', 'error');
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                showToast('Failed to send message', 'error');
+            }
+        }
+        
+        // Add credits
+        async function addCredits() {
+            const amount = prompt("Enter amount of credits to add:", "100");
+            if (amount && !isNaN(amount) && parseInt(amount) > 0) {
+                // This would call a payment API - for now just update locally
+                showToast(`Add credits feature - would add ${amount} credits`, "info");
+                // In production, call: POST /api/learn/credits/add
+            }
+        }
+        
+        // Scroll loading for teachers
+        function setupInfiniteScroll() {
+            const container = document.getElementById('teachersContainer');
+            container.addEventListener('scroll', () => {
+                if (container.scrollTop + container.clientHeight >= container.scrollHeight - 100) {
+                    if (hasMore && !isLoading) {
+                        currentPage++;
+                        fetchTeachers(currentSearchTerm, currentPage, true);
+                    }
+                }
+            });
+        }
+        
+        // Search functionality
+        function setupSearch() {
+            const searchInput = document.getElementById('searchInput');
+            let debounceTimer;
+            
+            searchInput.addEventListener('input', (e) => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    currentSearchTerm = e.target.value;
+                    currentPage = 1;
+                    fetchTeachers(currentSearchTerm, 1, false);
+                }, 300);
+            });
+        }
+        
+        // Initialize socket
+        function initSocket() {
+            socket = io();
+            
+            socket.on('connect', () => {
+                console.log('Socket connected');
+                socket.emit('register_user', currentUser.id);
+            });
+            
+            socket.on('new_message', (data) => {
+                if (currentConversationId === data.conversationId) {
+                    const container = document.getElementById('chatMessages');
+                    const message = data.message;
+                    const isUser = message.sender._id === currentUser.id;
+                    
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `chat-message ${isUser ? 'user' : 'teacher'}`;
+                    messageDiv.innerHTML = `
+                        <div class="message-bubble">
+                            ${!isUser ? `<strong>${escapeHtml(message.sender.name)}:</strong> ` : ''}
+                            <span>${escapeHtml(message.content)}</span>
+                            <small>${new Date(message.createdAt).toLocaleTimeString()}</small>
+                        </div>
+                    `;
+                    container.appendChild(messageDiv);
+                    container.scrollTop = container.scrollHeight;
+                }
+            });
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Initialize page
+        async function init() {
+            // Show user info
+            if (currentUser.name) {
+                console.log('Logged in as:', currentUser.name);
+            }
+            
+            // Initialize socket
+            initSocket();
+            
+            // Fetch initial data
+            await fetchCredits();
+            await fetchSkills();
+            await fetchTeachers('', 1, false);
+            await fetchSessionRequests();
+            
+            // Setup event listeners
+            setupSearch();
+            setupInfiniteScroll();
+            
+            document.getElementById('addCreditsBtn')?.addEventListener('click', addCredits);
+            
+            // Modal close buttons
+            document.getElementById('closeModalBtn')?.addEventListener('click', () => {
+                document.getElementById('chatModal').classList.remove('show');
+                if (socket && currentConversationId) {
+                    socket.emit('leave_conversation', currentConversationId);
+                    currentConversationId = null;
+                }
+            });
+            
+            document.getElementById('closeRequestModalBtn')?.addEventListener('click', () => {
+                document.getElementById('requestModal').classList.remove('show');
+                document.getElementById('sessionRequestForm')?.reset();
+            });
+            
+            document.getElementById('sendMessageBtn')?.addEventListener('click', sendChatMessage);
+            document.getElementById('chatInput')?.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendChatMessage();
+            });
+            
+            // Close modals on outside click
+            document.getElementById('chatModal')?.addEventListener('click', (e) => {
+                if (e.target === document.getElementById('chatModal')) {
+                    document.getElementById('chatModal').classList.remove('show');
+                    if (socket && currentConversationId) {
+                        socket.emit('leave_conversation', currentConversationId);
+                        currentConversationId = null;
+                    }
+                }
+            });
+            
+            document.getElementById('requestModal')?.addEventListener('click', (e) => {
+                if (e.target === document.getElementById('requestModal')) {
+                    document.getElementById('requestModal').classList.remove('show');
+                }
+            });
+        }
+        
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

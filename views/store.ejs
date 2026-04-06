@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credits Store | Purchase Learning Credits</title>
+    <link rel="stylesheet" href="/store.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="store-container">
+        <!-- Header Section -->
+        <header class="store-header">
+            <div class="header-content">
+                <h1>
+                    <i class="fas fa-store"></i>
+                    Credits Store
+                </h1>
+                <p>Purchase credits to unlock premium learning sessions</p>
+            </div>
+        </header>
+
+        <!-- Main Grid: Credit Plans + Transaction History -->
+        <div class="store-grid">
+            <!-- Left Column: Credit Plans -->
+            <div class="plans-column">
+                <div class="credit-plans">
+                    <!-- 50 Credits Plan -->
+                    <div class="plan-card featured">
+                        <div class="plan-badge">POPULAR</div>
+                        <div class="plan-header">
+                            <h2 class="plan-credits">50 Credits</h2>
+                            <div class="plan-price">
+                                <span class="currency">₹</span>
+                                <span class="amount">299</span>
+                            </div>
+                        </div>
+                        <div class="plan-features">
+                            <div class="feature-item">
+                                <i class="fas fa-check-circle"></i>
+                                <span>5 Sessions</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-headset"></i>
+                                <span>Basic Support</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>Valid 30 days</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-envelope"></i>
+                                <span>Email Notifications</span>
+                            </div>
+                        </div>
+                        <button class="btn-buy" onclick="purchasePlan(50, 299)">
+                            Buy Now <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- 100 Credits Plan -->
+                    <div class="plan-card">
+                        <div class="plan-header">
+                            <h2 class="plan-credits">100 Credits</h2>
+                            <div class="plan-price">
+                                <span class="currency">₹</span>
+                                <span class="amount">549</span>
+                            </div>
+                            <div class="plan-savings">Save ₹49</div>
+                        </div>
+                        <div class="plan-features">
+                            <div class="feature-item">
+                                <i class="fas fa-check-circle"></i>
+                                <span>10 Sessions</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-headset"></i>
+                                <span>Priority Support</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>Valid 60 days</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-envelope"></i>
+                                <span>Email & SMS Alerts</span>
+                            </div>
+                        </div>
+                        <button class="btn-buy" onclick="purchasePlan(100, 549)">
+                            Buy Now <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- 250 Credits Plan -->
+                    <div class="plan-card">
+                        <div class="plan-header">
+                            <h2 class="plan-credits">250 Credits</h2>
+                            <div class="plan-price">
+                                <span class="currency">₹</span>
+                                <span class="amount">1299</span>
+                            </div>
+                            <div class="plan-savings">Save ₹251</div>
+                        </div>
+                        <div class="plan-features">
+                            <div class="feature-item">
+                                <i class="fas fa-check-circle"></i>
+                                <span>25 Sessions</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-headset"></i>
+                                <span>VIP Support</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>Valid 90 days</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="fas fa-chart-line"></i>
+                                <span>Progress Analytics</span>
+                            </div>
+                        </div>
+                        <button class="btn-buy" onclick="purchasePlan(250, 1299)">
+                            Buy Now <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Transaction History & Account Info -->
+            <div class="info-column">
+                <!-- Transaction History Card -->
+                <div class="transaction-card">
+                    <div class="card-header">
+                        <i class="fas fa-history"></i>
+                        <h3>Transaction History</h3>
+                        <button class="btn-refresh" onclick="refreshHistory()">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    <div class="transaction-table-container">
+                        <table class="transaction-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transactionBody">
+                                <!-- Transactions will be populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="transaction-footer">
+                        <a href="#" class="view-all-link">View All Transactions <i class="fas fa-external-link-alt"></i></a>
+                    </div>
+                </div>
+
+                <!-- Account Information Card -->
+                <div class="account-card">
+                    <div class="card-header">
+                        <i class="fas fa-user-circle"></i>
+                        <h3>Account Information</h3>
+                    </div>
+                    <div class="account-info">
+                        <div class="info-row">
+                            <div class="info-label">
+                                <i class="fas fa-globe"></i>
+                                <span>Website</span>
+                            </div>
+                            <div class="info-value">
+                                <a href="https://skarikhim.com" target="_blank">skarikhim.com</a>
+                            </div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">
+                                <i class="fas fa-envelope"></i>
+                                <span>Contact</span>
+                            </div>
+                            <div class="info-value">
+                                <a href="mailto:sarah@skarikhim.com">sarah@skarikhim.com</a>
+                            </div>
+                        </div>
+                        <div class="info-row">
+                            <div class="info-label">
+                                <i class="fas fa-credit-card"></i>
+                                <span>Payment Method</span>
+                            </div>
+                            <div class="info-value">
+                                <i class="fab fa-cc-visa"></i>
+                                <i class="fab fa-cc-mastercard"></i>
+                                <i class="fab fa-cc-amex"></i>
+                                <span>UPI</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="account-stats">
+                        <div class="stat-badge">
+                            <i class="fas fa-coins"></i>
+                            <span>Current Balance: <strong>87 credits</strong></span>
+                        </div>
+                        <div class="stat-badge">
+                            <i class="fas fa-calendar-week"></i>
+                            <span>Member since: Jan 2026</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Special Offers Card -->
+                <div class="offers-card">
+                    <div class="card-header">
+                        <i class="fas fa-gift"></i>
+                        <h3>Special Offers</h3>
+                    </div>
+                    <div class="offers-list">
+                        <div class="offer-item">
+                            <div class="offer-icon">
+                                <i class="fas fa-percent"></i>
+                            </div>
+                            <div class="offer-info">
+                                <h4>First Purchase Bonus</h4>
+                                <p>Get 20% extra credits on your first purchase</p>
+                            </div>
+                        </div>
+                        <div class="offer-item">
+                            <div class="offer-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="offer-info">
+                                <h4>Refer a Friend</h4>
+                                <p>Earn 50 credits for each friend who joins</p>
+                            </div>
+                        </div>
+                        <div class="offer-item">
+                            <div class="offer-icon">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="offer-info">
+                                <h4>Monthly Subscription</h4>
+                                <p>Save 25% with auto-renewal plans</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Transaction data
+        let transactions = [
+            { date: "Mar 15, 2026", amount: "₹ 799", status: "success", credits: 150 },
+            { date: "Feb 20, 2026", amount: "₹ 299", status: "success", credits: 50 },
+            { date: "Jan 28, 2026", amount: "₹ 799", status: "success", credits: 150 },
+            { date: "Dec 15, 2025", amount: "₹ 549", status: "success", credits: 100 },
+            { date: "Nov 10, 2025", amount: "₹ 299", status: "success", credits: 50 }
+        ];
+
+        // Current user credits
+        let currentCredits = 87;
+
+        // Render transaction history
+        function renderTransactions() {
+            const tbody = document.getElementById('transactionBody');
+            
+            tbody.innerHTML = transactions.map(transaction => `
+                <tr>
+                    <td>${transaction.date}</td>
+                    <td class="amount-cell">${transaction.amount}</td>
+                    <td>
+                        <span class="status-badge ${transaction.status}">
+                            <i class="fas ${transaction.status === 'success' ? 'fa-check-circle' : 'fa-clock'}"></i>
+                            ${transaction.status === 'success' ? 'Success' : 'Pending'}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Purchase plan function
+        function purchasePlan(credits, amount) {
+            const confirmPurchase = confirm(`Purchase ${credits} credits for ₹${amount}?\n\nThis will add ${credits} credits to your account.`);
+            
+            if (confirmPurchase) {
+                // Simulate payment processing
+                const loadingToast = document.createElement('div');
+                loadingToast.className = 'toast-message loading';
+                loadingToast.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing payment...';
+                document.body.appendChild(loadingToast);
+                
+                setTimeout(() => {
+                    loadingToast.remove();
+                    
+                    // Add new transaction
+                    const newTransaction = {
+                        date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+                        amount: `₹ ${amount}`,
+                        status: "success",
+                        credits: credits
+                    };
+                    
+                    transactions.unshift(newTransaction);
+                    currentCredits += credits;
+                    
+                    // Update UI
+                    renderTransactions();
+                    updateCreditsDisplay();
+                    
+                    // Show success message
+                    const successToast = document.createElement('div');
+                    successToast.className = 'toast-message success';
+                    successToast.innerHTML = `<i class="fas fa-check-circle"></i> Successfully purchased ${credits} credits!`;
+                    document.body.appendChild(successToast);
+                    
+                    setTimeout(() => {
+                        successToast.remove();
+                    }, 3000);
+                    
+                }, 1500);
+            }
+        }
+        
+        // Update credits display in account card
+        function updateCreditsDisplay() {
+            const creditStat = document.querySelector('.account-stats .stat-badge:first-child');
+            if (creditStat) {
+                creditStat.innerHTML = `<i class="fas fa-coins"></i> <span>Current Balance: <strong>${currentCredits} credits</strong></span>`;
+            }
+        }
+        
+        // Refresh history (simulate)
+        function refreshHistory() {
+            const refreshBtn = document.querySelector('.btn-refresh i');
+            refreshBtn.classList.add('fa-spin');
+            
+            setTimeout(() => {
+                renderTransactions();
+                refreshBtn.classList.remove('fa-spin');
+                
+                const toast = document.createElement('div');
+                toast.className = 'toast-message success';
+                toast.innerHTML = '<i class="fas fa-check-circle"></i> Transaction history refreshed!';
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 2000);
+            }, 500);
+        }
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            renderTransactions();
+            
+            // Add click handlers for view all link
+            const viewAllLink = document.querySelector('.view-all-link');
+            if (viewAllLink) {
+                viewAllLink.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    alert('View all transactions feature coming soon!');
+                });
+            }
+        });
+        
+        // Add CSS for toast messages dynamically
+        const style = document.createElement('style');
+        style.textContent = `
+            .toast-message {
+                position: fixed;
+                bottom: 30px;
+                right: 30px;
+                background: #10b981;
+                color: white;
+                padding: 12px 24px;
+                border-radius: 60px;
+                font-weight: 500;
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            
+            .toast-message.loading {
+                background: #4f46e5;
+            }
+            
+            .toast-message.success {
+                background: #10b981;
+            }
+            
+            @keyframes slideIn {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+            
+            .fa-spin {
+                animation: fa-spin 2s infinite linear;
+            }
+            
+            @keyframes fa-spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

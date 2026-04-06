@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings | Skill Swap</title>
+    <link rel="stylesheet" href="/index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <aside class="sidebar">
+            <div class="profile-section">
+                <div class="avatar">
+                    <i class="fas fa-user-circle"></i>
+                </div>
+                <h2 class="user-name"><%= user ? user.name : 'Skill Swap User' %></h2>
+                <span class="user-role">Account Settings</span>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="/" class="nav-item">
+                    <i class="fas fa-house"></i>
+                    <span>Home</span>
+                </a>
+                <a href="/learn" class="nav-item">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>Learn</span>
+                </a>
+                <a href="/teach" class="nav-item">
+                    <i class="fas fa-chalkboard-user"></i>
+                    <span>Teach</span>
+                </a>
+                <a href="/roadmap" class="nav-item">
+                    <i class="fas fa-map"></i>
+                    <span>Roadmap</span>
+                </a>
+                <a href="/history" class="nav-item">
+                    <i class="fas fa-clock-rotate-left"></i>
+                    <span>History</span>
+                </a>
+                <a href="/store" class="nav-item">
+                    <i class="fas fa-store"></i>
+                    <span>Store</span>
+                </a>
+                <a href="/settings" class="nav-item active">
+                    <i class="fas fa-gear"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <a href="/auth/logout" class="nav-item logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="top-bar">
+                <div>
+                    <h1 style="font-size: 2rem; color: #0f172a;">Settings</h1>
+                    <p style="color: #64748b; margin-top: 0.35rem;">A stable placeholder so we can keep building without broken navigation.</p>
+                </div>
+            </div>
+
+            <div class="stats-row">
+                <section class="active-session-card">
+                    <div class="card-header">
+                        <i class="fas fa-user-gear"></i>
+                        <h3>Profile</h3>
+                    </div>
+                    <p class="session-title">Your public details</p>
+                    <p style="color: #64748b;">Name: <strong style="color: #1e293b;"><%= user ? user.name : 'Unknown user' %></strong></p>
+                    <p style="color: #64748b; margin-top: 0.5rem;">Email: <strong style="color: #1e293b;"><%= user ? user.email : 'Unavailable' %></strong></p>
+                </section>
+
+                <section class="credits-card">
+                    <div class="card-header">
+                        <i class="fas fa-shield-heart"></i>
+                        <h3>Account</h3>
+                    </div>
+                    <p class="session-title">Current status</p>
+                    <p style="color: #64748b;">Role: <strong style="color: #1e293b; text-transform: capitalize;"><%= user ? user.role : 'user' %></strong></p>
+                    <p style="color: #64748b; margin-top: 0.5rem;">Credits: <strong style="color: #1e293b;"><%= user ? user.credits : 0 %></strong></p>
+                </section>
+            </div>
+
+            <section class="teacher-card" style="max-width: 860px;">
+                <div class="teacher-header">
+                    <div class="teacher-avatar">
+                        <i class="fas fa-screwdriver-wrench"></i>
+                    </div>
+                    <div class="teacher-info">
+                        <h2 class="teacher-name">Next build targets</h2>
+                        <div class="teacher-skills">
+                            <span class="skill-tag">Editable profile</span>
+                            <span class="skill-tag">Password update</span>
+                            <span class="skill-tag">Notification preferences</span>
+                        </div>
+                    </div>
+                </div>
+                <p style="color: #475569;">
+                    This page is now wired correctly and ready for the next implementation step. We can turn it into a real account settings flow next.
+                </p>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

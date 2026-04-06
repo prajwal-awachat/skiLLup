@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard | Skill Exchange</title>
+    <link rel="stylesheet" href="/teach.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="profile-section">
+                <div class="avatar">
+                    <% if (user.avatar) { %>
+                        <img src="<%= user.avatar %>" style="width:64px;height:64px;border-radius:50%">
+                    <% } else { %>
+                        <i class="fas fa-user-circle"></i>
+                    <% } %>
+                </div>
+                <h2 class="user-name"><%= user.name %></h2>
+                <span class="user-role">Teacher</span>
+                <span class="level-badge">Level <%= user.level %></span>
+            </div>
+            
+            <nav class="nav-menu">
+                <a href="/learn" class="nav-item">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>Learn</span>
+                </a>
+                <a href="/teach" class="nav-item active">
+                    <i class="fas fa-chalkboard-user"></i>
+                    <span>Teach</span>
+                </a>
+                <a href="/roadmap" class="nav-item">
+                    <i class="fas fa-map"></i>
+                    <span>Roadmap</span>
+                </a>
+                <a href="/history" class="nav-item">
+                    <i class="fas fa-history"></i>
+                    <span>History</span>
+                </a>
+                <a href="/store" class="nav-item">
+                    <i class="fas fa-store"></i>
+                    <span>Store</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <a href="/settings" class="nav-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+                <a href="/auth/logout" class="nav-item logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Stats Row -->
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-coins"></i></div>
+                    <div class="stat-info">
+                        <h3>Total Credits</h3>
+                        <div class="stat-number"><%= user.credits %></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+                    <div class="stat-info">
+                        <h3>Credits Earned</h3>
+                        <div class="stat-number"><%= user.totalCreditsEarned %></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-exchange-alt"></i></div>
+                    <div class="stat-info">
+                        <h3>Redeemable</h3>
+                        <div class="stat-number"><%= user.redeemableCredits %></div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-users"></i></div>
+                    <div class="stat-info">
+                        <h3>Students</h3>
+                        <div class="stat-number"><%= user.studentsCount %></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Level Info Card -->
+            <div class="level-card">
+                <div class="level-title">
+                    <i class="fas fa-crown"></i> Level <%= user.level %> Benefits
+                </div>
+                <div class="level-perks">
+                    <% if (user.level === 1) { %>
+                        <span class="perk">💰 Earn 1 credit/session</span>
+                        <span class="perk">📚 Take sessions only</span>
+                    <% } else if (user.level === 2) { %>
+                        <span class="perk">💰 Earn 2 credits/session</span>
+                        <span class="perk">🎓 Cannot redeem credits</span>
+                    <% } else if (user.level === 3) { %>
+                        <span class="perk">💰 Earn 2 credits/session</span>
+                        <span class="perk">💵 Can redeem credits for money</span>
+                    <% } else if (user.level === 4) { %>
+                        <span class="perk">💰 Set own credit rate</span>
+                        <span class="perk">💵 Can redeem credits</span>
+                        <span class="perk">👤 One-on-one sessions only</span>
+                    <% } else { %>
+                        <span class="perk">💰 Set own credit rate</span>
+                        <span class="perk">💵 Can redeem credits</span>
+                        <span class="perk">👥 Group sessions (up to 100 students)</span>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- My Teaching Skills Section -->
+            <div class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-chalkboard"></i> My Teaching Skills</h2>
+                    <button class="btn-add" onclick="openAddSkillModal()">
+                        <i class="fas fa-plus"></i> Add Skill
+                    </button>
+                </div>
+                <div class="skills-grid" id="skillsGrid">
+                    <% if (userSkills && userSkills.length > 0) { %>
+                        <% userSkills.forEach(skill => { %>
+                            <span class="skill-tag">
+                                <%= skill.name %>
+                                <i class="fas fa-times remove-skill" onclick="removeSkill('<%= skill._id %>')"></i>
+                            </span>
+                        <% }) %>
+                    <% } else { %>
+                        <p>No teaching skills added yet. Add your first skill!</p>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- Session Requests Section -->
+            <div class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-clock"></i> Session Requests (<span id="requestCount"><%= sessionRequests.length %></span>)</h2>
+                </div>
+                <div class="requests-grid" id="requestsGrid">
+                    <% if (sessionRequests.length > 0) { %>
+                        <% sessionRequests.forEach(request => { %>
+                            <div class="request-card" id="request-<%= request._id %>">
+                                <div class="request-header">
+                                    <div>
+                                        <span class="student-name"><%= request.student.name %></span>
+                                        <span class="skill-name"> - <%= request.skill.name %></span>
+                                    </div>
+                                    <small><%= new Date(request.createdAt).toLocaleDateString() %></small>
+                                </div>
+                                <div class="request-details">
+                                    <p><strong><%= request.title %></strong></p>
+                                    <p><%= request.description || 'No description' %></p>
+                                    <p>📅 <%= new Date(request.preferredDate).toLocaleDateString() %> at <%= request.preferredTime %></p>
+                                    <p>⏱️ <%= request.duration %> minutes</p>
+                                    <p>💰 <%= request.proposedCredits %> credits</p>
+                                </div>
+                                <div class="request-actions">
+                                    <button class="btn-accept" onclick="openAcceptModal('<%= request._id %>', '<%= request.proposedCredits %>', '<%= request.duration %>')">
+                                        <i class="fas fa-check"></i> Accept
+                                    </button>
+                                    <button class="btn-reject" onclick="rejectRequest('<%= request._id %>')">
+                                        <i class="fas fa-times"></i> Reject
+                                    </button>
+                                </div>
+                            </div>
+                        <% }) %>
+                    <% } else { %>
+                        <p>No pending session requests</p>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- Accepted Sessions Section -->
+            <div class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-check-circle"></i> Accepted Sessions</h2>
+                </div>
+                <div class="accepted-grid" id="acceptedGrid">
+                    <% if (acceptedSessions && acceptedSessions.length > 0) { %>
+                        <% acceptedSessions.forEach(session => { %>
+                            <div class="accepted-card">
+                                <div class="accepted-header">
+                                    <div>
+                                        <span class="student-name"><%= session.student.name %></span>
+                                        <span class="skill-name"> - <%= session.skill.name %></span>
+                                    </div>
+                                </div>
+                                <div class="accepted-details">
+                                    <p><strong><%= session.title %></strong></p>
+                                    <p>📅 <%= new Date(session.preferredDate).toLocaleDateString() %> at <%= session.preferredTime %></p>
+                                    <p>⏱️ <%= session.duration %> minutes</p>
+                                </div>
+                                <div class="accepted-actions">
+                                    <button class="btn-chat" onclick="openChat('<%= session._id %>', '<%= session.student._id %>')">
+                                        <i class="fas fa-comment"></i> Chat
+                                    </button>
+                                </div>
+                            </div>
+                        <% }) %>
+                    <% } else { %>
+                        <p>No accepted sessions</p>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- Upcoming Sessions Section -->
+            <div class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-calendar-alt"></i> Upcoming Sessions</h2>
+                </div>
+                <div class="upcoming-grid" id="upcomingGrid">
+                    <% if (upcomingSessions && upcomingSessions.length > 0) { %>
+                        <% upcomingSessions.forEach(session => { %>
+                            <div class="upcoming-card">
+                                <div class="upcoming-header">
+                                    <div>
+                                        <span class="student-name"><%= session.student.name %></span>
+                                        <span class="skill-name"> - <%= session.skill.name %></span>
+                                    </div>
+                                    <span class="status-badge"><%= session.status %></span>
+                                </div>
+                                <div class="upcoming-details">
+                                    <p><strong><%= session.title %></strong></p>
+                                    <p>📅 <%= new Date(session.scheduledDate).toLocaleDateString() %> at <%= session.scheduledTime %></p>
+                                    <p>💰 <%= session.creditsPerSession %> credits</p>
+                                    <p>🔑 Code: <strong><%= session.joinCode %></strong></p>
+                                </div>
+                                <div class="accepted-actions">
+                                    <button class="btn-start" onclick="startSession('<%= session._id %>')">
+                                        <i class="fas fa-video"></i> Start Session
+                                    </button>
+                                    <button class="btn-chat" onclick="openChat('<%= session._id %>', '<%= session.student._id %>')">
+                                        <i class="fas fa-comment"></i> Chat
+                                    </button>
+                                </div>
+                            </div>
+                        <% }) %>
+                    <% } else { %>
+                        <p>No upcoming sessions</p>
+                    <% } %>
+                </div>
+            </div>
+
+            <!-- Trending Topics Section -->
+            <div class="section">
+                <div class="section-header">
+                    <h2><i class="fas fa-fire"></i> Trending Topics</h2>
+                </div>
+                <div class="trending-grid">
+                    <% if (trendingTopics && trendingTopics.length > 0) { %>
+                        <% trendingTopics.forEach(topic => { %>
+                            <div class="trending-item">
+                                <h4><%= topic.skill.name %></h4>
+                                <span class="trending-count"><%= topic.count %> requests</span>
+                            </div>
+                        <% }) %>
+                    <% } else { %>
+                        <p>No trending topics yet</p>
+                    <% } %>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Skill Modal -->
+    <div id="addSkillModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add Teaching Skill</h3>
+                <span class="close" onclick="closeAddSkillModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="addSkillForm">
+                    <div class="form-group">
+                        <label>Select Skill</label>
+                        <select id="skillSelect" required>
+                            <option value="">Choose a skill...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Proficiency Level</label>
+                        <select id="proficiencyLevel">
+                            <option value="beginner">Beginner</option>
+                            <option value="intermediate">Intermediate</option>
+                            <option value="advanced">Advanced</option>
+                            <option value="expert">Expert</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Years of Experience</label>
+                        <input type="number" id="yearsExperience" min="0" step="0.5" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Hourly Rate (credits)</label>
+                        <input type="number" id="hourlyRate" min="1" value="<%= user.getCreditRate() %>">
+                    </div>
+                    <button type="submit" class="btn-submit">Add Skill</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Accept Session Modal -->
+    <div id="acceptModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Schedule Session</h3>
+                <span class="close" onclick="closeAcceptModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="acceptForm">
+                    <input type="hidden" id="acceptRequestId">
+                    <div class="form-group">
+                        <label>Session Date</label>
+                        <input type="date" id="sessionDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Session Time</label>
+                        <input type="time" id="sessionTime" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Duration (minutes)</label>
+                        <select id="sessionDuration">
+                            <option value="30">30 minutes</option>
+                            <option value="45">45 minutes</option>
+                            <option value="60">60 minutes</option>
+                            <option value="90">90 minutes</option>
+                            <option value="120">120 minutes</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Credits per Session</label>
+                        <input type="number" id="sessionCredits" min="1" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>Message to Student (optional)</label>
+                        <textarea id="acceptMessage" rows="3" placeholder="Add any instructions..."></textarea>
+                    </div>
+                    <button type="submit" class="btn-submit">Accept & Schedule</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Modal -->
+    <div id="chatModal" class="modal">
+        <div class="modal-content chat-modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-comment"></i> Chat with Student</h3>
+                <span class="close" onclick="closeChatModal()">&times;</span>
+            </div>
+            <div class="chat-messages" id="chatMessages">
+                <div id="freeChatInfo" class="free-chat-info"></div>
+                <div id="messagesList"></div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chatInput" placeholder="Type your message..." onkeypress="handleChatKeyPress(event)">
+                <button onclick="sendChatMessage()"><i class="fas fa-paper-plane"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let socket = io();
+        let currentSessionId = null;
+        let currentStudentId = null;
+        let freeChatRemaining = 5;
+
+        // Socket events
+        socket.on('new-message', (data) => {
+            if (data.message.session === currentSessionId) {
+                displayNewMessage(data.message);
+            }
+        });
+
+        // Load available skills for modal
+        async function openAddSkillModal() {
+            try {
+                const response = await fetch('/api/teacher/available-skills');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const select = document.getElementById('skillSelect');
+                    select.innerHTML = '<option value="">Choose a skill...</option>';
+                    data.skills.forEach(skill => {
+                        select.innerHTML += `<option value="${skill._id}">${skill.name} (${skill.category})</option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading skills:', error);
+            }
+            document.getElementById('addSkillModal').style.display = 'block';
+        }
+
+        // Add skill form submit
+        document.getElementById('addSkillForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const data = {
+                skillId: document.getElementById('skillSelect').value,
+                proficiencyLevel: document.getElementById('proficiencyLevel').value,
+                yearsOfExperience: document.getElementById('yearsExperience').value,
+                hourlyRate: document.getElementById('hourlyRate').value
+            };
+            
+            try {
+                const response = await fetch('/api/teacher/skills/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    location.reload();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                console.error('Error adding skill:', error);
+                alert('Failed to add skill');
+            }
+        });
+
+        // Remove skill
+        async function removeSkill(skillId) {
+            if (confirm('Are you sure you want to remove this skill?')) {
+                try {
+                    const response = await fetch(`/api/teacher/skills/${skillId}`, {
+                        method: 'DELETE'
+                    });
+                    
+                    const result = await response.json();
+                    if (result.success) {
+                        location.reload();
+                    } else {
+                        alert(result.message);
+                    }
+                } catch (error) {
+                    console.error('Error removing skill:', error);
+                }
+            }
+        }
+
+        // Open accept modal
+        let currentRequestId = null;
+        function openAcceptModal(requestId, proposedCredits, duration) {
+            currentRequestId = requestId;
+            document.getElementById('acceptRequestId').value = requestId;
+            document.getElementById('sessionCredits').value = proposedCredits;
+            document.getElementById('sessionDuration').value = duration;
+            document.getElementById('acceptModal').style.display = 'block';
+        }
+
+        // Accept form submit
+        document.getElementById('acceptForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const data = {
+                requestId: currentRequestId,
+                scheduledDate: document.getElementById('sessionDate').value,
+                scheduledTime: document.getElementById('sessionTime').value,
+                duration: document.getElementById('sessionDuration').value,
+                creditsPerSession: document.getElementById('sessionCredits').value,
+                message: document.getElementById('acceptMessage').value
+            };
+            
+            try {
+                const response = await fetch('/api/teacher/requests/accept', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert('Session accepted and scheduled!');
+                    location.reload();
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                console.error('Error accepting request:', error);
+            }
+        });
+
+        // Reject request
+        async function rejectRequest(requestId) {
+            if (confirm('Reject this session request?')) {
+                const reason = prompt('Reason for rejection (optional):');
+                
+                try {
+                    const response = await fetch('/api/teacher/requests/reject', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ requestId, reason })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.success) {
+                        location.reload();
+                    } else {
+                        alert(result.message);
+                    }
+                } catch (error) {
+                    console.error('Error rejecting request:', error);
+                }
+            }
+        }
+
+        // Start session
+        async function startSession(sessionId) {
+            try {
+                const response = await fetch('/api/teacher/sessions/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    alert(`Session started!\nJoin Code: ${result.session.joinCode}\nRoom ID: ${result.session.roomId}`);
+                    // Join the session room for video call
+                    socket.emit('join-session', {
+                        roomId: result.session.roomId,
+                        userId: '<%= user._id %>',
+                        joinCode: result.session.joinCode
+                    });
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                console.error('Error starting session:', error);
+            }
+        }
+
+        // Open chat
+        async function openChat(sessionId, studentId) {
+            currentSessionId = sessionId;
+            currentStudentId = studentId;
+            
+            try {
+                const response = await fetch(`/api/teacher/messages/${sessionId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    freeChatRemaining = data.freeChatInfo.remaining;
+                    displayMessages(data.messages);
+                    updateFreeChatInfo();
+                    document.getElementById('chatModal').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error loading messages:', error);
+            }
+        }
+
+        function displayMessages(messages) {
+            const container = document.getElementById('messagesList');
+            container.innerHTML = messages.map(msg => `
+                <div class="message ${msg.sender._id === '<%= user._id %>' ? 'sent' : 'received'}">
+                    <strong>${msg.sender.name}:</strong>
+                    <p>${msg.content}</p>
+                    <small>${new Date(msg.createdAt).toLocaleTimeString()}</small>
+                </div>
+            `).join('');
+        }
+
+        function displayNewMessage(message) {
+            const container = document.getElementById('messagesList');
+            container.innerHTML += `
+                <div class="message received">
+                    <strong>${message.sender.name}:</strong>
+                    <p>${message.content}</p>
+                    <small>Just now</small>
+                </div>
+            `;
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function updateFreeChatInfo() {
+            const infoDiv = document.getElementById('freeChatInfo');
+            if (freeChatRemaining > 0) {
+                infoDiv.innerHTML = `✓ ${freeChatRemaining} free messages remaining before session starts`;
+            } else {
+                infoDiv.innerHTML = `⚠️ You've used all free messages. Further messages will require credits.`;
+            }
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const content = input.value.trim();
+            
+            if (!content) return;
+            
+            // Emit via socket for real-time
+            socket.emit('send-message', {
+                sessionId: currentSessionId,
+                senderId: '<%= user._id %>',
+                receiverId: currentStudentId,
+                content,
+                isFree: freeChatRemaining > 0
+            });
+            
+            // Also save to database via API
+            try {
+                const response = await fetch('/api/chat/send', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionId: currentSessionId,
+                        receiverId: currentStudentId,
+                        content
+                    })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    input.value = '';
+                    if (data.isFree) {
+                        freeChatRemaining--;
+                        updateFreeChatInfo();
+                    }
+                } else {
+                    alert(data.message);
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+            }
+        }
+
+        function handleChatKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendChatMessage();
+            }
+        }
+
+        // Modal close functions
+        function closeAddSkillModal() { document.getElementById('addSkillModal').style.display = 'none'; }
+        function closeAcceptModal() { document.getElementById('acceptModal').style.display = 'none'; }
+        function closeChatModal() { document.getElementById('chatModal').style.display = 'none'; }
+
+        // Close modals on outside click
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
