@@ -17,6 +17,7 @@ dotenv.config();
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const learnRoutes = require('./routes/learnRoutes');
+const teacherRoutes = require('./routes/teacherRoutes');
 
 const { globalRateLimiter } = require('./middleware/rateLimiter');
 const errorHandler = require('./middleware/errorHandler');
@@ -70,7 +71,7 @@ app.set('io', io);
 // ============ API ROUTES ============
 app.use('/auth', authRoutes);
 app.use('/api/learn', learnRoutes);
-
+app.use('/api/teacher', teacherRoutes);
 
 
 // ============ VIEW ROUTES ============
