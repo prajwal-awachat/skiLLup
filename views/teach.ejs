@@ -3,661 +3,1736 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teacher Dashboard | Skill Exchange</title>
+    <title>Teacher Dashboard - SkillBridge</title>
     <link rel="stylesheet" href="/teach.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-    <div class="dashboard-container">
+    <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar">
-            <div class="profile-section">
-                <div class="avatar">
-                    <% if (user.avatar) { %>
-                        <img src="<%= user.avatar %>" style="width:64px;height:64px;border-radius:50%">
-                    <% } else { %>
-                        <i class="fas fa-user-circle"></i>
-                    <% } %>
-                </div>
-                <h2 class="user-name"><%= user.name %></h2>
-                <span class="user-role">Teacher</span>
-                <span class="level-badge">Level <%= user.level %></span>
+            <div class="logo">
+                <span class="logo-icon">📚</span>
+                <span class="logo-text">SkillBridge</span>
             </div>
-            
             <nav class="nav-menu">
                 <a href="/learn" class="nav-item">
-                    <i class="fas fa-graduation-cap"></i>
+                    <span class="nav-icon">🎓</span>
                     <span>Learn</span>
                 </a>
                 <a href="/teach" class="nav-item active">
-                    <i class="fas fa-chalkboard-user"></i>
+                    <span class="nav-icon">👨‍🏫</span>
                     <span>Teach</span>
                 </a>
-                <a href="/roadmap" class="nav-item">
-                    <i class="fas fa-map"></i>
-                    <span>Roadmap</span>
-                </a>
-                <a href="/history" class="nav-item">
-                    <i class="fas fa-history"></i>
-                    <span>History</span>
-                </a>
                 <a href="/store" class="nav-item">
-                    <i class="fas fa-store"></i>
+                    <span class="nav-icon">🛒</span>
                     <span>Store</span>
                 </a>
-            </nav>
-            
-            <div class="sidebar-footer">
+                <a href="/history" class="nav-item">
+                    <span class="nav-icon">📜</span>
+                    <span>History</span>
+                </a>
+                <a href="/roadmap" class="nav-item">
+                    <span class="nav-icon">🗺️</span>
+                    <span>Roadmap</span>
+                </a>
                 <a href="/settings" class="nav-item">
-                    <i class="fas fa-cog"></i>
+                    <span class="nav-icon">⚙️</span>
                     <span>Settings</span>
                 </a>
-                <a href="/auth/logout" class="nav-item logout">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Logout</span>
-                </a>
+            </nav>
+            <div class="user-profile">
+                <div class="avatar"><%= user ? (user.name ? user.name.charAt(0).toUpperCase() + (user.name.split(' ')[1] ? user.name.split(' ')[1].charAt(0).toUpperCase() : '') : 'U') : 'U' %></div>
+                <div class="user-info">
+                    <span class="user-name"><%= user && user.name ? user.name : 'User' %></span>
+                    <span class="user-email"><%= user && user.email ? user.email : 'user@example.com' %></span>
+                </div>
             </div>
         </aside>
 
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Stats Row -->
-            <div class="stats-row">
-                <div class="stat-card">
-                    <div class="stat-icon"><i class="fas fa-coins"></i></div>
-                    <div class="stat-info">
-                        <h3>Total Credits</h3>
-                        <div class="stat-number"><%= user.credits %></div>
-                    </div>
+            <!-- Header with Level Badge -->
+            <div class="top-bar">
+                <div class="header-section">
+                    <h1>Teacher Dashboard</h1>
+                    <p class="header-subtitle">Manage your teaching skills and sessions</p>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
-                    <div class="stat-info">
-                        <h3>Credits Earned</h3>
-                        <div class="stat-number"><%= user.totalCreditsEarned %></div>
+                
+                <!-- Level & Credits Card -->
+                <div class="stats-card">
+                    <div class="level-badge" id="levelBadge">
+                        <i class="fas fa-crown"></i>
+                        <span>Level <span id="teacherLevel">1</span></span>
                     </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon"><i class="fas fa-exchange-alt"></i></div>
-                    <div class="stat-info">
-                        <h3>Redeemable</h3>
-                        <div class="stat-number"><%= user.redeemableCredits %></div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon"><i class="fas fa-users"></i></div>
-                    <div class="stat-info">
-                        <h3>Students</h3>
-                        <div class="stat-number"><%= user.studentsCount %></div>
+                    <div class="credits-info">
+                        <div class="credit-item">
+                            <span class="credit-label">Credits</span>
+                            <span class="credit-value" id="creditAmount">0</span>
+                        </div>
+                        <div class="credit-item">
+                            <span class="credit-label">Earned</span>
+                            <span class="credit-value" id="totalEarned">0</span>
+                        </div>
+                        <div class="credit-item">
+                            <span class="credit-label">Rate/Session</span>
+                            <span class="credit-value" id="creditRate">0</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Level Info Card -->
-            <div class="level-card">
-                <div class="level-title">
-                    <i class="fas fa-crown"></i> Level <%= user.level %> Benefits
-                </div>
-                <div class="level-perks">
-                    <% if (user.level === 1) { %>
-                        <span class="perk">💰 Earn 1 credit/session</span>
-                        <span class="perk">📚 Take sessions only</span>
-                    <% } else if (user.level === 2) { %>
-                        <span class="perk">💰 Earn 2 credits/session</span>
-                        <span class="perk">🎓 Cannot redeem credits</span>
-                    <% } else if (user.level === 3) { %>
-                        <span class="perk">💰 Earn 2 credits/session</span>
-                        <span class="perk">💵 Can redeem credits for money</span>
-                    <% } else if (user.level === 4) { %>
-                        <span class="perk">💰 Set own credit rate</span>
-                        <span class="perk">💵 Can redeem credits</span>
-                        <span class="perk">👤 One-on-one sessions only</span>
-                    <% } else { %>
-                        <span class="perk">💰 Set own credit rate</span>
-                        <span class="perk">💵 Can redeem credits</span>
-                        <span class="perk">👥 Group sessions (up to 100 students)</span>
-                    <% } %>
+            <!-- Level Info Banner -->
+            <div class="level-info" id="levelInfo">
+                <div class="level-progress">
+                    <div class="level-details">
+                        <i class="fas fa-chart-line"></i>
+                        <span id="levelDescription">Complete sessions to level up!</span>
+                    </div>
+                    <div class="level-features" id="levelFeatures">
+                        <!-- Dynamic level features -->
+                    </div>
                 </div>
             </div>
 
-            <!-- My Teaching Skills Section -->
-            <div class="section">
+            <!-- Main Tabs -->
+            <div class="dashboard-tabs">
+                <button class="tab-btn active" data-tab="overview">
+                    <i class="fas fa-chalkboard-user"></i> Overview
+                </button>
+                <button class="tab-btn" data-tab="requests">
+                    <i class="fas fa-envelope"></i> Requests
+                    <span class="badge" id="pendingCount">0</span>
+                </button>
+                <button class="tab-btn" data-tab="sessions">
+                    <i class="fas fa-calendar-alt"></i> Sessions
+                </button>
+                <button class="tab-btn" data-tab="skills">
+                    <i class="fas fa-code"></i> Skills
+                </button>
+                <button class="tab-btn" data-tab="earnings">
+                    <i class="fas fa-wallet"></i> Earnings
+                </button>
+            </div>
+
+            <!-- Tab Content: Overview -->
+            <div class="tab-content active" id="overviewTab">
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <i class="fas fa-users"></i>
+                        <div class="stat-info">
+                            <span class="stat-value" id="totalStudents">0</span>
+                            <span class="stat-label">Students Taught</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-clock"></i>
+                        <div class="stat-info">
+                            <span class="stat-value" id="totalHours">0</span>
+                            <span class="stat-label">Teaching Hours</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-star"></i>
+                        <div class="stat-info">
+                            <span class="stat-value" id="teacherRating">0</span>
+                            <span class="stat-label">Rating</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-chart-line"></i>
+                        <div class="stat-info">
+                            <span class="stat-value" id="completionRate">0%</span>
+                            <span class="stat-label">Completion Rate</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trending Topics -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3><i class="fas fa-fire"></i> Trending Topics to Teach</h3>
+                        <button class="refresh-btn" id="refreshTrending">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    <div class="trending-list" id="trendingList">
+                        <div class="loading">Loading trending topics...</div>
+                    </div>
+                </div>
+
+                <!-- Upcoming Sessions Preview -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h3><i class="fas fa-calendar-week"></i> Upcoming Sessions</h3>
+                        <a href="#" class="view-all" data-tab="sessions">View All →</a>
+                    </div>
+                    <div class="upcoming-preview" id="upcomingPreview">
+                        <div class="loading">Loading upcoming sessions...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Session Requests -->
+            <div class="tab-content" id="requestsTab">
+                <div class="requests-filter">
+                    <button class="filter-chip active" data-filter="all">All</button>
+                    <button class="filter-chip" data-filter="pending">Pending</button>
+                    <button class="filter-chip" data-filter="accepted">Accepted</button>
+                    <button class="filter-chip" data-filter="rejected">Rejected</button>
+                </div>
+                <div class="requests-list" id="requestsList">
+                    <div class="loading">Loading requests...</div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Sessions Management -->
+            <div class="tab-content" id="sessionsTab">
+                <div class="sessions-subtabs">
+                    <button class="subtab-btn active" data-subtab="upcoming">Upcoming</button>
+                    <button class="subtab-btn" data-subtab="ongoing">Ongoing</button>
+                    <button class="subtab-btn" data-subtab="completed">Completed</button>
+                </div>
+                <div class="sessions-list" id="sessionsList">
+                    <div class="loading">Loading sessions...</div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Skills Management -->
+            <div class="tab-content" id="skillsTab">
                 <div class="section-header">
-                    <h2><i class="fas fa-chalkboard"></i> My Teaching Skills</h2>
-                    <button class="btn-add" onclick="openAddSkillModal()">
+                    <h3><i class="fas fa-code"></i> Your Teaching Skills</h3>
+                    <button class="add-btn" id="addSkillBtn">
                         <i class="fas fa-plus"></i> Add Skill
                     </button>
                 </div>
-                <div class="skills-grid" id="skillsGrid">
-                    <% if (userSkills && userSkills.length > 0) { %>
-                        <% userSkills.forEach(skill => { %>
-                            <span class="skill-tag">
-                                <%= skill.name %>
-                                <i class="fas fa-times remove-skill" onclick="removeSkill('<%= skill._id %>')"></i>
-                            </span>
-                        <% }) %>
-                    <% } else { %>
-                        <p>No teaching skills added yet. Add your first skill!</p>
-                    <% } %>
+                <div class="skills-grid" id="skillsList">
+                    <div class="loading">Loading skills...</div>
                 </div>
             </div>
 
-            <!-- Session Requests Section -->
-            <div class="section">
-                <div class="section-header">
-                    <h2><i class="fas fa-clock"></i> Session Requests (<span id="requestCount"><%= sessionRequests.length %></span>)</h2>
+            <!-- Tab Content: Earnings -->
+            <div class="tab-content" id="earningsTab">
+                <div class="earnings-summary">
+                    <div class="earning-card">
+                        <i class="fas fa-coins"></i>
+                        <div class="earning-info">
+                            <span class="earning-label">Total Credits Earned</span>
+                            <span class="earning-value" id="totalCreditsEarned">0</span>
+                        </div>
+                    </div>
+                    <div class="earning-card">
+                        <i class="fas fa-exchange-alt"></i>
+                        <div class="earning-info">
+                            <span class="earning-label">Redeemable Credits</span>
+                            <span class="earning-value" id="redeemableCredits">0</span>
+                        </div>
+                    </div>
+                    <div class="earning-card">
+                        <i class="fas fa-rupee-sign"></i>
+                        <div class="earning-info">
+                            <span class="earning-label">Money Earned</span>
+                            <span class="earning-value" id="moneyEarned">₹0</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="requests-grid" id="requestsGrid">
-                    <% if (sessionRequests.length > 0) { %>
-                        <% sessionRequests.forEach(request => { %>
-                            <div class="request-card" id="request-<%= request._id %>">
-                                <div class="request-header">
-                                    <div>
-                                        <span class="student-name"><%= request.student.name %></span>
-                                        <span class="skill-name"> - <%= request.skill.name %></span>
-                                    </div>
-                                    <small><%= new Date(request.createdAt).toLocaleDateString() %></small>
-                                </div>
-                                <div class="request-details">
-                                    <p><strong><%= request.title %></strong></p>
-                                    <p><%= request.description || 'No description' %></p>
-                                    <p>📅 <%= new Date(request.preferredDate).toLocaleDateString() %> at <%= request.preferredTime %></p>
-                                    <p>⏱️ <%= request.duration %> minutes</p>
-                                    <p>💰 <%= request.proposedCredits %> credits</p>
-                                </div>
-                                <div class="request-actions">
-                                    <button class="btn-accept" onclick="openAcceptModal('<%= request._id %>', '<%= request.proposedCredits %>', '<%= request.duration %>')">
-                                        <i class="fas fa-check"></i> Accept
-                                    </button>
-                                    <button class="btn-reject" onclick="rejectRequest('<%= request._id %>')">
-                                        <i class="fas fa-times"></i> Reject
-                                    </button>
-                                </div>
-                            </div>
-                        <% }) %>
-                    <% } else { %>
-                        <p>No pending session requests</p>
-                    <% } %>
+                
+                <div class="withdraw-section" id="withdrawSection" style="display: none;">
+                    <h3><i class="fas fa-money-bill-wave"></i> Withdraw Credits</h3>
+                    <div class="withdraw-form">
+                        <div class="form-group">
+                            <label>Amount to Withdraw (Credits)</label>
+                            <input type="number" id="withdrawAmount" min="10" step="10" placeholder="Min 10 credits">
+                            <small>1 credit = ₹10</small>
+                        </div>
+                        <div class="form-group">
+                            <label>Payment Method</label>
+                            <select id="paymentMethod">
+                                <option value="bank_transfer">Bank Transfer</option>
+                                <option value="upi">UPI</option>
+                                <option value="paypal">PayPal</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Payment Details</label>
+                            <input type="text" id="paymentDetails" placeholder="Account number / UPI ID / Email">
+                        </div>
+                        <button class="withdraw-btn" id="withdrawBtn">
+                            <i class="fas fa-download"></i> Request Withdrawal
+                        </button>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Accepted Sessions Section -->
-            <div class="section">
-                <div class="section-header">
-                    <h2><i class="fas fa-check-circle"></i> Accepted Sessions</h2>
-                </div>
-                <div class="accepted-grid" id="acceptedGrid">
-                    <% if (acceptedSessions && acceptedSessions.length > 0) { %>
-                        <% acceptedSessions.forEach(session => { %>
-                            <div class="accepted-card">
-                                <div class="accepted-header">
-                                    <div>
-                                        <span class="student-name"><%= session.student.name %></span>
-                                        <span class="skill-name"> - <%= session.skill.name %></span>
-                                    </div>
-                                </div>
-                                <div class="accepted-details">
-                                    <p><strong><%= session.title %></strong></p>
-                                    <p>📅 <%= new Date(session.preferredDate).toLocaleDateString() %> at <%= session.preferredTime %></p>
-                                    <p>⏱️ <%= session.duration %> minutes</p>
-                                </div>
-                                <div class="accepted-actions">
-                                    <button class="btn-chat" onclick="openChat('<%= session._id %>', '<%= session.student._id %>')">
-                                        <i class="fas fa-comment"></i> Chat
-                                    </button>
-                                </div>
-                            </div>
-                        <% }) %>
-                    <% } else { %>
-                        <p>No accepted sessions</p>
-                    <% } %>
-                </div>
-            </div>
-
-            <!-- Upcoming Sessions Section -->
-            <div class="section">
-                <div class="section-header">
-                    <h2><i class="fas fa-calendar-alt"></i> Upcoming Sessions</h2>
-                </div>
-                <div class="upcoming-grid" id="upcomingGrid">
-                    <% if (upcomingSessions && upcomingSessions.length > 0) { %>
-                        <% upcomingSessions.forEach(session => { %>
-                            <div class="upcoming-card">
-                                <div class="upcoming-header">
-                                    <div>
-                                        <span class="student-name"><%= session.student.name %></span>
-                                        <span class="skill-name"> - <%= session.skill.name %></span>
-                                    </div>
-                                    <span class="status-badge"><%= session.status %></span>
-                                </div>
-                                <div class="upcoming-details">
-                                    <p><strong><%= session.title %></strong></p>
-                                    <p>📅 <%= new Date(session.scheduledDate).toLocaleDateString() %> at <%= session.scheduledTime %></p>
-                                    <p>💰 <%= session.creditsPerSession %> credits</p>
-                                    <p>🔑 Code: <strong><%= session.joinCode %></strong></p>
-                                </div>
-                                <div class="accepted-actions">
-                                    <button class="btn-start" onclick="startSession('<%= session._id %>')">
-                                        <i class="fas fa-video"></i> Start Session
-                                    </button>
-                                    <button class="btn-chat" onclick="openChat('<%= session._id %>', '<%= session.student._id %>')">
-                                        <i class="fas fa-comment"></i> Chat
-                                    </button>
-                                </div>
-                            </div>
-                        <% }) %>
-                    <% } else { %>
-                        <p>No upcoming sessions</p>
-                    <% } %>
-                </div>
-            </div>
-
-            <!-- Trending Topics Section -->
-            <div class="section">
-                <div class="section-header">
-                    <h2><i class="fas fa-fire"></i> Trending Topics</h2>
-                </div>
-                <div class="trending-grid">
-                    <% if (trendingTopics && trendingTopics.length > 0) { %>
-                        <% trendingTopics.forEach(topic => { %>
-                            <div class="trending-item">
-                                <h4><%= topic.skill.name %></h4>
-                                <span class="trending-count"><%= topic.count %> requests</span>
-                            </div>
-                        <% }) %>
-                    <% } else { %>
-                        <p>No trending topics yet</p>
-                    <% } %>
+                <div class="transaction-history">
+                    <h3><i class="fas fa-history"></i> Transaction History</h3>
+                    <div class="transactions-list" id="transactionsList">
+                        <div class="loading">Loading transactions...</div>
+                    </div>
                 </div>
             </div>
         </main>
     </div>
 
     <!-- Add Skill Modal -->
-    <div id="addSkillModal" class="modal">
+    <div class="modal" id="addSkillModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Add Teaching Skill</h3>
-                <span class="close" onclick="closeAddSkillModal()">&times;</span>
+                <h3><i class="fas fa-plus-circle"></i> Add Teaching Skill</h3>
+                <button class="close-modal" id="closeSkillModal">&times;</button>
             </div>
-            <div class="modal-body">
-                <form id="addSkillForm">
-                    <div class="form-group">
-                        <label>Select Skill</label>
-                        <select id="skillSelect" required>
-                            <option value="">Choose a skill...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Proficiency Level</label>
-                        <select id="proficiencyLevel">
-                            <option value="beginner">Beginner</option>
-                            <option value="intermediate">Intermediate</option>
-                            <option value="advanced">Advanced</option>
-                            <option value="expert">Expert</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Years of Experience</label>
-                        <input type="number" id="yearsExperience" min="0" step="0.5" value="0">
-                    </div>
-                    <div class="form-group">
-                        <label>Hourly Rate (credits)</label>
-                        <input type="number" id="hourlyRate" min="1" value="<%= user.getCreditRate() %>">
-                    </div>
-                    <button type="submit" class="btn-submit">Add Skill</button>
-                </form>
-            </div>
+            <form id="addSkillForm">
+                <div class="form-group">
+    <label>Skill Name *</label>
+                    <input type="text" id="skillName" placeholder="e.g., JavaScript, Python, UI Design..." required>
+                    <small>Enter the skill you want to teach</small>
+                 </div>
+                <div class="form-group">
+                    <label>Proficiency Level</label>
+                    <select id="proficiencyLevel">
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                        <option value="expert">Expert</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Years of Experience</label>
+                    <input type="number" id="yearsExperience" min="0" step="0.5" value="0">
+                </div>
+                <div class="form-group" id="rateField" style="display: none;">
+                    <label>Hourly Rate (Credits)</label>
+                    <input type="number" id="hourlyRate" min="1" step="1">
+                    <small id="rateHint"></small>
+                </div>
+                <button type="submit" class="submit-btn">Add Skill</button>
+            </form>
         </div>
     </div>
 
-    <!-- Accept Session Modal -->
-    <div id="acceptModal" class="modal">
+<!-- Accept Request Modal -->
+<div class="modal" id="acceptRequestModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-check-circle"></i> Accept Session Request</h3>
+            <button class="close-modal" id="closeAcceptModal">&times;</button>
+        </div>
+        <form id="acceptRequestForm">
+            <input type="hidden" id="acceptRequestId">
+            <div class="request-details" id="requestDetails"></div>
+            <div class="form-group">
+                <label>Schedule Date <span style="font-weight: normal; color: #666;">(Optional - leave empty to use student's preferred date)</span></label>
+                <input type="date" id="scheduleDate">
+                <small>Leave empty to accept student's preferred date</small>
+            </div>
+            <div class="form-group">
+                <label>Schedule Time <span style="font-weight: normal; color: #666;">(Optional - leave empty to use student's preferred time)</span></label>
+                <input type="time" id="scheduleTime">
+                <small>Leave empty to accept student's preferred time</small>
+            </div>
+            <button type="submit" class="accept-submit-btn">Confirm & Accept</button>
+        </form>
+    </div>
+</div>
+
+    <!-- Reject Request Modal -->
+    <div class="modal" id="rejectRequestModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Schedule Session</h3>
-                <span class="close" onclick="closeAcceptModal()">&times;</span>
+                <h3><i class="fas fa-times-circle"></i> Reject Session Request</h3>
+                <button class="close-modal" id="closeRejectModal">&times;</button>
             </div>
-            <div class="modal-body">
-                <form id="acceptForm">
-                    <input type="hidden" id="acceptRequestId">
-                    <div class="form-group">
-                        <label>Session Date</label>
-                        <input type="date" id="sessionDate" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Session Time</label>
-                        <input type="time" id="sessionTime" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Duration (minutes)</label>
-                        <select id="sessionDuration">
-                            <option value="30">30 minutes</option>
-                            <option value="45">45 minutes</option>
-                            <option value="60">60 minutes</option>
-                            <option value="90">90 minutes</option>
-                            <option value="120">120 minutes</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Credits per Session</label>
-                        <input type="number" id="sessionCredits" min="1" readonly>
-                    </div>
-                    <div class="form-group">
-                        <label>Message to Student (optional)</label>
-                        <textarea id="acceptMessage" rows="3" placeholder="Add any instructions..."></textarea>
-                    </div>
-                    <button type="submit" class="btn-submit">Accept & Schedule</button>
-                </form>
+            <form id="rejectRequestForm">
+                <input type="hidden" id="rejectRequestId">
+                <div class="form-group">
+                    <label>Reason for Rejection</label>
+                    <textarea id="rejectReason" rows="3" placeholder="Explain why you're rejecting this request..."></textarea>
+                </div>
+                <button type="submit" class="reject-submit-btn">Reject Request</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Start Session Modal -->
+    <div class="modal" id="startSessionModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-play-circle"></i> Start Session</h3>
+                <button class="close-modal" id="closeStartModal">&times;</button>
+            </div>
+            <div id="startSessionInfo"></div>
+            <div class="session-code-box" id="sessionCodeBox" style="display: none;">
+                <h4>Session Code</h4>
+                <div class="code-display" id="sessionCode"></div>
+                <button class="copy-code" id="copyCodeBtn">
+                    <i class="fas fa-copy"></i> Copy Code
+                </button>
+            </div>
+            <div class="meeting-link-box" id="meetingLinkBox" style="display: none;">
+                <h4>Meeting Link</h4>
+                <a href="#" id="meetingLinkDisplay" target="_blank" class="meeting-link">Join Meeting</a>
+            </div>
+            <div class="modal-actions">
+                <button class="close-modal-btn" id="closeStartModalBtn">Close</button>
             </div>
         </div>
     </div>
 
     <!-- Chat Modal -->
-    <div id="chatModal" class="modal">
-        <div class="modal-content chat-modal">
-            <div class="modal-header">
-                <h3><i class="fas fa-comment"></i> Chat with Student</h3>
-                <span class="close" onclick="closeChatModal()">&times;</span>
-            </div>
-            <div class="chat-messages" id="chatMessages">
-                <div id="freeChatInfo" class="free-chat-info"></div>
-                <div id="messagesList"></div>
-            </div>
-            <div class="chat-input-area">
-                <input type="text" id="chatInput" placeholder="Type your message..." onkeypress="handleChatKeyPress(event)">
-                <button onclick="sendChatMessage()"><i class="fas fa-paper-plane"></i></button>
+   <div class="modal" id="chatModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-comment-dots"></i> Chat with <span id="chatStudentName"></span></h3>
+            <button class="close-modal" id="closeChatModal">&times;</button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="chat-message system">
+                <div class="message-bubble">Loading conversation...</div>
             </div>
         </div>
+        <div class="chat-input-area">
+            <input type="text" id="chatInput" placeholder="Type your message...">
+            <button id="sendMessageBtn"><i class="fas fa-paper-plane"></i></button>
+        </div>
     </div>
+</div>
+
 
     <script>
-        let socket = io();
-        let currentSessionId = null;
-        let currentStudentId = null;
-        let freeChatRemaining = 5;
-
-        // Socket events
-        socket.on('new-message', (data) => {
-            if (data.message.session === currentSessionId) {
-                displayNewMessage(data.message);
+      // Get user data from EJS - MOST ROBUST SOLUTION
+const currentUser = <%- 
+    (function() {
+        try {
+            const userData = typeof user !== "undefined" && user ? {
+                id: user._id ? user._id.toString() : '',
+                name: user.name || '',
+                email: user.email || '',
+                level: user.level || 1
+            } : { id: '', name: '', email: '', level: 1 };
+            return JSON.stringify(userData)
+                .replace(/</g, '\\u003c')
+                .replace(/>/g, '\\u003e')
+                .replace(/&/g, '\\u0026')
+                .replace(/\\/g, '\\\\');
+        } catch(e) {
+            return JSON.stringify({ id: '', name: '', email: '', level: 1 });
+        }
+    })() 
+%>;
+        
+        // Socket.io connection
+        let socket = null;
+        let currentConversationId = null;
+        let currentChatStudent = null;
+        
+        // Helper functions
+        function showToast(message, type = "info") {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i><span>${escapeHtml(message)}</span>`;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('show');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }, 100);
+        }
+        
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function getRandomColor(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
             }
-        });
-
-        // Load available skills for modal
-        async function openAddSkillModal() {
+            const hue = hash % 360;
+            return `hsl(${hue}, 70%, 60%)`;
+        }
+        
+        // API Calls
+        async function fetchTeacherProfile() {
             try {
-                const response = await fetch('/api/teacher/available-skills');
+                const response = await fetch('/api/teacher/profile');
                 const data = await response.json();
-                
                 if (data.success) {
-                    const select = document.getElementById('skillSelect');
-                    select.innerHTML = '<option value="">Choose a skill...</option>';
-                    data.skills.forEach(skill => {
-                        select.innerHTML += `<option value="${skill._id}">${skill.name} (${skill.category})</option>`;
+                    document.getElementById('teacherLevel').textContent = data.data.level;
+                    document.getElementById('creditAmount').textContent = data.data.user.credits;
+                    document.getElementById('totalEarned').textContent = data.data.user.totalCreditsEarned;
+                    document.getElementById('creditRate').textContent = data.data.creditRate;
+                    document.getElementById('teacherRating').textContent = data.data.user.rating || 0;
+                    document.getElementById('totalStudents').textContent = data.data.user.studentsCount || 0;
+                    
+                    updateLevelFeatures(data.data);
+                    return data.data;
+                }
+            } catch (error) {
+                console.error('Error fetching profile:', error);
+            }
+            return null;
+        }
+        
+        function updateLevelFeatures(profileData) {
+            const level = profileData.level;
+            const features = profileData.features || {};
+            
+            const levelFeatures = document.getElementById('levelFeatures');
+            let featuresHtml = '';
+            
+            if (level === 1) {
+                featuresHtml = '<span class="feature-badge">📖 Fixed 1 credit/session</span><span class="feature-badge">🔒 No withdrawal</span>';
+                document.getElementById('levelDescription').textContent = 'Level 1: Start teaching and earn 1 credit per session!';
+            } else if (level === 2) {
+                featuresHtml = '<span class="feature-badge">⭐ Admin-set credits</span><span class="feature-badge">🔒 No withdrawal</span>';
+                document.getElementById('levelDescription').textContent = 'Level 2: Earn admin-set credits per session!';
+            } else if (level === 3) {
+                featuresHtml = '<span class="feature-badge">⭐ Admin-set credits</span><span class="feature-badge">💰 Withdrawal allowed</span>';
+                document.getElementById('levelDescription').textContent = 'Level 3: Now you can withdraw your earnings!';
+            } else if (level === 4) {
+                featuresHtml = '<span class="feature-badge">🎯 Set your own rates</span><span class="feature-badge">💰 Withdrawal allowed</span><span class="feature-badge">👤 One-on-one only</span>';
+                document.getElementById('levelDescription').textContent = 'Level 4: You control your pricing!';
+            } else if (level === 5) {
+                featuresHtml = '<span class="feature-badge">🎯 Set your own rates</span><span class="feature-badge">💰 Withdrawal allowed</span><span class="feature-badge">👥 Group sessions</span><span class="feature-badge">💬 Group chat</span>';
+                document.getElementById('levelDescription').textContent = 'Level 5: Premium teacher - host group sessions!';
+            }
+            
+            levelFeatures.innerHTML = featuresHtml;
+            
+            // Show/hide withdraw section
+            if (profileData.canRedeem) {
+                document.getElementById('withdrawSection').style.display = 'block';
+            } else {
+                document.getElementById('withdrawSection').style.display = 'none';
+            }
+            
+            // Show/hide rate field in add skill modal
+            const rateField = document.getElementById('rateField');
+            const rateHint = document.getElementById('rateHint');
+            if (level >= 4) {
+                rateField.style.display = 'block';
+                rateHint.textContent = `You can set your own rate (Current: ${profileData.creditRate} credits/session)`;
+            } else {
+                rateField.style.display = 'none';
+            }
+        }
+        
+        async function fetchTrendingTopics() {
+            try {
+                const response = await fetch('/api/teacher/trending-topics');
+                const data = await response.json();
+                if (data.success) {
+                    renderTrendingTopics(data.data);
+                }
+            } catch (error) {
+                console.error('Error fetching trending topics:', error);
+            }
+        }
+        
+        function renderTrendingTopics(data) {
+            const container = document.getElementById('trendingList');
+            const trending = data.trendingSkills || [];
+            
+            if (trending.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-chart-line"></i><p>No trending topics yet</p></div>';
+                return;
+            }
+            
+            container.innerHTML = trending.map(skill => {
+                const skillId = escapeHtml(skill._id);
+                const skillName = escapeHtml(skill.name);
+                const skillCategory = escapeHtml(skill.category);
+                const totalTeachers = skill.totalTeachers || 0;
+                const totalStudents = skill.totalStudents || 0;
+                
+                return `
+                    <div class="trending-item">
+                        <div class="trending-icon">
+                            <i class="fas fa-chart-simple"></i>
+                        </div>
+                        <div class="trending-info">
+                            <div class="trending-name">${skillName}</div>
+                            <div class="trending-category">${skillCategory}</div>
+                        </div>
+                        <div class="trending-stats">
+                            <span><i class="fas fa-users"></i> ${totalTeachers} teachers</span>
+                            <span><i class="fas fa-graduation-cap"></i> ${totalStudents} students</span>
+                        </div>
+                        <button class="add-trending-skill" data-skill-id="${skillId}" data-skill-name="${skillName.replace(/'/g, "\\'")}">
+                            <i class="fas fa-plus"></i> Add Skill
+                        </button>
+                    </div>
+                `;
+            }).join('');
+            
+            document.querySelectorAll('.add-trending-skill').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const skillId = btn.getAttribute('data-skill-id');
+                    const skillName = btn.getAttribute('data-skill-name');
+                    const skillSelect = document.getElementById('skillSelect');
+                    if (skillSelect) {
+                        for(let i = 0; i < skillSelect.options.length; i++) {
+                            if(skillSelect.options[i].value === skillId) {
+                                skillSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                    document.getElementById('addSkillModal').classList.add('show');
+                    showToast(`Adding ${skillName || 'skill'} to your skills`, 'info');
+                });
+            });
+        }
+        
+        async function fetchTeacherSkills() {
+            try {
+                const response = await fetch('/api/teacher/skills');
+                const data = await response.json();
+                if (data.success) {
+                    renderTeacherSkills(data.data);
+                }
+            } catch (error) {
+                console.error('Error fetching skills:', error);
+            }
+        }
+        
+        function renderTeacherSkills(skills) {
+            const container = document.getElementById('skillsList');
+            
+            if (!skills || skills.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-code"></i>
+                        <p>No teaching skills added yet</p>
+                        <button class="add-skill-empty" id="addSkillEmptyBtn">Add Your First Skill</button>
+                    </div>
+                `;
+                const addBtn = document.getElementById('addSkillEmptyBtn');
+                if(addBtn) {
+                    addBtn.addEventListener('click', () => {
+                        document.getElementById('addSkillModal').classList.add('show');
                     });
                 }
-            } catch (error) {
-                console.error('Error loading skills:', error);
+                return;
             }
-            document.getElementById('addSkillModal').style.display = 'block';
-        }
-
-        // Add skill form submit
-        document.getElementById('addSkillForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
             
-            const data = {
-                skillId: document.getElementById('skillSelect').value,
-                proficiencyLevel: document.getElementById('proficiencyLevel').value,
-                yearsOfExperience: document.getElementById('yearsExperience').value,
-                hourlyRate: document.getElementById('hourlyRate').value
-            };
-            
-            try {
-                const response = await fetch('/api/teacher/skills/add', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
+            container.innerHTML = skills.map(skill => {
+                const skillId = escapeHtml(skill.skill ? skill.skill._id : '');
+                const skillName = escapeHtml(skill.skill ? skill.skill.name : '');
+                const skillCategory = skill.skill ? skill.skill.category : '';
+                const proficiencyLevel = escapeHtml(skill.proficiencyLevel || 'beginner');
+                const yearsOfExperience = skill.yearsOfExperience || 0;
+                const hourlyRate = skill.hourlyRate || 0;
+                const isAvailable = skill.isAvailable !== false;
+                const skillIcon = getSkillIcon(skillCategory);
+                const skillDataJson = JSON.stringify({
+                    skill: skill.skill,
+                    proficiencyLevel: proficiencyLevel,
+                    yearsOfExperience: yearsOfExperience,
+                    hourlyRate: hourlyRate,
+                    isAvailable: isAvailable
+                }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026').replace(/'/g, '\\u0027');
                 
-                const result = await response.json();
-                if (result.success) {
-                    location.reload();
-                } else {
-                    alert(result.message);
+                return `
+                    <div class="skill-card">
+                        <div class="skill-header">
+                            <div class="skill-name">
+                                <i class="fas fa-${skillIcon}"></i>
+                                ${skillName}
+                            </div>
+                            <div class="skill-actions">
+                                <button class="edit-skill" data-skill-id="${skillId}" data-skill-data="${skillDataJson}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="delete-skill" data-skill-id="${skillId}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="skill-details">
+                            <span class="skill-badge">${proficiencyLevel}</span>
+                            <span class="skill-badge"><i class="fas fa-clock"></i> ${yearsOfExperience} years</span>
+                            <span class="skill-badge"><i class="fas fa-coins"></i> ${hourlyRate} credits/hr</span>
+                            <span class="skill-badge ${isAvailable ? 'available' : 'unavailable'}">
+                                <i class="fas ${isAvailable ? 'fa-check-circle' : 'fa-clock'}"></i>
+                                ${isAvailable ? 'Available' : 'Unavailable'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.querySelectorAll('.edit-skill').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    try {
+                        const skillDataRaw = btn.getAttribute('data-skill-data');
+                        if (skillDataRaw) {
+                            const skillData = JSON.parse(skillDataRaw);
+                            editSkill(skillData);
+                        }
+                    } catch(e) {
+                        console.error('Error parsing skill data', e);
+                    }
+                });
+            });
+            
+            document.querySelectorAll('.delete-skill').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const skillId = btn.getAttribute('data-skill-id');
+                    if (skillId) deleteSkill(skillId);
+                });
+            });
+        }
+        
+        function getSkillIcon(category) {
+            const icons = {
+                'Programming': 'code',
+                'Data Science': 'chart-line',
+                'Design': 'paintbrush',
+                'Business': 'briefcase',
+                'Language': 'language',
+                'Marketing': 'bullhorn',
+                'Other': 'star'
+            };
+            return icons[category] || 'graduation-cap';
+        }
+        
+        async function editSkill(skillData) {
+            const newProficiency = prompt('Enter proficiency level (beginner/intermediate/advanced/expert):', skillData.proficiencyLevel);
+            if (newProficiency && ['beginner', 'intermediate', 'advanced', 'expert'].includes(newProficiency)) {
+                const newYears = prompt('Enter years of experience:', skillData.yearsOfExperience);
+                const isAvailable = confirm('Are you available for teaching this skill? Click OK for Yes, Cancel for No');
+                
+                try {
+                    const response = await fetch(`/api/teacher/skills/${skillData.skill._id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            proficiencyLevel: newProficiency,
+                            yearsOfExperience: parseFloat(newYears) || 0,
+                            isAvailable: isAvailable
+                        })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        showToast('Skill updated successfully', 'success');
+                        fetchTeacherSkills();
+                    } else {
+                        showToast(data.message || 'Failed to update skill', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error updating skill:', error);
+                    showToast('Failed to update skill', 'error');
                 }
-            } catch (error) {
-                console.error('Error adding skill:', error);
-                alert('Failed to add skill');
             }
-        });
-
-        // Remove skill
-        async function removeSkill(skillId) {
+        }
+        
+        async function deleteSkill(skillId) {
             if (confirm('Are you sure you want to remove this skill?')) {
                 try {
                     const response = await fetch(`/api/teacher/skills/${skillId}`, {
                         method: 'DELETE'
                     });
-                    
-                    const result = await response.json();
-                    if (result.success) {
-                        location.reload();
+                    const data = await response.json();
+                    if (data.success) {
+                        showToast('Skill removed successfully', 'success');
+                        fetchTeacherSkills();
                     } else {
-                        alert(result.message);
+                        showToast(data.message || 'Failed to remove skill', 'error');
                     }
                 } catch (error) {
                     console.error('Error removing skill:', error);
+                    showToast('Failed to remove skill', 'error');
                 }
             }
         }
-
-        // Open accept modal
-        let currentRequestId = null;
-        function openAcceptModal(requestId, proposedCredits, duration) {
-            currentRequestId = requestId;
-            document.getElementById('acceptRequestId').value = requestId;
-            document.getElementById('sessionCredits').value = proposedCredits;
-            document.getElementById('sessionDuration').value = duration;
-            document.getElementById('acceptModal').style.display = 'block';
-        }
-
-        // Accept form submit
-        document.getElementById('acceptForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const data = {
-                requestId: currentRequestId,
-                scheduledDate: document.getElementById('sessionDate').value,
-                scheduledTime: document.getElementById('sessionTime').value,
-                duration: document.getElementById('sessionDuration').value,
-                creditsPerSession: document.getElementById('sessionCredits').value,
-                message: document.getElementById('acceptMessage').value
-            };
-            
+        
+        async function fetchAvailableSkills() {
             try {
-                const response = await fetch('/api/teacher/requests/accept', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-                
-                const result = await response.json();
-                if (result.success) {
-                    alert('Session accepted and scheduled!');
-                    location.reload();
-                } else {
-                    alert(result.message);
+                const response = await fetch('/api/learn/skills');
+                const data = await response.json();
+                if (data.success) {
+                    const select = document.getElementById('skillSelect');
+                    if(select) {
+                        select.innerHTML = '<option value="">Choose a skill...</option>' + 
+                            data.data.map(skill => `<option value="${escapeHtml(skill._id)}">${escapeHtml(skill.name)} (${escapeHtml(skill.category)})</option>`).join('');
+                    }
                 }
             } catch (error) {
-                console.error('Error accepting request:', error);
-            }
-        });
-
-        // Reject request
-        async function rejectRequest(requestId) {
-            if (confirm('Reject this session request?')) {
-                const reason = prompt('Reason for rejection (optional):');
-                
-                try {
-                    const response = await fetch('/api/teacher/requests/reject', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ requestId, reason })
-                    });
-                    
-                    const result = await response.json();
-                    if (result.success) {
-                        location.reload();
-                    } else {
-                        alert(result.message);
-                    }
-                } catch (error) {
-                    console.error('Error rejecting request:', error);
-                }
+                console.error('Error fetching skills:', error);
             }
         }
-
-        // Start session
+        
+        async function fetchIncomingRequests(filter = 'all') {
+            try {
+                const url = filter === 'all' ? '/api/teacher/requests/incoming' : `/api/teacher/requests/incoming?status=${filter}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                if (data.success) {
+                    renderRequests(data.data.requests, data.data.counts);
+                    document.getElementById('pendingCount').textContent = data.data.counts.pending || 0;
+                }
+            } catch (error) {
+                console.error('Error fetching requests:', error);
+            }
+        }
+        
+        function renderRequests(requests, counts) {
+    const container = document.getElementById('requestsList');
+    
+    if (!requests || requests.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-envelope-open-text"></i>
+                <p>No session requests yet</p>
+                <small>Students will request sessions when they find your skills</small>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = requests.map(request => {
+        const student = request.student || {};
+        const studentName = student.name || 'Student';
+        const studentInitials = (studentName || 'U').split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+        const requestDate = new Date(request.preferredDate);
+        const formattedDate = requestDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        
+        let statusClass = '';
+        let statusIcon = '';
+        let actionButtons = '';
+        
+        if (request.status === 'pending') {
+            statusClass = 'pending';
+            statusIcon = 'fa-clock';
+            actionButtons = `
+                <button class="accept-request" 
+                    data-request-id="${request._id}"
+                    data-student-id="${student._id || ''}"
+                    data-student-name="${(student.name || 'Student').replace(/'/g, "\\'")}"
+                    data-skill-name="${(request.skill ? request.skill.name : '').replace(/'/g, "\\'")}"
+                    data-title="${(request.title || 'Session Request').replace(/'/g, "\\'")}"
+                    data-duration="${request.duration || 60}"
+                    data-credits="${request.proposedCredits || 0}"
+                    data-time="${(request.preferredTime || '').replace(/'/g, "\\'")}">
+                    <i class="fas fa-check-circle"></i> Accept
+                </button>
+                <button class="reject-request" data-request-id="${escapeHtml(request._id)}">
+                    <i class="fas fa-times-circle"></i> Reject
+                </button>
+            `;
+        } else if (request.status === 'accepted') {
+    statusClass = 'accepted';
+    statusIcon = 'fa-check-circle';
+    const studentData = {
+        id: student._id,
+        name: student.name
+    };
+    actionButtons = `
+        <button class="chat-student" data-student='${JSON.stringify(studentData)}'>
+            <i class="fas fa-comment-dots"></i> Chat
+        </button>
+    `;
+} else {
+            statusClass = 'rejected';
+            statusIcon = 'fa-times-circle';
+            actionButtons = `
+                <span class="rejected-reason">${escapeHtml(request.teacherMessage || 'No reason provided')}</span>
+            `;
+        }
+        
+        return `
+            <div class="request-card ${statusClass}">
+                <div class="request-header">
+                    <div class="student-info">
+                        <div class="student-avatar" style="background: ${getRandomColor(student._id || '')}">
+                            ${studentInitials}
+                        </div>
+                        <div class="student-details">
+                            <div class="student-name">${escapeHtml(studentName)}</div>
+                            <div class="request-title">${escapeHtml(request.title || 'Session Request')}</div>
+                        </div>
+                    </div>
+                    <div class="request-status ${statusClass}">
+                        <i class="fas ${statusIcon}"></i> ${(request.status || 'pending').toUpperCase()}
+                    </div>
+                </div>
+                <div class="request-body">
+                    <div class="request-detail">
+                        <i class="fas fa-graduation-cap"></i>
+                        <span>${request.skill ? escapeHtml(request.skill.name) : 'Skill'}</span>
+                    </div>
+                    <div class="request-detail">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>${formattedDate} at ${escapeHtml(request.preferredTime || 'TBD')}</span>
+                    </div>
+                    <div class="request-detail">
+                        <i class="fas fa-clock"></i>
+                        <span>${request.duration || 60} minutes</span>
+                    </div>
+                    <div class="request-detail">
+                        <i class="fas fa-coins"></i>
+                        <span>${request.proposedCredits || 0} credits</span>
+                    </div>
+                    ${request.description ? `
+                        <div class="request-description">
+                            <i class="fas fa-comment"></i>
+                            <p>${escapeHtml(request.description)}</p>
+                        </div>
+                    ` : ''}
+                </div>
+                <div class="request-actions">
+                    ${actionButtons}
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    // Replace the accept-request event listener
+    document.querySelectorAll('.accept-request').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const request = {
+                _id: btn.getAttribute('data-request-id'),
+                student: {
+                    _id: btn.getAttribute('data-student-id'),
+                    name: btn.getAttribute('data-student-name')
+                },
+                skill: {
+                    name: btn.getAttribute('data-skill-name')
+                },
+                title: btn.getAttribute('data-title'),
+                duration: parseInt(btn.getAttribute('data-duration')),
+                proposedCredits: parseInt(btn.getAttribute('data-credits')),
+                preferredTime: btn.getAttribute('data-time')
+            };
+            openAcceptModal(request);
+        });
+    });
+    
+    document.querySelectorAll('.reject-request').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const requestId = btn.getAttribute('data-request-id');
+            if (requestId) openRejectModal(requestId);
+        });
+    });
+    
+    document.querySelectorAll('.chat-student').forEach(btn => {
+        btn.addEventListener('click', () => {
+            try {
+                const studentData = btn.getAttribute('data-student');
+                if (studentData) {
+                    const student = JSON.parse(studentData);
+                    openChat(student);
+                }
+            } catch(e) {
+                console.error('Error parsing student:', e);
+            }
+        });
+    });
+}
+        
+function openAcceptModal(request) {
+    document.getElementById('acceptRequestId').value = request._id;
+    const requestDetails = document.getElementById('requestDetails');
+    if(requestDetails) {
+        requestDetails.innerHTML = `
+            <div class="request-summary">
+                <p><strong>Student:</strong> ${escapeHtml(request.student ? request.student.name : 'Student')}</p>
+                <p><strong>Skill:</strong> ${escapeHtml(request.skill ? request.skill.name : 'N/A')}</p>
+                <p><strong>Title:</strong> ${escapeHtml(request.title || 'Session Request')}</p>
+                <p><strong>Duration:</strong> ${request.duration || 60} minutes</p>
+                <p><strong>Proposed Credits:</strong> ${request.proposedCredits || 0}</p>
+                <p><strong>Student's Preferred Time:</strong> ${escapeHtml(request.preferredTime || 'Not specified')}</p>
+            </div>
+        `;
+    }
+    
+    // Pre-fill with student's preferred date and time (as defaults)
+    const scheduleDateInput = document.getElementById('scheduleDate');
+    const scheduleTimeInput = document.getElementById('scheduleTime');
+    
+    if (scheduleDateInput && request.preferredDate) {
+        const preferredDate = new Date(request.preferredDate);
+        const year = preferredDate.getFullYear();
+        const month = String(preferredDate.getMonth() + 1).padStart(2, '0');
+        const day = String(preferredDate.getDate()).padStart(2, '0');
+        scheduleDateInput.value = `${year}-${month}-${day}`;
+    } else if (scheduleDateInput) {
+        // Default to tomorrow if no preferred date
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        scheduleDateInput.value = tomorrow.toISOString().split('T')[0];
+    }
+    
+    if (scheduleTimeInput && request.preferredTime) {
+        scheduleTimeInput.value = request.preferredTime;
+    }
+    
+    // Make the fields optional by adding placeholder text
+    const dateLabel = document.querySelector('#scheduleDate')?.closest('.form-group')?.querySelector('label');
+    if (dateLabel) dateLabel.innerHTML = 'Schedule Date <span style="font-weight: normal; color: #666;">(Optional - defaults to student\'s preference)</span>';
+    
+    const timeLabel = document.querySelector('#scheduleTime')?.closest('.form-group')?.querySelector('label');
+    if (timeLabel) timeLabel.innerHTML = 'Schedule Time <span style="font-weight: normal; color: #666;">(Optional - defaults to student\'s preference)</span>';
+    
+    document.getElementById('acceptRequestModal').classList.add('show');
+}
+        
+        function openRejectModal(requestId) {
+            document.getElementById('rejectRequestId').value = requestId;
+            document.getElementById('rejectRequestModal').classList.add('show');
+        }
+        
+        async function fetchSessions(type = 'upcoming') {
+            try {
+                let url = '/api/teacher/sessions/upcoming';
+                if (type === 'completed') {
+                    url = '/api/teacher/sessions/completed';
+                }
+                const response = await fetch(url);
+                const data = await response.json();
+                if (data.success) {
+                    renderSessions(data.data, type);
+                }
+            } catch (error) {
+                console.error('Error fetching sessions:', error);
+            }
+        }
+        
+        function renderSessions(sessions, type) {
+            const container = document.getElementById('sessionsList');
+            
+            if (!sessions || sessions.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-calendar-alt"></i>
+                        <p>No ${type} sessions found</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const sessionsArray = type === 'completed' ? sessions.sessions : sessions;
+            
+            container.innerHTML = sessionsArray.map(session => {
+                const student = session.student || {};
+                const studentName = student.name || 'Student';
+                const studentInitials = (studentName || 'U').split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                const sessionDate = new Date(session.scheduledDate);
+                const formattedDate = sessionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const studentJSON = JSON.stringify({id: student._id, name: student.name});
+                let actionButtons = '';
+                if (type === 'upcoming' && session.status !== 'ongoing') {
+                    actionButtons = `
+                        <button class="start-session" data-session-id="${escapeHtml(session._id)}">
+                            <i class="fas fa-play"></i> Start Session
+                        </button>
+                        <button class="chat-student" data-student="${studentJSON}">
+                            <i class="fas fa-comment-dots"></i> Chat
+                        </button>
+                    `;
+                } else if (session.status === 'ongoing') {
+                    actionButtons = `
+                        <a href="${escapeHtml(session.meetingLink || '#')}" target="_blank" class="join-session-btn">
+                            <i class="fas fa-video"></i> Join Session
+                        </a>
+                        <button class="complete-session" data-session-id="${escapeHtml(session._id)}">
+                            <i class="fas fa-check-circle"></i> Complete
+                        </button>
+                    `;
+                } else if (type === 'completed') {
+                    actionButtons = `
+                        <button class="view-summary" data-session-id="${escapeHtml(session._id)}">
+                            <i class="fas fa-file-alt"></i> View Summary
+                        </button>
+                    `;
+                }
+                
+                return `
+                    <div class="session-card">
+                        <div class="session-header">
+                            <div class="session-student">
+                                <div class="student-avatar small" style="background: ${getRandomColor(student._id || '')}">
+                                    ${studentInitials}
+                                </div>
+                                <div class="session-info">
+                                    <div class="student-name">${escapeHtml(studentName)}</div>
+                                    <div class="session-title">${escapeHtml(session.title || 'Session')}</div>
+                                </div>
+                            </div>
+                            <div class="session-status ${session.status || 'upcoming'}">
+                                <i class="fas ${session.status === 'ongoing' ? 'fa-play-circle' : session.status === 'completed' ? 'fa-check-circle' : 'fa-calendar'}"></i>
+                                ${(session.status || 'upcoming').toUpperCase()}
+                            </div>
+                        </div>
+                        <div class="session-body">
+                            <div class="session-detail">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>${formattedDate} at ${escapeHtml(session.scheduledTime || 'TBD')}</span>
+                            </div>
+                            <div class="session-detail">
+                                <i class="fas fa-clock"></i>
+                                <span>${session.duration || 60} minutes</span>
+                            </div>
+                            <div class="session-detail">
+                                <i class="fas fa-coins"></i>
+                                <span>${session.creditsPerSession || 0} credits</span>
+                            </div>
+                            ${session.meetingLink && session.status === 'ongoing' ? `
+                                <div class="session-code">
+                                    <span class="code-label">Join Code:</span>
+                                    <span class="code-value">${escapeHtml(session.joinCode || (session.roomId ? session.roomId.substring(0, 8) : ''))}</span>
+                                    <button class="copy-code" data-code="${escapeHtml(session.joinCode || (session.roomId ? session.roomId.substring(0, 8) : ''))}">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="session-actions">
+                            ${actionButtons}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.querySelectorAll('.copy-code').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const code = btn.getAttribute('data-code');
+                    if (code && navigator.clipboard) {
+                        navigator.clipboard.writeText(code);
+                        showToast('Code copied!', 'success');
+                    }
+                });
+            });
+            
+            document.querySelectorAll('.start-session').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const sessionId = btn.getAttribute('data-session-id');
+                    if (sessionId) startSession(sessionId);
+                });
+            });
+            
+            document.querySelectorAll('.complete-session').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const sessionId = btn.getAttribute('data-session-id');
+                    if (sessionId) completeSession(sessionId);
+                });
+            });
+            
+            document.querySelectorAll('.chat-student').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    try {
+                        const studentData = btn.getAttribute('data-student');
+                        if (studentData) {
+                            const student = JSON.parse(studentData);
+                            openChat(student);
+                        }
+                    } catch(e) {
+                        console.error('Error parsing student', e);
+                    }
+                });
+            });
+        }
+        
         async function startSession(sessionId) {
             try {
-                const response = await fetch('/api/teacher/sessions/start', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ sessionId })
+                const response = await fetch(`/api/teacher/sessions/${sessionId}/start`, {
+                    method: 'POST'
                 });
-                
-                const result = await response.json();
-                if (result.success) {
-                    alert(`Session started!\nJoin Code: ${result.session.joinCode}\nRoom ID: ${result.session.roomId}`);
-                    // Join the session room for video call
-                    socket.emit('join-session', {
-                        roomId: result.session.roomId,
-                        userId: '<%= user._id %>',
-                        joinCode: result.session.joinCode
-                    });
-                } else {
-                    alert(result.message);
+                const data = await response.json();
+                if (data.success) {
+                    const startInfo = document.getElementById('startSessionInfo');
+                    if(startInfo) {
+                        startInfo.innerHTML = `<p>Session started successfully!</p>`;
+                    }
+                    const sessionCode = document.getElementById('sessionCode');
+                    if(sessionCode) sessionCode.textContent = data.data.joinCode;
+                    const meetingLinkDisplay = document.getElementById('meetingLinkDisplay');
+                    if(meetingLinkDisplay) {
+                        meetingLinkDisplay.href = data.data.meetingLink;
+                        meetingLinkDisplay.textContent = data.data.meetingLink;
+                    }
+                    document.getElementById('sessionCodeBox').style.display = 'block';
+                    document.getElementById('meetingLinkBox').style.display = 'block';
+                    document.getElementById('startSessionModal').classList.add('show');
+                    showToast('Session started!', 'success');
+                    fetchSessions('upcoming');
                 }
             } catch (error) {
                 console.error('Error starting session:', error);
+                showToast('Failed to start session', 'error');
             }
         }
-
-        // Open chat
-        async function openChat(sessionId, studentId) {
-            currentSessionId = sessionId;
-            currentStudentId = studentId;
-            
+        
+        async function completeSession(sessionId) {
+            if (confirm('Mark this session as completed? This will add credits to your account.')) {
+                try {
+                    const response = await fetch(`/api/teacher/sessions/${sessionId}/complete`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ notes: '' })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        showToast('Session completed! Credits added.', 'success');
+                        fetchSessions('upcoming');
+                        fetchCreditsAndEarnings();
+                    }
+                } catch (error) {
+                    console.error('Error completing session:', error);
+                    showToast('Failed to complete session', 'error');
+                }
+            }
+        }
+        
+        async function fetchCreditsAndEarnings() {
             try {
-                const response = await fetch(`/api/teacher/messages/${sessionId}`);
+                const response = await fetch('/api/teacher/credits-earnings');
                 const data = await response.json();
-                
                 if (data.success) {
-                    freeChatRemaining = data.freeChatInfo.remaining;
-                    displayMessages(data.messages);
-                    updateFreeChatInfo();
-                    document.getElementById('chatModal').style.display = 'block';
+                    document.getElementById('totalCreditsEarned').textContent = data.data.totalCreditsEarned;
+                    document.getElementById('redeemableCredits').textContent = data.data.redeemableCredits;
+                    document.getElementById('moneyEarned').textContent = `₹${data.data.moneyEarned}`;
+                    renderTransactions(data.data.transactions);
                 }
             } catch (error) {
-                console.error('Error loading messages:', error);
+                console.error('Error fetching earnings:', error);
             }
         }
-
-        function displayMessages(messages) {
-            const container = document.getElementById('messagesList');
-            container.innerHTML = messages.map(msg => `
-                <div class="message ${msg.sender._id === '<%= user._id %>' ? 'sent' : 'received'}">
-                    <strong>${msg.sender.name}:</strong>
-                    <p>${msg.content}</p>
-                    <small>${new Date(msg.createdAt).toLocaleTimeString()}</small>
-                </div>
-            `).join('');
-        }
-
-        function displayNewMessage(message) {
-            const container = document.getElementById('messagesList');
-            container.innerHTML += `
-                <div class="message received">
-                    <strong>${message.sender.name}:</strong>
-                    <p>${message.content}</p>
-                    <small>Just now</small>
-                </div>
-            `;
-            container.scrollTop = container.scrollHeight;
-        }
-
-        function updateFreeChatInfo() {
-            const infoDiv = document.getElementById('freeChatInfo');
-            if (freeChatRemaining > 0) {
-                infoDiv.innerHTML = `✓ ${freeChatRemaining} free messages remaining before session starts`;
-            } else {
-                infoDiv.innerHTML = `⚠️ You've used all free messages. Further messages will require credits.`;
+        
+        function renderTransactions(transactions) {
+            const container = document.getElementById('transactionsList');
+            
+            if (!transactions || transactions.length === 0) {
+                container.innerHTML = '<div class="empty-state"><i class="fas fa-receipt"></i><p>No transactions yet</p></div>';
+                return;
             }
+            
+            container.innerHTML = transactions.map(tx => {
+                const date = new Date(tx.createdAt);
+                const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const typeIcon = {
+                    'credit_purchase': 'fa-plus-circle',
+                    'credit_spent': 'fa-minus-circle',
+                    'credit_earned': 'fa-plus-circle',
+                    'credit_redeemed': 'fa-exchange-alt'
+                }[tx.type] || 'fa-circle';
+                
+                const typeClass = tx.credits > 0 ? 'positive' : 'negative';
+                
+                return `
+                    <div class="transaction-item">
+                        <div class="transaction-icon">
+                            <i class="fas ${typeIcon}"></i>
+                        </div>
+                        <div class="transaction-details">
+                            <div class="transaction-description">${escapeHtml(tx.description)}</div>
+                            <div class="transaction-date">${formattedDate}</div>
+                        </div>
+                        <div class="transaction-amount ${typeClass}">
+                            ${tx.credits > 0 ? '+' : ''}${tx.credits} credits
+                        </div>
+                    </div>
+                `;
+            }).join('');
         }
-
-        async function sendChatMessage() {
-            const input = document.getElementById('chatInput');
-            const content = input.value.trim();
+        
+        async function requestWithdrawal() {
+            const amountInput = document.getElementById('withdrawAmount');
+            const amount = amountInput ? parseInt(amountInput.value) : 0;
+            const paymentMethod = document.getElementById('paymentMethod');
+            const paymentDetails = document.getElementById('paymentDetails');
             
-            if (!content) return;
+            if (!amount || amount < 10) {
+                showToast('Please enter at least 10 credits', 'error');
+                return;
+            }
             
-            // Emit via socket for real-time
-            socket.emit('send-message', {
-                sessionId: currentSessionId,
-                senderId: '<%= user._id %>',
-                receiverId: currentStudentId,
-                content,
-                isFree: freeChatRemaining > 0
-            });
+            if (!paymentDetails || !paymentDetails.value) {
+                showToast('Please enter payment details', 'error');
+                return;
+            }
             
-            // Also save to database via API
             try {
-                const response = await fetch('/api/chat/send', {
+                const response = await fetch('/api/teacher/withdraw/request', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        sessionId: currentSessionId,
-                        receiverId: currentStudentId,
-                        content
+                    body: JSON.stringify({ 
+                        amount: amount, 
+                        paymentMethod: paymentMethod ? paymentMethod.value : 'bank_transfer', 
+                        paymentDetails: paymentDetails.value 
                     })
                 });
-                
                 const data = await response.json();
                 if (data.success) {
-                    input.value = '';
-                    if (data.isFree) {
-                        freeChatRemaining--;
-                        updateFreeChatInfo();
-                    }
+                    showToast(`Withdrawal request submitted! ₹${data.data.moneyValue} will be processed.`, 'success');
+                    if (amountInput) amountInput.value = '';
+                    if (paymentDetails) paymentDetails.value = '';
+                    fetchCreditsAndEarnings();
+                    fetchTeacherProfile();
                 } else {
-                    alert(data.message);
+                    showToast(data.message || 'Withdrawal failed', 'error');
                 }
             } catch (error) {
-                console.error('Error sending message:', error);
+                console.error('Error requesting withdrawal:', error);
+                showToast('Failed to process withdrawal', 'error');
             }
         }
+        
+       async function openChat(student) {
+    // Prevent chatting with yourself
+    if (student.id === currentUser.id) {
+        showToast('You cannot chat with yourself', 'error');
+        return;
+    }
+    
+    currentChatStudent = student;
+    
+    // Check if chat is allowed - USE TEACHER ENDPOINT
+    try {
+        // CHANGE THIS URL: from /api/learn/ to /api/teacher/
+        const response = await fetch(`/api/teacher/chat/check/${student.id}`);
+        const data = await response.json();
+        
+        if (!data.success || !data.data.canChat) {
+            showToast(data.data?.message || 'You can only chat with students who have accepted sessions', 'error');
+            return;
+        }
+        
+        // CHANGE THIS URL: from /api/learn/ to /api/teacher/
+        const convResponse = await fetch(`/api/teacher/chat/conversation/${student.id}`);
+        const convData = await convResponse.json();
+        
+        if (convData.success) {
+            currentConversationId = convData.data.conversation._id;
+            renderChatMessages(convData.data.messages, student.name);
+            
+            document.getElementById('chatStudentName').textContent = student.name;
+            document.getElementById('chatModal').classList.add('show');
+            
+            if (socket) {
+                socket.emit('join_conversation', currentConversationId);
+            }
+        } else {
+            showToast(convData.message || 'Failed to load conversation', 'error');
+        }
+    } catch (error) {
+        console.error('Error opening chat:', error);
+        showToast('Failed to load chat', 'error');
+    }
+}
+        
+     function renderChatMessages(messages, otherUserName) {
+    const container = document.getElementById('chatMessages');
+    
+    if (!messages || messages.length === 0) {
+        container.innerHTML = `<div class="chat-message system">
+            <div class="message-bubble"><i class="fas fa-comment"></i> Start chatting with ${escapeHtml(otherUserName || 'the user')}!</div>
+        </div>`;
+        return;
+    }
+    
+    container.innerHTML = messages.map(msg => {
+        const isCurrentUser = msg.sender && msg.sender._id === currentUser.id;
+        const senderName = msg.sender ? escapeHtml(msg.sender.name) : 'Unknown';
+        const content = escapeHtml(msg.content);
+        const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const messageId = msg._id;
+        
+        const messageClass = isCurrentUser ? 'sent' : 'received';
+        
+        // Add delete button only for current user's messages
+        const deleteButton = isCurrentUser ? `
+            <div class="message-actions">
+                <button class="delete-message-btn" data-message-id="${messageId}" onclick="deleteMessage('${messageId}')">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        ` : '';
+        
+        return `
+            <div class="chat-message ${messageClass}" data-message-id="${messageId}">
+                <div class="message-bubble">
+                    ${!isCurrentUser ? `<div class="message-sender">${senderName}</div>` : ''}
+                    <div class="message-content">${content}</div>
+                    <div class="message-time">${time}</div>
+                    ${deleteButton}
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    container.scrollTop = container.scrollHeight;
+}
 
-        function handleChatKeyPress(event) {
-            if (event.key === 'Enter') {
-                sendChatMessage();
+   // Delete Message Function
+async function deleteMessage(messageId) {
+    if (!confirm('Are you sure you want to delete this message?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/chat/message/${messageId}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Remove message from UI
+            const messageElement = document.querySelector(`.chat-message[data-message-id="${messageId}"]`);
+            if (messageElement) {
+                messageElement.remove();
+                showToast('Message deleted successfully', 'success');
+            }
+            
+            // Also remove from messages array if needed
+            if (currentConversationId) {
+                // Optionally refresh messages
+                const refreshResponse = await fetch(`/api/teacher/chat/conversation/${currentChatStudent?.id}`);
+                const refreshData = await refreshResponse.json();
+                if (refreshData.success) {
+                    renderChatMessages(refreshData.data.messages, currentChatStudent?.name);
+                }
+            }
+        } else {
+            showToast(data.message || 'Failed to delete message', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting message:', error);
+        showToast('Failed to delete message', 'error');
+    }
+}
+        
+    async function sendChatMessage() {
+    const input = document.getElementById('chatInput');
+    const message = input ? input.value.trim() : '';
+    
+    if (!message || !currentChatStudent) return;
+    
+    if (message === '') return;
+    
+    const sendBtn = document.getElementById('sendMessageBtn');
+    if (sendBtn) sendBtn.disabled = true;
+    
+    try {
+        // CHANGE THIS URL: from /api/learn/ to /api/teacher/
+        const response = await fetch('/api/teacher/chat/message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                receiverId: currentChatStudent.id,
+                content: message,
+                type: 'text'
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const container = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'chat-message sent';
+            messageDiv.innerHTML = `
+                <div class="message-bubble">
+                    <div class="message-content">${escapeHtml(message)}</div>
+                    <div class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                </div>
+            `;
+            if (container) {
+                container.appendChild(messageDiv);
+                container.scrollTop = container.scrollHeight;
+            }
+            if (input) input.value = '';
+        } else {
+            showToast(data.message || 'Failed to send message', 'error');
+        }
+    } catch (error) {
+        console.error('Error sending message:', error);
+        showToast('Failed to send message', 'error');
+    } finally {
+        if (sendBtn) sendBtn.disabled = false;
+        if (input) input.focus();
+    }
+}
+        
+        function initSocket() {
+            if(currentUser.id) {
+                socket = io();
+                socket.on('connect', () => {
+                    socket.emit('register_user', currentUser.id);
+                });
+                
+                socket.on('new_message', (data) => {
+                    if (currentConversationId === data.conversationId) {
+                        const container = document.getElementById('chatMessages');
+                        const message = data.message;
+                        const isUser = message.sender && message.sender._id === currentUser.id;
+                        const senderName = message.sender ? escapeHtml(message.sender.name) : 'Unknown';
+                        const content = escapeHtml(message.content);
+                        const time = new Date(message.createdAt).toLocaleTimeString();
+                        
+                        const messageDiv = document.createElement('div');
+                        messageDiv.className = `chat-message ${isUser ? 'user' : 'teacher'}`;
+                        messageDiv.innerHTML = `
+                            <div class="message-bubble">
+                                ${!isUser ? `<strong>${senderName}:</strong> ` : ''}
+                                <span>${content}</span>
+                                <small>${time}</small>
+                            </div>
+                        `;
+                        if (container) {
+                            container.appendChild(messageDiv);
+                            container.scrollTop = container.scrollHeight;
+                        }
+                    }
+                });
+                
+                socket.on('new_request', (data) => {
+                    showToast(`New session request from ${data.studentName}!`, 'info');
+                    fetchIncomingRequests('pending');
+                });
             }
         }
+        
+        // Tab switching
+        function setupTabs() {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tabId = btn.getAttribute('data-tab');
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+                    btn.classList.add('active');
+                    const tabContent = document.getElementById(`${tabId}Tab`);
+                    if(tabContent) tabContent.classList.add('active');
+                    
+                    // Load data for tab
+                    if (tabId === 'requests') fetchIncomingRequests('all');
+                    else if (tabId === 'sessions') fetchSessions('upcoming');
+                    else if (tabId === 'skills') fetchTeacherSkills();
+                    else if (tabId === 'earnings') fetchCreditsAndEarnings();
+                });
+            });
+            
+            document.querySelectorAll('.filter-chip').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    const filter = btn.getAttribute('data-filter');
+                    if (filter) fetchIncomingRequests(filter);
+                });
+            });
+            
+            document.querySelectorAll('.subtab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.subtab-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    const subtab = btn.getAttribute('data-subtab');
+                    if (subtab) fetchSessions(subtab);
+                });
+            });
+        }
+        
+        // Initialize page
+        async function init() {
+            initSocket();
+            setupTabs();
+            
+            await fetchTeacherProfile();
+            await fetchTrendingTopics();
+            await fetchTeacherSkills();
+            await fetchIncomingRequests('all');
+            await fetchSessions('upcoming');
+            await fetchCreditsAndEarnings();
+           // await fetchAvailableSkills();
+            
+            // Event listeners
+            const addSkillBtn = document.getElementById('addSkillBtn');
+            if(addSkillBtn) {
+                addSkillBtn.addEventListener('click', () => {
+                    document.getElementById('addSkillModal').classList.add('show');
+                });
+            }
+            
+            const refreshTrending = document.getElementById('refreshTrending');
+            if(refreshTrending) {
+                refreshTrending.addEventListener('click', fetchTrendingTopics);
+            }
+            
+            const withdrawBtn = document.getElementById('withdrawBtn');
+            if(withdrawBtn) {
+                withdrawBtn.addEventListener('click', requestWithdrawal);
+            }
+            
+            // Modal close buttons
+            document.querySelectorAll('.close-modal, .close-modal-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.modal').forEach(modal => modal.classList.remove('show'));
+                });
+            });
+            
+            // Add skill form
+            const addSkillForm = document.getElementById('addSkillForm');
+            if(addSkillForm) {
+                addSkillForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                      const skillNameInput = document.getElementById('skillName');
+                      const skillName = skillNameInput ? skillNameInput.value.trim() : '';
+                      const proficiencyLevel = document.getElementById('proficiencyLevel');
+                       const yearsOfExperienceInput = document.getElementById('yearsExperience');
+                      const hourlyRateInput = document.getElementById('hourlyRate');
 
-        // Modal close functions
-        function closeAddSkillModal() { document.getElementById('addSkillModal').style.display = 'none'; }
-        function closeAcceptModal() { document.getElementById('acceptModal').style.display = 'none'; }
-        function closeChatModal() { document.getElementById('chatModal').style.display = 'none'; }
-
-        // Close modals on outside click
-        window.onclick = function(event) {
-            if (event.target.classList.contains('modal')) {
-                event.target.style.display = 'none';
+                 if (!skillName) {
+                      showToast('Please enter a skill name', 'error');
+                       return;
+                     }
+                    
+                    try {
+                        const response = await fetch('/api/teacher/skills', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                           body: JSON.stringify({ 
+                               skillName: skillName, 
+                              proficiencyLevel: proficiencyLevel ? proficiencyLevel.value : 'beginner', 
+                              yearsOfExperience: yearsOfExperienceInput ? parseFloat(yearsOfExperienceInput.value) : 0, 
+                              hourlyRate: hourlyRateInput ? (parseInt(hourlyRateInput.value) || undefined) : undefined
+                            })
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            showToast('Skill added successfully', 'success');
+                            document.getElementById('addSkillModal').classList.remove('show');
+                            if (addSkillForm) addSkillForm.reset();
+                            fetchTeacherSkills();
+                            fetchTeacherProfile();
+                        } else {
+                            showToast(data.message || 'Failed to add skill', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Error adding skill:', error);
+                        showToast('Failed to add skill', 'error');
+                    }
+                });
+            }
+            
+            // Accept request form
+const acceptRequestForm = document.getElementById('acceptRequestForm');
+if(acceptRequestForm) {
+    acceptRequestForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const requestIdInput = document.getElementById('acceptRequestId');
+        const requestId = requestIdInput ? requestIdInput.value : '';
+        const scheduleDate = document.getElementById('scheduleDate');
+        const scheduleTime = document.getElementById('scheduleTime');
+        
+        // Get values (these can be empty/optional now)
+        const scheduledDate = scheduleDate ? scheduleDate.value : '';
+        const scheduledTime = scheduleTime ? scheduleTime.value : '';
+        
+        try {
+            const response = await fetch(`/api/teacher/requests/${requestId}/accept`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    scheduledDate: scheduledDate, 
+                    scheduledTime: scheduledTime
+                    // No meetingLink field anymore
+                })
+            });
+            const data = await response.json();
+            if (data.success) {
+                showToast('Request accepted! Session created.', 'success');
+                document.getElementById('acceptRequestModal').classList.remove('show');
+                fetchIncomingRequests('all');
+                fetchSessions('upcoming');
+            } else {
+                showToast(data.message || 'Failed to accept request', 'error');
+            }
+        } catch (error) {
+            console.error('Error accepting request:', error);
+            showToast('Failed to accept request', 'error');
+        }
+    });
+}
+            
+            // Reject request form
+            const rejectRequestForm = document.getElementById('rejectRequestForm');
+            if(rejectRequestForm) {
+                rejectRequestForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const requestIdInput = document.getElementById('rejectRequestId');
+                    const requestId = requestIdInput ? requestIdInput.value : '';
+                    const rejectReason = document.getElementById('rejectReason');
+                    
+                    try {
+                        const response = await fetch(`/api/teacher/requests/${requestId}/reject`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ reason: rejectReason ? rejectReason.value : '' })
+                        });
+                        const data = await response.json();
+                        if (data.success) {
+                            showToast('Request rejected', 'info');
+                            document.getElementById('rejectRequestModal').classList.remove('show');
+                            fetchIncomingRequests('all');
+                        } else {
+                            showToast(data.message || 'Failed to reject request', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Error rejecting request:', error);
+                        showToast('Failed to reject request', 'error');
+                    }
+                });
+            }
+            
+            // Send message
+            const sendMessageBtn = document.getElementById('sendMessageBtn');
+            if(sendMessageBtn) {
+                sendMessageBtn.addEventListener('click', sendChatMessage);
+            }
+            
+            const chatInput = document.getElementById('chatInput');
+            if(chatInput) {
+                chatInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') sendChatMessage();
+                });
+            }
+            
+            // Close chat modal
+            const closeChatModal = document.getElementById('closeChatModal');
+            if(closeChatModal) {
+                closeChatModal.addEventListener('click', () => {
+                    document.getElementById('chatModal').classList.remove('show');
+                    if (socket && currentConversationId) {
+                        socket.emit('leave_conversation', currentConversationId);
+                        currentConversationId = null;
+                    }
+                });
+            }
+            
+            // Copy code button in start session modal
+            const copyCodeBtn = document.getElementById('copyCodeBtn');
+            if(copyCodeBtn) {
+                copyCodeBtn.addEventListener('click', () => {
+                    const sessionCode = document.getElementById('sessionCode');
+                    const code = sessionCode ? sessionCode.textContent : '';
+                    if (code && navigator.clipboard) {
+                        navigator.clipboard.writeText(code);
+                        showToast('Session code copied!', 'success');
+                    }
+                });
             }
         }
+        
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
