@@ -62,7 +62,8 @@ const userSchema = new mongoose.Schema({
     }],
     teachingSkills: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Skill'
+        ref: 'Skill',
+         default: []
     }],
     bio: {
         type: String,

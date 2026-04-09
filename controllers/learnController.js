@@ -142,6 +142,7 @@ exports.createSessionRequest = async (req, res, next) => {
         const {
             teacherId,
             skillId,
+            skillName,
             title,
             description,
             preferredDate,
@@ -151,7 +152,7 @@ exports.createSessionRequest = async (req, res, next) => {
         } = req.body;
         
         // Validate required fields
-        if (!teacherId || !skillId || !title || !preferredDate || !preferredTime || !duration) {
+        if (!teacherId || !title || !preferredDate || !preferredTime || !duration) {
             return res.status(400).json({
                 success: false,
                 message: 'Please provide all required fields'
@@ -167,21 +168,35 @@ exports.createSessionRequest = async (req, res, next) => {
             });
         }
         
-        // Check if teacher teaches this skill
-        const hasSkill = teacher.teachingSkills.includes(skillId);
-        if (!hasSkill) {
-            return res.status(400).json({
-                success: false,
-                message: 'Teacher does not teach this skill'
+        // Find skill by ID or by name
+        let skill = null;
+        let finalSkillId = null;
+        
+        if (skillId) {
+            // Try to find by ID first
+            skill = await Skill.findById(skillId);
+        } else if (skillName) {
+            // Find by name (case insensitive)
+            skill = await Skill.findOne({ 
+                name: { $regex: new RegExp(`^${skillName.trim()}$`, 'i') } 
             });
         }
         
-        // Check if skill exists
-        const skill = await Skill.findById(skillId);
         if (!skill || !skill.isActive) {
             return res.status(404).json({
                 success: false,
                 message: 'Skill not found'
+            });
+        }
+        
+        finalSkillId = skill._id;
+        
+        // Check if teacher teaches this skill
+        const hasSkill = teacher.teachingSkills && teacher.teachingSkills.includes(finalSkillId);
+        if (!hasSkill) {
+            return res.status(400).json({
+                success: false,
+                message: 'Teacher does not teach this skill'
             });
         }
         
@@ -200,21 +215,11 @@ exports.createSessionRequest = async (req, res, next) => {
             });
         }
         
-        // Check if student has enough credits
-        const student = await User.findById(req.user.id);
-        if (student.credits < proposedCredits) {
-            return res.status(400).json({
-                success: false,
-                message: `Insufficient credits. You have ${student.credits} credits but need ${proposedCredits}`,
-                data: { availableCredits: student.credits, requiredCredits: proposedCredits }
-            });
-        }
-        
         // Create session request
         const sessionRequest = await SessionRequest.create({
             teacher: teacherId,
             student: req.user.id,
-            skill: skillId,
+            skill: finalSkillId,
             title,
             description: description || '',
             preferredDate: new Date(preferredDate),
@@ -673,5 +678,43 @@ exports.getSessionHistory = async (req, res, next) => {
         
     } catch (error) {
         next(error);
+    }
+};
+
+// Delete Message (Student side)
+exports.deleteMessage = async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        
+        const message = await Message.findById(messageId);
+        
+        if (!message) {
+            return res.status(404).json({
+                success: false,
+                message: 'Message not found'
+            });
+        }
+        
+        // Check if current user is the sender
+        if (message.sender.toString() !== req.user.id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'You can only delete your own messages'
+            });
+        }
+        
+        // Hard delete
+        await Message.findByIdAndDelete(messageId);
+        
+        res.json({
+            success: true,
+            message: 'Message deleted successfully'
+        });
+    } catch (error) {
+        console.error('Delete message error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete message'
+        });
     }
 };
