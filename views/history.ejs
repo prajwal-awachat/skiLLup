@@ -1,189 +1,325 @@
+<!-- views/history.ejs -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Learning History | Track Your Progress</title>
+    <title>Learning History | Peer Learning Platform</title>
     <link rel="stylesheet" href="/history.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-    <div class="history-container">
-        <!-- Header Section -->
-        <header class="history-header">
-            <div class="header-content">
-                <h1>
-                    <i class="fas fa-history"></i>
-                    Learning History
-                </h1>
-                <p>Track your progress and review past sessions</p>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <span class="logo-icon">📚</span>
+                <span class="logo-text">skiLLup</span>
             </div>
-        </header>
+            <nav class="nav-menu">
+                <a href="/learn" class="nav-item">
+                    <span class="nav-icon">🎓</span>
+                    <span>Learn</span>
+                </a>
+                <a href="/teach" class="nav-item">
+                    <span class="nav-icon">👨‍🏫</span>
+                    <span>Teach</span>
+                </a>
+                <a href="/store" class="nav-item">
+                    <span class="nav-icon">🛒</span>
+                    <span>Store</span>
+                </a>
+                <a href="/history" class="nav-item active">
+                    <span class="nav-icon">📜</span>
+                    <span>History</span>
+                </a>
+                <a href="/roadmap" class="nav-item">
+                    <span class="nav-icon">🗺️</span>
+                    <span>Roadmap</span>
+                </a>
+                <a href="/settings" class="nav-item">
+                    <span class="nav-icon">⚙️</span>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            <div class="user-profile">
+                <div class="avatar"><%= user ? user.name.charAt(0).toUpperCase() + (user.name.split(' ')[1] ? user.name.split(' ')[1].charAt(0).toUpperCase() : '') : 'U' %></div>
+                <div class="user-info">
+                    <span class="user-name"><%= user ? user.name : 'User' %></span>
+                    <span class="user-email"><%= user ? user.email : 'user@example.com' %></span>
+                </div>
+            </div>
+        </aside>
 
-        <!-- Stats Cards Section -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-calendar-alt"></i>
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header Section -->
+            <div class="top-bar">
+                <div class="header-section">
+                    <h1>
+                        <i class="fas fa-history"></i>
+                        Learning History
+                    </h1>
+                    <p class="header-subtitle">Track your progress and review past sessions</p>
                 </div>
-                <div class="stat-info">
-                    <h3 class="stat-value">5</h3>
-                    <p class="stat-label">Total Sessions</p>
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <div class="stat-info">
-                    <h3 class="stat-value">5.0</h3>
-                    <p class="stat-label">Total Hours</p>
-                </div>
-            </div>
-            
-            <div class="stat-card">
-                <div class="stat-icon">
-                    <i class="fas fa-coins"></i>
-                </div>
-                <div class="stat-info">
-                    <h3 class="stat-value">113</h3>
-                    <p class="stat-label">Credits Spent</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Tabs Section -->
-        <div class="tabs-section">
-            <button class="tab-btn active" data-tab="sessions">
-                <i class="fas fa-chalkboard-user"></i> Sessions
-            </button>
-            <button class="tab-btn" data-tab="earnings">
-                <i class="fas fa-chart-line"></i> Earnings
-            </button>
-        </div>
-
-        <!-- Sessions Content -->
-        <div class="tab-content active" id="sessionsContent">
-            <div class="sessions-list" id="sessionsList">
-                <!-- Sessions will be dynamically populated -->
-            </div>
-        </div>
-
-        <!-- Earnings Content (initially hidden) -->
-        <div class="tab-content" id="earningsContent">
-            <div class="earnings-summary">
-                <div class="earnings-card">
-                    <h3><i class="fas fa-chart-simple"></i> Earnings Overview</h3>
-                    <div class="earnings-stats">
-                        <div class="earning-stat">
-                            <span class="earning-label">Total Earned</span>
-                            <span class="earning-value">$0</span>
-                        </div>
-                        <div class="earning-stat">
-                            <span class="earning-label">This Month</span>
-                            <span class="earning-value">$0</span>
-                        </div>
-                        <div class="earning-stat">
-                            <span class="earning-label">Pending Payout</span>
-                            <span class="earning-value">$0</span>
-                        </div>
+                
+                <!-- Credits Card -->
+                <div class="credits-card">
+                    <div class="credits-icon">
+                        <i class="fas fa-coins"></i>
                     </div>
-                    <p class="earnings-note">Start teaching to see your earnings here!</p>
+                    <div class="credits-info">
+                        <span class="credits-label">Available Credits</span>
+                        <span class="credits-amount" id="creditAmount">0</span>
+                    </div>
+                    <button class="add-credits-btn" id="addCreditsBtn"  onclick="window.location.href='/store'">
+                        <i class="fas fa-plus"></i> Add
+                    </button>
                 </div>
             </div>
-        </div>
+
+            <!-- Stats Cards Section -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 class="stat-value" id="totalSessions">0</h3>
+                        <p class="stat-label">Total Sessions</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 class="stat-value" id="totalHours">0.0</h3>
+                        <p class="stat-label">Total Hours</p>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3 class="stat-value" id="totalCreditsSpent">0</h3>
+                        <p class="stat-label">Credits Spent</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sessions Content -->
+            <div class="sessions-container">
+                <div class="section-header">
+                    <h2><i class="fas fa-chalkboard-user"></i> Session History</h2>
+                </div>
+                <div class="sessions-list" id="sessionsList">
+                    <div class="loading-spinner">Loading session history...</div>
+                </div>
+            </div>
+        </main>
     </div>
 
     <script>
-        // Session data
-        const sessions = [
-            {
-                id: 1,
-                initials: "AC",
-                teacherName: "Alex Chen",
-                skill: "Python - Advanced Functions",
-                date: "Mar 20, 2026",
-                duration: 60,
-                credits: 20,
-                summary: "In this session, we covered advanced Python concepts including decorators, generators, and context managers. Alex provided excellent explanations and practical examples."
-            },
-            {
-                id: 2,
-                initials: "MG",
-                teacherName: "Maria Garcia",
-                skill: "UI Design Fundamentals",
-                date: "Mar 18, 2026",
-                duration: 45,
-                credits: 25,
-                summary: "Learned about color theory, typography, and layout principles. Maria shared great resources for UI design inspiration and best practices."
-            },
-            {
-                id: 3,
-                initials: "DP",
-                teacherName: "David Park",
-                skill: "React Hooks Deep Dive",
-                date: "Mar 15, 2026",
-                duration: 75,
-                credits: 22,
-                summary: "Explored useState, useEffect, useContext, and custom hooks. David demonstrated real-world applications and performance optimization techniques."
-            },
-            {
-                id: 4,
-                initials: "EW",
-                teacherName: "Emma Wilson",
-                skill: "Spanish Conversation Practice",
-                date: "Mar 12, 2026",
-                duration: 30,
-                credits: 18,
-                summary: "Practiced conversational Spanish focusing on everyday situations. Emma provided great feedback on pronunciation and grammar."
+        // Get user data from server
+        const currentUser = {
+            id: '<%= user ? user._id : "" %>',
+            name: '<%= user ? user.name : "" %>',
+            email: '<%= user ? user.email : "" %>'
+        };
+
+        // Helper function to show toast
+        function showToast(message, type = "info") {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('show');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }, 100);
+        }
+
+        // Fetch credits
+        async function fetchCredits() {
+            try {
+                const response = await fetch('/api/learn/credits');
+                const data = await response.json();
+                if (data.success) {
+                    document.getElementById('creditAmount').textContent = data.data.credits.toLocaleString();
+                    return data.data;
+                }
+            } catch (error) {
+                console.error('Error fetching credits:', error);
             }
-        ];
+            return null;
+        }
+
+        // Fetch completed sessions (history)
+        async function fetchCompletedSessions() {
+            try {
+                const response = await fetch('/api/history/sessions');
+                const data = await response.json();
+                if (data.success) {
+                    renderSessions(data.data.sessions);
+                    updateStats(data.data.stats);
+                } else {
+                    document.getElementById('sessionsList').innerHTML = `
+                        <div class="no-results">
+                            <i class="fas fa-history"></i>
+                            <p>No completed sessions yet</p>
+                            <small>Complete sessions with teachers to see them here</small>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error fetching sessions:', error);
+                document.getElementById('sessionsList').innerHTML = `
+                    <div class="no-results">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Failed to load session history</p>
+                        <small>Please try again later</small>
+                    </div>
+                `;
+            }
+        }
+
+        // Update stats
+        function updateStats(stats) {
+            document.getElementById('totalSessions').textContent = stats.totalSessions || 0;
+            document.getElementById('totalHours').textContent = (stats.totalHours || 0).toFixed(1);
+            document.getElementById('totalCreditsSpent').textContent = stats.totalCreditsSpent || 0;
+        }
+
+        // Get random color for avatar
+        function getRandomColor(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const hue = hash % 360;
+            return `hsl(${hue}, 70%, 60%)`;
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
 
         // Render sessions
-        function renderSessions() {
+        function renderSessions(sessions) {
             const sessionsList = document.getElementById('sessionsList');
             
-            sessionsList.innerHTML = sessions.map(session => `
-                <div class="session-card" data-id="${session.id}">
-                    <div class="session-header">
-                        <div class="session-initials">${session.initials}</div>
-                        <div class="session-main-info">
-                            <h3 class="session-skill">${session.skill}</h3>
-                            <p class="session-teacher">
-                                <i class="fas fa-chalkboard-user"></i> with ${session.teacherName}
-                            </p>
-                        </div>
+            if (!sessions || sessions.length === 0) {
+                sessionsList.innerHTML = `
+                    <div class="no-results">
+                        <i class="fas fa-history"></i>
+                        <p>No completed sessions yet</p>
+                        <small>Complete sessions with teachers to see them here</small>
                     </div>
-                    
-                    <div class="session-details">
-                        <div class="detail-item">
-                            <i class="fas fa-calendar-day"></i>
-                            <span>${session.date}</span>
+                `;
+                return;
+            }
+            
+            sessionsList.innerHTML = sessions.map(session => {
+                const teacher = session.teacher;
+                const teacherInitials = teacher.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                const sessionDate = new Date(session.scheduledDate);
+                const formattedDate = sessionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                const durationHours = (session.duration / 60).toFixed(1);
+                
+                // Get summary if available
+                const summary = session.summary;
+                const hasSummary = summary && (summary.topicsCovered?.length > 0 || summary.keyLearnings?.length > 0 || summary.teacherNotes);
+                
+                return `
+                    <div class="session-card" data-id="${session._id}">
+                        <div class="session-header">
+                            <div class="session-initials" style="background: ${getRandomColor(teacher._id)}">${teacherInitials}</div>
+                            <div class="session-main-info">
+                                <h3 class="session-skill">${escapeHtml(session.title || session.skill?.name || 'Session')}</h3>
+                                <p class="session-teacher">
+                                    <i class="fas fa-chalkboard-user"></i> with ${escapeHtml(teacher.name)}
+                                </p>
+                            </div>
+                            <div class="session-completed-badge">
+                                <i class="fas fa-check-circle"></i> Completed
+                            </div>
                         </div>
-                        <div class="detail-item">
-                            <i class="fas fa-hourglass-half"></i>
-                            <span>${session.duration} min</span>
+                        
+                        <div class="session-details">
+                            <div class="detail-item">
+                                <i class="fas fa-calendar-day"></i>
+                                <span>${formattedDate}</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="fas fa-hourglass-half"></i>
+                                <span>${session.duration} min (${durationHours} hrs)</span>
+                            </div>
+                            <div class="detail-item">
+                                <i class="fas fa-coins"></i>
+                                <span>${session.creditsPerSession} credits</span>
+                            </div>
                         </div>
-                        <div class="detail-item">
-                            <i class="fas fa-coins"></i>
-                            <span>${session.credits} credits</span>
-                        </div>
+                        
+                        ${hasSummary ? `
+                            <div class="session-summary" id="summary-${session._id}" style="display: none;">
+                                <div class="summary-content">
+                                    <i class="fas fa-quote-left"></i>
+                                    <div class="summary-text">
+                                        ${summary.topicsCovered && summary.topicsCovered.length > 0 ? `
+                                            <div class="summary-section">
+                                                <strong><i class="fas fa-list"></i> Topics Covered:</strong>
+                                                <ul>${summary.topicsCovered.map(t => `<li>${escapeHtml(t)}</li>`).join('')}</ul>
+                                            </div>
+                                        ` : ''}
+                                        ${summary.keyLearnings && summary.keyLearnings.length > 0 ? `
+                                            <div class="summary-section">
+                                                <strong><i class="fas fa-lightbulb"></i> Key Learnings:</strong>
+                                                <ul>${summary.keyLearnings.map(l => `<li>${escapeHtml(l)}</li>`).join('')}</ul>
+                                            </div>
+                                        ` : ''}
+                                        ${summary.teacherNotes ? `
+                                            <div class="summary-section">
+                                                <strong><i class="fas fa-sticky-note"></i> Teacher's Notes:</strong>
+                                                <p>${escapeHtml(summary.teacherNotes)}</p>
+                                            </div>
+                                        ` : ''}
+                                        ${summary.resources && summary.resources.length > 0 ? `
+                                            <div class="summary-section">
+                                                <strong><i class="fas fa-link"></i> Resources:</strong>
+                                                <ul>${summary.resources.map(r => `<li><a href="${escapeHtml(r.url)}" target="_blank">${escapeHtml(r.title || r.url)}</a></li>`).join('')}</ul>
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button class="btn-view-summary" onclick="toggleSummary('${session._id}')">
+                                View Summary <i class="fas fa-chevron-down"></i>
+                            </button>
+                        ` : `
+                            <div class="no-summary">
+                                <i class="fas fa-file-alt"></i>
+                                <span>No session summary available yet</span>
+                            </div>
+                        `}
                     </div>
-                    
-                    <div class="session-summary" id="summary-${session.id}" style="display: none;">
-                        <div class="summary-content">
-                            <i class="fas fa-quote-left"></i>
-                            <p>${session.summary}</p>
-                        </div>
-                    </div>
-                    
-                    <button class="btn-view-summary" onclick="toggleSummary(${session.id})">
-                        View Summary <i class="fas fa-chevron-down"></i>
-                    </button>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         // Toggle summary visibility
@@ -191,46 +327,26 @@
             const summaryElement = document.getElementById(`summary-${sessionId}`);
             const button = document.querySelector(`.session-card[data-id="${sessionId}"] .btn-view-summary`);
             
-            if (summaryElement.style.display === 'none') {
-                summaryElement.style.display = 'block';
-                button.innerHTML = 'Hide Summary <i class="fas fa-chevron-up"></i>';
-                button.classList.add('active');
-            } else {
-                summaryElement.style.display = 'none';
-                button.innerHTML = 'View Summary <i class="fas fa-chevron-down"></i>';
-                button.classList.remove('active');
+            if (summaryElement && button) {
+                if (summaryElement.style.display === 'none') {
+                    summaryElement.style.display = 'block';
+                    button.innerHTML = 'Hide Summary <i class="fas fa-chevron-up"></i>';
+                    button.classList.add('active');
+                } else {
+                    summaryElement.style.display = 'none';
+                    button.innerHTML = 'View Summary <i class="fas fa-chevron-down"></i>';
+                    button.classList.remove('active');
+                }
             }
         }
 
-        // Tab switching functionality
-        function initTabs() {
-            const tabBtns = document.querySelectorAll('.tab-btn');
-            const tabContents = document.querySelectorAll('.tab-content');
-            
-            tabBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const tabName = btn.getAttribute('data-tab');
-                    
-                    // Update active states
-                    tabBtns.forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    
-                    tabContents.forEach(content => content.classList.remove('active'));
-                    
-                    if (tabName === 'sessions') {
-                        document.getElementById('sessionsContent').classList.add('active');
-                    } else if (tabName === 'earnings') {
-                        document.getElementById('earningsContent').classList.add('active');
-                    }
-                });
-            });
+        // Initialize page
+        async function init() {
+            await fetchCredits();
+            await fetchCompletedSessions();
         }
 
-        // Initialize on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            renderSessions();
-            initTabs();
-        });
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>

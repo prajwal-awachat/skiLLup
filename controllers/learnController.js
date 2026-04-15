@@ -14,7 +14,8 @@ exports.searchTeachers = async (req, res, next) => {
         
         let query = {
             role: 'user', // Teachers are regular users with teaching skills
-            isActive: true
+            isActive: true,
+            _id: { $ne: req.user.id }
         };
         
         if (searchTerm.trim() !== '') {
@@ -137,12 +138,14 @@ exports.getTeacherById = async (req, res, next) => {
 // @desc    Send session request to teacher
 // @route   POST /api/learn/session-request
 // @access  Private
+// @desc    Send session request to teacher
+// @route   POST /api/learn/session-request
+// @access  Private
 exports.createSessionRequest = async (req, res, next) => {
     try {
         const {
             teacherId,
-            skillId,
-            skillName,
+            skillName,      // This comes from frontend as string
             title,
             description,
             preferredDate,
@@ -150,12 +153,29 @@ exports.createSessionRequest = async (req, res, next) => {
             duration,
             proposedCredits
         } = req.body;
-        
-        // Validate required fields
-        if (!teacherId || !title || !preferredDate || !preferredTime || !duration) {
+
+          if (!teacherId || teacherId === 'undefined') {
             return res.status(400).json({
                 success: false,
-                message: 'Please provide all required fields'
+                message: 'Invalid teacher ID. Please refresh the page and try again.'
+            });
+        }
+        
+        console.log('Received session request:', { teacherId, skillName, title, preferredDate, preferredTime });
+        
+        // Validate required fields
+        if (!teacherId || !skillName || !title || !preferredDate || !preferredTime) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please provide all required fields: teacher, skill name, title, date, time'
+            });
+        }
+
+        // Check if user is trying to request self
+        if (teacherId === req.user.id) {
+            return res.status(400).json({
+                success: false,
+                message: 'You cannot request a session with yourself'
             });
         }
         
@@ -168,35 +188,42 @@ exports.createSessionRequest = async (req, res, next) => {
             });
         }
         
-        // Find skill by ID or by name
-        let skill = null;
-        let finalSkillId = null;
+        // CHECK FOR EXISTING ACTIVE SESSION
+        const existingActiveSession = await Session.findOne({
+            teacher: teacherId,
+            student: req.user.id,
+            status: { $in: ['confirmed', 'ongoing'] }
+        });
         
-        if (skillId) {
-            // Try to find by ID first
-            skill = await Skill.findById(skillId);
-        } else if (skillName) {
-            // Find by name (case insensitive)
-            skill = await Skill.findOne({ 
-                name: { $regex: new RegExp(`^${skillName.trim()}$`, 'i') } 
-            });
-        }
-        
-        if (!skill || !skill.isActive) {
-            return res.status(404).json({
+        if (existingActiveSession) {
+            return res.status(400).json({
                 success: false,
-                message: 'Skill not found'
+                message: 'You already have an active session with this teacher. Complete it before requesting another.'
             });
         }
         
-        finalSkillId = skill._id;
+        // FIND OR CREATE SKILL BY NAME
+        let skill = await Skill.findOne({ 
+            name: { $regex: new RegExp(`^${skillName.trim()}$`, 'i') } 
+        });
+        
+        // If skill doesn't exist, create it
+        if (!skill) {
+            skill = await Skill.create({
+                name: skillName.trim(),
+                category: 'General',
+                description: `Skill: ${skillName.trim()}`,
+                isActive: true
+            });
+            console.log(`Created new skill: ${skill.name}`);
+        }
         
         // Check if teacher teaches this skill
-        const hasSkill = teacher.teachingSkills && teacher.teachingSkills.includes(finalSkillId);
+        const hasSkill = teacher.teachingSkills && teacher.teachingSkills.includes(skill._id);
         if (!hasSkill) {
             return res.status(400).json({
                 success: false,
-                message: 'Teacher does not teach this skill'
+                message: `Teacher does not teach "${skillName}". Please check their teaching skills.`
             });
         }
         
@@ -204,37 +231,43 @@ exports.createSessionRequest = async (req, res, next) => {
         const existingRequest = await SessionRequest.findOne({
             student: req.user.id,
             teacher: teacherId,
-            status: { $in: ['pending', 'accepted'] }
+            status: 'pending'
         });
         
         if (existingRequest) {
             return res.status(400).json({
                 success: false,
-                message: `You already have a ${existingRequest.status} request with this teacher`,
+                message: `You already have a pending request with this teacher`,
                 data: { requestId: existingRequest._id, status: existingRequest.status }
             });
         }
         
-        // Create session request
+        // Calculate credits (2 credits per hour by default)
+        const durationMinutes = parseInt(duration) || 60;
+        const calculatedCredits = proposedCredits || (teacher.getCreditRate ? teacher.getCreditRate() : 2) * Math.ceil(durationMinutes / 60);
+        
+        // Create session request with skill ObjectId
         const sessionRequest = await SessionRequest.create({
             teacher: teacherId,
             student: req.user.id,
-            skill: finalSkillId,
-            title,
+            skill: skill._id,  // IMPORTANT: Store ObjectId, not string
+            title: title.trim(),
             description: description || '',
             preferredDate: new Date(preferredDate),
             preferredTime,
-            duration: parseInt(duration),
-            proposedCredits: parseInt(proposedCredits) || teacher.getCreditRate() * Math.ceil(duration / 60),
+            duration: durationMinutes,
+            proposedCredits: calculatedCredits,
             status: 'pending',
             studentMessage: req.body.studentMessage || ''
         });
         
         // Populate references for response
         const populatedRequest = await SessionRequest.findById(sessionRequest._id)
-            .populate('teacher', 'name email avatar rating')
+            .populate('teacher', 'name email avatar rating level')
             .populate('student', 'name email')
             .populate('skill', 'name category');
+        
+        console.log(`Session request created: ${populatedRequest._id}`);
         
         res.status(201).json({
             success: true,
@@ -243,51 +276,56 @@ exports.createSessionRequest = async (req, res, next) => {
         });
         
     } catch (error) {
+        console.error('Create session request error:', error);
         next(error);
     }
 };
-
 // @desc    Get student's session requests (accepted, rejected, pending)
 // @route   GET /api/learn/session-requests
 // @access  Private
 exports.getStudentSessionRequests = async (req, res, next) => {
     try {
-        const { status } = req.query;
-        
-        let query = { student: req.user.id };
-        
-        if (status && ['pending', 'accepted', 'rejected', 'cancelled'].includes(status)) {
-            query.status = status;
-        }
+        const query = { student: req.user.id };
         
         const sessionRequests = await SessionRequest.find(query)
-            .populate('teacher', 'name email avatar rating teachingSkills')
+            .populate('teacher', 'name email avatar rating level customCreditRate teachingSkills')
             .populate('skill', 'name category')
+            .populate('student', 'name email')
             .sort({ updatedAt: -1 });
         
         // Separate by status
-        const accepted = sessionRequests.filter(req => req.status === 'accepted');
-        const rejected = sessionRequests.filter(req => req.status === 'rejected');
-        const pending = sessionRequests.filter(req => req.status === 'pending');
+        const accepted = [];
+        const rejected = [];
+        const pending = [];
         
-        // For accepted requests, check if session has been created
-        const acceptedWithSession = await Promise.all(accepted.map(async (request) => {
-            const session = await Session.findOne({
-                teacher: request.teacher._id,
-                student: req.user.id,
-                skill: request.skill._id,
-                status: { $in: ['confirmed', 'ongoing', 'completed'] }
-            });
-            
+        for (const request of sessionRequests) {
             const requestObj = request.toObject();
-            requestObj.session = session || null;
-            return requestObj;
-        }));
+            
+            // For accepted requests, try to find the associated session
+            if (request.status === 'accepted') {
+                const session = await Session.findOne({
+                    $or: [
+                        { teacher: request.teacher._id, student: req.user.id, skill: request.skill._id },
+                        { teacher: request.teacher._id, enrolledStudents: req.user.id }
+                    ],
+                    status: { $in: ['confirmed', 'ongoing', 'completed'] }
+                }).populate('teacher', 'name email');
+                
+                requestObj.session = session || null;
+                accepted.push(requestObj);
+            } 
+            else if (request.status === 'rejected') {
+                rejected.push(requestObj);
+            } 
+            else if (request.status === 'pending') {
+                pending.push(requestObj);
+            }
+        }
         
         res.status(200).json({
             success: true,
             data: {
-                accepted: acceptedWithSession,
+                accepted,
                 rejected,
                 pending,
                 counts: {
@@ -299,6 +337,7 @@ exports.getStudentSessionRequests = async (req, res, next) => {
         });
         
     } catch (error) {
+        console.error('Get student session requests error:', error);
         next(error);
     }
 };
@@ -397,6 +436,14 @@ exports.checkChatAccess = async (req, res, next) => {
     try {
         const { teacherId } = req.params;
         
+         if (!teacherId || teacherId === 'undefined') {
+            return res.status(400).json({
+                success: false,
+                canChat: false,
+                message: 'Invalid teacher ID'
+            });
+        }
+
         // Check if there's an accepted session request
         const acceptedRequest = await SessionRequest.findOne({
             student: req.user.id,
@@ -716,5 +763,38 @@ exports.deleteMessage = async (req, res) => {
             success: false,
             message: 'Failed to delete message'
         });
+    }
+};
+
+// @desc    Delete rejected session request (soft delete or permanent)
+// @route   DELETE /api/learn/session-requests/:requestId/delete
+// @access  Private
+exports.deleteRejectedRequest = async (req, res, next) => {
+    try {
+        const { requestId } = req.params;
+        
+        const sessionRequest = await SessionRequest.findOne({
+            _id: requestId,
+            student: req.user.id,
+            status: 'rejected'
+        });
+        
+        if (!sessionRequest) {
+            return res.status(404).json({
+                success: false,
+                message: 'Rejected session request not found'
+            });
+        }
+        
+        // Hard delete the rejected request
+        await SessionRequest.findByIdAndDelete(requestId);
+        
+        res.status(200).json({
+            success: true,
+            message: 'Rejected request removed successfully'
+        });
+        
+    } catch (error) {
+        next(error);
     }
 };
