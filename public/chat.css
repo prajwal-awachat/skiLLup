@@ -1,0 +1,244 @@
+/* ============================================
+   SHARED CHAT MODAL STYLES
+   ============================================ */
+
+#chatModal .modal-content {
+    width: 90%;
+    max-width: 600px;
+    height: 80vh;
+    max-height: 700px;
+    display: flex;
+    flex-direction: column;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+/* Chat Messages Container */
+#chatModal .chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Individual Message */
+#chatModal .chat-message {
+    display: flex;
+    margin-bottom: 8px;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* SENT Messages (Current User - Right Side) */
+#chatModal .chat-message.sent {
+    justify-content: flex-end;
+}
+
+#chatModal .chat-message.sent .message-bubble {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    color: white;
+    border-radius: 20px 20px 4px 20px;
+}
+
+/* RECEIVED Messages (Other User - Left Side) */
+#chatModal .chat-message.received {
+    justify-content: flex-start;
+}
+
+#chatModal .chat-message.received .message-bubble {
+    background: white;
+    color: #1f2937;
+    border-radius: 20px 20px 20px 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e5e7eb;
+}
+
+/* Message Bubble */
+#chatModal .message-bubble {
+    max-width: 70%;
+    padding: 10px 14px;
+    position: relative;
+    word-wrap: break-word;
+}
+
+/* Sender Name (for received messages) */
+#chatModal .message-sender {
+    font-size: 11px;
+    font-weight: 600;
+    color: #6366f1;
+    margin-bottom: 4px;
+    display: block;
+}
+
+/* Message Content */
+#chatModal .message-content {
+    font-size: 14px;
+    line-height: 1.4;
+    margin-bottom: 4px;
+    word-break: break-word;
+}
+
+/* Message Time */
+#chatModal .message-time {
+    font-size: 10px;
+    opacity: 0.7;
+    display: block;
+    text-align: right;
+}
+
+#chatModal .chat-message.sent .message-time {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+#chatModal .chat-message.received .message-time {
+    color: #9ca3af;
+}
+
+/* Message Actions (Delete Button) */
+#chatModal .message-actions {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    display: none;
+    gap: 4px;
+}
+
+#chatModal .message-bubble:hover .message-actions {
+    display: flex;
+}
+
+#chatModal .delete-message-btn {
+    background: #ef4444;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: white;
+    font-size: 10px;
+}
+
+#chatModal .delete-message-btn:hover {
+    background: #dc2626;
+    transform: scale(1.05);
+}
+
+/* System Message */
+#chatModal .chat-message.system {
+    justify-content: center;
+}
+
+#chatModal .chat-message.system .message-bubble {
+    background: #f3f4f6;
+    color: #6b7280;
+    font-size: 12px;
+    text-align: center;
+    max-width: 80%;
+    border-radius: 20px;
+}
+
+/* Chat Input Area */
+#chatModal .chat-input-area {
+    display: flex;
+    gap: 12px;
+    padding: 16px 20px;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+}
+
+#chatModal .chat-input-area input {
+    flex: 1;
+    padding: 12px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 30px;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s;
+    font-family: 'Inter', sans-serif;
+}
+
+#chatModal .chat-input-area input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+#chatModal .chat-input-area button {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    border: none;
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: white;
+}
+
+#chatModal .chat-input-area button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+#chatModal .chat-input-area button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Scrollbar Styling */
+#chatModal .chat-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+#chatModal .chat-messages::-webkit-scrollbar-track {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+
+#chatModal .chat-messages::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+#chatModal .chat-messages::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    #chatModal .modal-content {
+        width: 95%;
+        height: 85vh;
+    }
+    
+    #chatModal .message-bubble {
+        max-width: 85%;
+    }
+    
+    #chatModal .chat-input-area {
+        padding: 12px 16px;
+    }
+    
+    #chatModal .chat-input-area input {
+        padding: 10px 14px;
+        font-size: 13px;
+    }
+    
+    #chatModal .chat-input-area button {
+        width: 40px;
+        height: 40px;
+    }
+}
