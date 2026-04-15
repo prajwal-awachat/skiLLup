@@ -18,6 +18,10 @@ dotenv.config();
 const authRoutes = require('./routes/authRoutes');
 const learnRoutes = require('./routes/learnRoutes');
 const teacherRoutes = require('./routes/teacherRoutes');
+const meetingRoutes = require('./routes/meeting');
+const storeRoutes = require('./routes/storeRoutes');
+const groupSessionRoutes = require('./routes/groupSessionRoutes');
+const settingsRoutes = require('./routes/settingsRoutes');
 
 const { globalRateLimiter } = require('./middleware/rateLimiter');
 const errorHandler = require('./middleware/errorHandler');
@@ -72,7 +76,10 @@ app.set('io', io);
 app.use('/auth', authRoutes);
 app.use('/api/learn', learnRoutes);
 app.use('/api/teacher', teacherRoutes);
-
+app.use('/meeting', meetingRoutes);
+app.use('/api/store', storeRoutes);
+app.use('/api/group-sessions', groupSessionRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // ============ VIEW ROUTES ============
 // Auth page routes (public)

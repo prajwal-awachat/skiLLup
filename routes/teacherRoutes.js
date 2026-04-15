@@ -36,8 +36,6 @@ const {
     // Credits & Earnings
     getCreditsAndEarnings,
     
-    // Withdraw System
-    requestWithdrawal,
     
     // Level Features
     getLevelFeatures,
@@ -82,8 +80,7 @@ router.delete('/chat/message/:messageId', deleteMessage);
 // Credits & Earnings
 router.get('/credits-earnings', getCreditsAndEarnings);
 
-// Withdraw System
-router.post('/withdraw/request', requestWithdrawal);
+
 
 // Level Features
 router.get('/level/features', getLevelFeatures);

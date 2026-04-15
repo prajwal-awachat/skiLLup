@@ -144,4 +144,19 @@ sessionSchema.methods.addStudent = async function(studentId) {
     }
 };
 
+// Add this method to session schema
+sessionSchema.methods.closeSession = async function() {
+    this.status = 'completed';
+    this.isCompleted = true;
+    this.updatedAt = new Date();
+    
+    // Clear room data to prevent reuse
+    this.roomId = null;
+    this.joinCode = null;
+    this.meetingLink = '';
+    
+    await this.save();
+    
+    return this;
+};
 module.exports = mongoose.model('Session', sessionSchema);

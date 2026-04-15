@@ -398,7 +398,7 @@ exports.acceptSessionRequest = async (req, res) => {
         const finalTime = scheduledTime || sessionRequest.preferredTime;
         
         // Create session (without meetingLink - it will be generated when session starts)
-        const session = await Session.create({
+       const session = await Session.create({
             teacher: req.user._id,
             student: sessionRequest.student,
             skill: sessionRequest.skill,
@@ -408,9 +408,9 @@ exports.acceptSessionRequest = async (req, res) => {
             duration: sessionRequest.duration,
             scheduledDate: finalDate,
             scheduledTime: finalTime,
-            meetingLink: '', // Empty for now, will be generated when starting session
-            sessionType: req.user.level >= 5 && sessionRequest.sessionType === 'group' ? 'group' : 'one-on-one',
-            maxStudents: req.user.level >= 5 ? 5 : 1,
+            meetingLink: '',  
+            roomId: null,     
+            joinCode: null,    
             status: 'confirmed'
         });
         
@@ -593,33 +593,34 @@ exports.startSession = async (req, res) => {
             });
         }
         
-        // Generate meeting link if not exists
-        let meetingLink = session.meetingLink;
-        if (!meetingLink) {
-            const roomId = `room_${session._id}_${Date.now()}`;
-            meetingLink = `/meeting/${roomId}`;
-            session.meetingLink = meetingLink;
+        // Generate roomId and joinCode if not exists
+        if (!session.roomId) {
+            session.roomId = `room_${session._id}_${Date.now()}`;
+            session.joinCode = Math.random().toString(36).substr(2, 6).toUpperCase();
         }
         
         session.status = 'ongoing';
         await session.save();
         
-        // Notify student
+        // Notify student that session has started
         const io = req.app.get('io');
-        io.to(`user_${session.student}`).emit('session_started', {
-            sessionId: session._id,
-            meetingLink: meetingLink,
-            joinCode: session.joinCode
-        });
+        if (io && session.student) {
+            io.to(`user_${session.student}`).emit('session_started', {
+                sessionId: session._id,
+                sessionTitle: session.title,
+                roomId: session.roomId,
+                joinCode: session.joinCode
+            });
+            console.log(`Session started notification sent to student ${session.student}`);
+        }
         
         res.json({
             success: true,
             data: {
-                meetingLink: meetingLink,
-                joinCode: session.joinCode,
-                roomId: session.roomId
+                roomId: session.roomId,
+                joinCode: session.joinCode
             },
-            message: 'Session started'
+            message: 'Session started successfully'
         });
     } catch (error) {
         console.error('Start session error:', error);
@@ -688,32 +689,49 @@ exports.completeSession = async (req, res) => {
                 message: 'Not authorized'
             });
         }
-        
+
+        // Check if already completed
+        if (session.status === 'completed') {
+            return res.status(400).json({
+                success: false,
+                message: 'Session already completed'
+            });
+        }
+
+        // Update session fields directly (don't rely on closeSession method)
         session.status = 'completed';
         session.isCompleted = true;
         if (notes) session.notes = notes;
         session.updatedAt = new Date();
-        await session.save();
+        
+        // Clear room data to prevent reuse
+        session.roomId = null;
+        session.joinCode = null;
+        session.meetingLink = '';
+        
+        await session.save(); // IMPORTANT: Save the changes
         
         // Add earnings to teacher
         await req.user.addEarnings(session.creditsPerSession, session._id);
         
-        // Notify student
+        // Notify student via socket
         const io = req.app.get('io');
-        io.to(`user_${session.student}`).emit('session_completed', {
-            sessionId: session._id,
-            teacherName: req.user.name
-        });
+        if (io) {
+            io.to(`user_${session.student}`).emit('session_completed', {
+                sessionId: session._id,
+                teacherName: req.user.name
+            });
+        }
         
         res.json({
             success: true,
-            message: 'Session marked as completed'
+            message: 'Session marked as completed and credits added to your account'
         });
     } catch (error) {
         console.error('Complete session error:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to complete session'
+            message: 'Failed to complete session: ' + error.message
         });
     }
 };
@@ -1067,72 +1085,7 @@ exports.getCreditsAndEarnings = async (req, res) => {
     }
 };
 
-// ==================== WITHDRAW SYSTEM ====================
 
-exports.requestWithdrawal = async (req, res) => {
-    try {
-        const { amount, paymentMethod, paymentDetails } = req.body;
-        
-        // Check if user can withdraw
-        if (!req.user.canRedeemCredits()) {
-            return res.status(403).json({
-                success: false,
-                message: 'Withdrawal not available for your level'
-            });
-        }
-        
-        if (req.user.level === 1 || req.user.level === 2) {
-            return res.status(403).json({
-                success: false,
-                message: 'Withdrawal not available for your level'
-            });
-        }
-        
-        if (req.user.redeemableCredits < amount) {
-            return res.status(400).json({
-                success: false,
-                message: 'Insufficient redeemable credits'
-            });
-        }
-        
-        // Calculate money value (1 credit = ₹10)
-        const moneyValue = amount * 10;
-        
-        // Create withdrawal request record (you might want a separate Withdrawal model)
-        const withdrawalRequest = {
-            user: req.user._id,
-            amount: amount,
-            moneyValue: moneyValue,
-            paymentMethod: paymentMethod,
-            paymentDetails: paymentDetails,
-            status: 'pending',
-            createdAt: new Date()
-        };
-        
-        // Store in database (assuming you have a Withdrawal model)
-        // For now, just redeem the credits
-        await req.user.redeemCredits(amount);
-        
-        // Here you would integrate with payment gateway or store withdrawal request
-        
-        res.json({
-            success: true,
-            data: {
-                amount: amount,
-                moneyValue: moneyValue,
-                remainingCredits: req.user.credits,
-                remainingRedeemable: req.user.redeemableCredits
-            },
-            message: `Withdrawal request for ₹${moneyValue} submitted successfully`
-        });
-    } catch (error) {
-        console.error('Request withdrawal error:', error);
-        res.status(500).json({
-            success: false,
-            message: error.message || 'Failed to process withdrawal'
-        });
-    }
-};
 
 // ==================== LEVEL FEATURES ====================
 

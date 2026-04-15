@@ -9,93 +9,156 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-    <div class="roadmap-container">
-        <!-- Header Section -->
-        <header class="roadmap-header">
-            <div class="header-content">
-                <h1>
-                    <i class="fas fa-map"></i>
-                    Skill Roadmap Generator
-                </h1>
-                <p>Chart your learning journey with an AI-generated plan.</p>
+    <div class="app-container">
+        <!-- Sidebar (matching learn.ejs style) -->
+        <aside class="sidebar">
+            <div class="logo">
+                <span class="logo-icon">📚</span>
+                <span class="logo-text">skiLLup</span>
+            </div>
+            <nav class="nav-menu">
+                <a href="/learn" class="nav-item">
+                    <span class="nav-icon">🎓</span>
+                    <span>Learn</span>
+                </a>
+                <a href="/teach" class="nav-item">
+                    <span class="nav-icon">👨‍🏫</span>
+                    <span>Teach</span>
+                </a>
+                <a href="/store" class="nav-item">
+                    <span class="nav-icon">🛒</span>
+                    <span>Store</span>
+                </a>
+                <a href="/history" class="nav-item">
+                    <span class="nav-icon">📜</span>
+                    <span>History</span>
+                </a>
+                <a href="/roadmap" class="nav-item active">
+                    <span class="nav-icon">🗺️</span>
+                    <span>Roadmap</span>
+                </a>
+                <a href="/settings" class="nav-item">
+                    <span class="nav-icon">⚙️</span>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            <div class="user-profile">
+                <div class="avatar"><%= user ? user.name.charAt(0).toUpperCase() + (user.name.split(' ')[1] ? user.name.split(' ')[1].charAt(0).toUpperCase() : '') : 'U' %></div>
+                <div class="user-info">
+                    <span class="user-name"><%= user ? user.name : 'User' %></span>
+                    <span class="user-email"><%= user ? user.email : 'user@example.com' %></span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Top Bar with Credits Card (matching learn.ejs style) -->
+            <div class="top-bar">
+                <div class="header-section">
+                    <h1>Skill Roadmap Generator</h1>
+                    <p class="header-subtitle">Chart your learning journey with an AI-generated plan</p>
+                </div>
+                <div class="credits-card">
+                    <div class="credits-icon">
+                        <i class="fas fa-coins"></i>
+                    </div>
+                    <div class="credits-info">
+                        <span class="credits-label">Available Credits</span>
+                        <span class="credits-amount" id="creditAmount">0</span>
+                    </div>
+                    <button class="add-credits-btn" id="addCreditsBtn"  onclick="window.location.href='/store'">
+                        <i class="fas fa-plus"></i> Add
+                    </button>
+                </div>
+            </div>
+
+            <!-- Generate Button Section -->
+            <div class="generate-section">
                 <button class="btn-generate" id="generateNewRoadmap">
                     <i class="fas fa-magic"></i> Generate New Roadmap
                 </button>
             </div>
-        </header>
 
-        <!-- Roadmaps Grid - Multiple roadmaps side by side -->
-        <div class="roadmaps-grid" id="roadmapsGrid">
-            <!-- Roadmaps will be dynamically inserted here -->
-        </div>
+            <!-- Roadmaps Grid -->
+            <div class="roadmaps-grid" id="roadmapsGrid">
+                <!-- Roadmaps will be dynamically inserted here -->
+            </div>
+        </main>
+    </div>
 
-        <!-- Template for a single roadmap (hidden, used for cloning) -->
-        <template id="roadmapTemplate">
-            <div class="roadmap-card">
-                <div class="roadmap-header-section">
-                    <div class="roadmap-title-section">
-                        <h2 class="roadmap-title">Learning Roadmap</h2>
-                        <button class="btn-delete-roadmap" title="Delete roadmap">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    </div>
-                    <div class="roadmap-level">
-                        <span class="level-label">Level</span>
-                        <span class="level-value">4</span>
-                        <span class="level-total">/ 13</span>
-                    </div>
-                    <div class="roadmap-progress">
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 30.8%"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="roadmap-main-skill">
-                    <div class="skill-icon">
-                        <i class="fab fa-python"></i>
-                    </div>
-                    <div class="skill-details">
-                        <h3 class="skill-name">Python</h3>
-                        <div class="skill-meta">
-                            <span class="meta-item">
-                                <i class="fas fa-chart-line"></i> Level: 4
-                            </span>
-                            <span class="meta-item">
-                                <i class="fas fa-clock"></i> Time: 5 days
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tabs for Skills and Courses -->
-                <div class="roadmap-tabs">
-                    <button class="tab-btn active" data-tab="skills">
-                        <i class="fas fa-code"></i> Skills <span class="tab-count">0</span>
-                    </button>
-                    <button class="tab-btn" data-tab="courses">
-                        <i class="fas fa-book"></i> Courses <span class="tab-count">0</span>
+    <!-- Template for a single roadmap (hidden, used for cloning) -->
+    <template id="roadmapTemplate">
+        <div class="roadmap-card">
+            <div class="roadmap-header-section">
+                <div class="roadmap-title-section">
+                    <h2 class="roadmap-title">Learning Roadmap</h2>
+                    <button class="btn-delete-roadmap" title="Delete roadmap">
+                        <i class="fas fa-trash-alt"></i>
                     </button>
                 </div>
-
-                <!-- Skills List -->
-                <div class="tab-content active" data-content="skills">
-                    <div class="skills-list">
-                        <!-- Skills will be populated dynamically -->
-                    </div>
+                <div class="roadmap-level">
+                    <span class="level-label">Level</span>
+                    <span class="level-value">4</span>
+                    <span class="level-total">/ 13</span>
                 </div>
-
-                <!-- Courses List -->
-                <div class="tab-content" data-content="courses">
-                    <div class="courses-list">
-                        <!-- Courses will be populated dynamically -->
+                <div class="roadmap-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 0%"></div>
                     </div>
                 </div>
             </div>
-        </template>
-    </div>
+
+            <div class="roadmap-main-skill">
+                <div class="skill-icon">
+                    <i class="fab fa-python"></i>
+                </div>
+                <div class="skill-details">
+                    <h3 class="skill-name">Python</h3>
+                    <div class="skill-meta">
+                        <span class="meta-item">
+                            <i class="fas fa-chart-line"></i> Level: 4
+                        </span>
+                        <span class="meta-item">
+                            <i class="fas fa-clock"></i> Time: 5 days
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs for Skills and Courses -->
+            <div class="roadmap-tabs">
+                <button class="tab-btn active" data-tab="skills">
+                    <i class="fas fa-code"></i> Skills <span class="tab-count">0</span>
+                </button>
+                <button class="tab-btn" data-tab="courses">
+                    <i class="fas fa-book"></i> Courses <span class="tab-count">0</span>
+                </button>
+            </div>
+
+            <!-- Skills List -->
+            <div class="tab-content active" data-content="skills">
+                <div class="skills-list"></div>
+            </div>
+
+            <!-- Courses List -->
+            <div class="tab-content" data-content="courses">
+                <div class="courses-list"></div>
+            </div>
+        </div>
+    </template>
 
     <script>
+        // ========================
+        // Mock user data (replace with actual <%= user %> from EJS)
+        // ========================
+        const currentUser = {
+            id: '<%= user ? user._id : "guest123" %>',
+            name: '<%= user ? user.name : "Guest User" %>',
+            email: '<%= user ? user.email : "guest@example.com" %>',
+            credits: 250
+        };
+
         // Master list of all available skills
         const allSkills = [
             "Python", "SQL", "Data Science", "Machine Learning", "Web Development",
@@ -130,23 +193,51 @@
 
         let roadmapCounter = 0;
 
-        // Generate a random level between 1-13
+        // Helper: show toast notification
+        function showToast(message, type = "info") {
+            const toast = document.createElement('div');
+            toast.className = `toast-message ${type}`;
+            toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i> ${message}`;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('show');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 300);
+                }, 3000);
+            }, 100);
+        }
+
+        // Fetch credits (mock / API)
+        async function fetchCredits() {
+            try {
+                // Simulate API call
+                const creditsElem = document.getElementById('creditAmount');
+                if (creditsElem) creditsElem.textContent = currentUser.credits.toLocaleString();
+                return currentUser.credits;
+            } catch (error) {
+                console.error('Error fetching credits:', error);
+                return 0;
+            }
+        }
+
+        // Random level between 1-13
         function getRandomLevel() {
             return Math.floor(Math.random() * 13) + 1;
         }
 
-        // Get random time based on skill level
+        // Get time based on level (more realistic)
         function getTimeFromLevel(level) {
-            const days = Math.floor(Math.random() * 10) + 3 + Math.floor(level / 3);
+            const baseDays = 3;
+            const extra = Math.floor(level / 2);
+            const days = baseDays + extra + Math.floor(Math.random() * 3);
             return `${days} days`;
         }
 
-        // Get random skill from all skills
         function getRandomSkill() {
             return allSkills[Math.floor(Math.random() * allSkills.length)];
         }
 
-        // Get courses for a specific skill
         function getCoursesForSkill(skill) {
             return courseData[skill] || [
                 `${skill} Fundamentals`,
@@ -157,128 +248,19 @@
             ];
         }
 
-        // Generate a new roadmap card
-        function generateRoadmap() {
-            const template = document.getElementById('roadmapTemplate');
-            const clone = template.content.cloneNode(true);
-            const roadmapCard = clone.querySelector('.roadmap-card');
-            
-            const roadmapId = `roadmap_${Date.now()}_${roadmapCounter++}`;
-            roadmapCard.setAttribute('data-id', roadmapId);
-            
-            // Randomize skill and level
-            const skillName = getRandomSkill();
-            const currentLevel = getRandomLevel();
-            const totalLevels = 13;
-            const progressPercent = (currentLevel / totalLevels) * 100;
-            const timeRequired = getTimeFromLevel(currentLevel);
-            
-            // Update roadmap title
-            const titleSection = roadmapCard.querySelector('.roadmap-title');
-            titleSection.textContent = `${skillName} Roadmap`;
-            
-            // Update level display
-            const levelValue = roadmapCard.querySelector('.level-value');
-            levelValue.textContent = currentLevel;
-            
-            // Update progress bar
-            const progressFill = roadmapCard.querySelector('.progress-fill');
-            progressFill.style.width = `${progressPercent}%`;
-            
-            // Update main skill section
-            const skillNameElem = roadmapCard.querySelector('.skill-name');
-            skillNameElem.textContent = skillName;
-            
-            // Update skill icon based on skill
-            const skillIcon = roadmapCard.querySelector('.skill-icon i');
-            updateSkillIcon(skillIcon, skillName);
-            
-            // Update skill meta
-            const metaItems = roadmapCard.querySelectorAll('.skill-meta .meta-item');
-            metaItems[0].innerHTML = `<i class="fas fa-chart-line"></i> Level: ${currentLevel}`;
-            metaItems[1].innerHTML = `<i class="fas fa-clock"></i> Time: ${timeRequired}`;
-            
-            // Generate skills list (all skills related to the main skill or random selection)
-            const skillsList = roadmapCard.querySelector('.skills-list');
-            const relatedSkills = getRelatedSkills(skillName);
-            const skillsCount = relatedSkills.length;
-            
-            // Update skills tab count
-            const skillsTabCount = roadmapCard.querySelector('.tab-btn[data-tab="skills"] .tab-count');
-            skillsTabCount.textContent = skillsCount;
-            
-            relatedSkills.forEach(skill => {
-                const skillItem = document.createElement('div');
-                skillItem.className = 'skill-item';
-                skillItem.innerHTML = `
-                    <input type="checkbox" id="${skill.replace(/\s/g, '_')}_${roadmapId}">
-                    <label for="${skill.replace(/\s/g, '_')}_${roadmapId}">
-                        <i class="fas fa-check-circle"></i>
-                        <span>${skill}</span>
-                    </label>
-                `;
-                skillsList.appendChild(skillItem);
-            });
-            
-            // Generate courses list
-            const coursesList = roadmapCard.querySelector('.courses-list');
-            const courses = getCoursesForSkill(skillName);
-            const coursesCount = courses.length;
-            
-            // Update courses tab count
-            const coursesTabCount = roadmapCard.querySelector('.tab-btn[data-tab="courses"] .tab-count');
-            coursesTabCount.textContent = coursesCount;
-            
-            courses.forEach((course, index) => {
-                const courseItem = document.createElement('div');
-                courseItem.className = 'course-item';
-                courseItem.innerHTML = `
-                    <input type="checkbox" id="course_${index}_${roadmapId}">
-                    <label for="course_${index}_${roadmapId}">
-                        <i class="fas fa-graduation-cap"></i>
-                        <span>${course}</span>
-                    </label>
-                `;
-                coursesList.appendChild(courseItem);
-            });
-            
-            // Add tab switching functionality
-            const tabBtns = roadmapCard.querySelectorAll('.tab-btn');
-            const tabContents = roadmapCard.querySelectorAll('.tab-content');
-            
-            tabBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const tabName = btn.getAttribute('data-tab');
-                    
-                    // Remove active class from all buttons and contents
-                    tabBtns.forEach(b => b.classList.remove('active'));
-                    tabContents.forEach(c => c.classList.remove('active'));
-                    
-                    // Add active class to current
-                    btn.classList.add('active');
-                    const activeContent = roadmapCard.querySelector(`.tab-content[data-content="${tabName}"]`);
-                    if (activeContent) activeContent.classList.add('active');
-                });
-            });
-            
-            // Add delete functionality
-            const deleteBtn = roadmapCard.querySelector('.btn-delete-roadmap');
-            deleteBtn.addEventListener('click', () => {
-                if (confirm('Are you sure you want to delete this roadmap?')) {
-                    roadmapCard.remove();
-                    checkEmptyState();
-                }
-            });
-            
-            // Add checkbox change listeners for progress tracking
-            const checkboxes = roadmapCard.querySelectorAll('input[type="checkbox"]');
-            checkboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', () => updateRoadmapProgress(roadmapCard));
-            });
-            
-            return roadmapCard;
+        // Get related skills (avoid duplication and ensure variety)
+        function getRelatedSkills(mainSkill) {
+            let available = allSkills.filter(s => s !== mainSkill);
+            // Shuffle and pick 4-7 related skills
+            for (let i = available.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [available[i], available[j]] = [available[j], available[i]];
+            }
+            const count = Math.floor(Math.random() * 5) + 4; // 4 to 8 skills total including main
+            const selected = [mainSkill, ...available.slice(0, count - 1)];
+            return selected;
         }
-        
+
         // Update skill icon based on skill name
         function updateSkillIcon(iconElement, skillName) {
             const iconMap = {
@@ -302,26 +284,11 @@
                 "Backend Development": "fas fa-server",
                 "Full Stack Development": "fas fa-code"
             };
-            
             const iconClass = iconMap[skillName] || "fas fa-graduation-cap";
             iconElement.className = iconClass;
         }
-        
-        // Get related skills based on main skill
-        function getRelatedSkills(mainSkill) {
-            const all = [...allSkills];
-            const index = all.indexOf(mainSkill);
-            if (index !== -1) {
-                all.splice(index, 1);
-            }
-            
-            // Return 5-8 random related skills
-            const shuffled = all.sort(() => 0.5 - Math.random());
-            const count = Math.floor(Math.random() * 6) + 5;
-            return [mainSkill, ...shuffled.slice(0, count - 1)];
-        }
-        
-        // Update roadmap progress based on completed items
+
+        // Update roadmap progress based on checkbox completion
         function updateRoadmapProgress(roadmapCard) {
             const checkboxes = roadmapCard.querySelectorAll('input[type="checkbox"]');
             const total = checkboxes.length;
@@ -333,15 +300,147 @@
                 progressFill.style.width = `${progressPercent}%`;
             }
             
-            // Update level based on progress (optional)
-            const levelValue = roadmapCard.querySelector('.level-value');
-            if (levelValue) {
-                const newLevel = Math.max(1, Math.min(13, Math.floor((checked / total) * 13)));
-                levelValue.textContent = newLevel;
+            // Update level based on progress (1-13 scale)
+            const levelValueElem = roadmapCard.querySelector('.level-value');
+            if (levelValueElem && total > 0) {
+                const newLevel = Math.max(1, Math.min(13, Math.floor((checked / total) * 13) + 1));
+                levelValueElem.textContent = newLevel;
+                
+                // Also update the skill meta level display
+                const metaLevelSpan = roadmapCard.querySelector('.skill-meta .meta-item:first-child');
+                if (metaLevelSpan) {
+                    metaLevelSpan.innerHTML = `<i class="fas fa-chart-line"></i> Level: ${newLevel}`;
+                }
             }
         }
+
+        // Generate a new roadmap card
+        function generateRoadmap() {
+            const template = document.getElementById('roadmapTemplate');
+            const clone = template.content.cloneNode(true);
+            const roadmapCard = clone.querySelector('.roadmap-card');
+            
+            const roadmapId = `roadmap_${Date.now()}_${roadmapCounter++}`;
+            roadmapCard.setAttribute('data-id', roadmapId);
+            
+            // Randomize skill and level
+            const skillName = getRandomSkill();
+            const currentLevel = getRandomLevel();
+            const totalLevels = 13;
+            const timeRequired = getTimeFromLevel(currentLevel);
+            
+            // Update title
+            const titleElem = roadmapCard.querySelector('.roadmap-title');
+            titleElem.textContent = `${skillName} Roadmap`;
+            
+            // Level display
+            const levelValueElem = roadmapCard.querySelector('.level-value');
+            levelValueElem.textContent = currentLevel;
+            
+            // Progress bar starts at 0% (based on completion, not level)
+            const progressFill = roadmapCard.querySelector('.progress-fill');
+            progressFill.style.width = `0%`;
+            
+            // Main skill section
+            const skillNameElem = roadmapCard.querySelector('.skill-name');
+            skillNameElem.textContent = skillName;
+            
+            const skillIcon = roadmapCard.querySelector('.skill-icon i');
+            updateSkillIcon(skillIcon, skillName);
+            
+            // Update meta items
+            const metaItems = roadmapCard.querySelectorAll('.skill-meta .meta-item');
+            metaItems[0].innerHTML = `<i class="fas fa-chart-line"></i> Level: ${currentLevel}`;
+            metaItems[1].innerHTML = `<i class="fas fa-clock"></i> Time: ${timeRequired}`;
+            
+            // Generate skills list
+            const skillsList = roadmapCard.querySelector('.skills-list');
+            const relatedSkills = getRelatedSkills(skillName);
+            const skillsCount = relatedSkills.length;
+            
+            const skillsTabCount = roadmapCard.querySelector('.tab-btn[data-tab="skills"] .tab-count');
+            skillsTabCount.textContent = skillsCount;
+            
+            relatedSkills.forEach(skill => {
+                const skillItem = document.createElement('div');
+                skillItem.className = 'skill-item';
+                const uniqueId = `${skill.replace(/\s/g, '_')}_${roadmapId}`;
+                skillItem.innerHTML = `
+                    <input type="checkbox" id="${uniqueId}">
+                    <label for="${uniqueId}">
+                        <i class="fas fa-check-circle"></i>
+                        <span>${escapeHtml(skill)}</span>
+                    </label>
+                `;
+                skillsList.appendChild(skillItem);
+            });
+            
+            // Generate courses list
+            const coursesList = roadmapCard.querySelector('.courses-list');
+            const courses = getCoursesForSkill(skillName);
+            const coursesCount = courses.length;
+            
+            const coursesTabCount = roadmapCard.querySelector('.tab-btn[data-tab="courses"] .tab-count');
+            coursesTabCount.textContent = coursesCount;
+            
+            courses.forEach((course, index) => {
+                const courseItem = document.createElement('div');
+                courseItem.className = 'course-item';
+                const uniqueId = `course_${index}_${roadmapId}`;
+                courseItem.innerHTML = `
+                    <input type="checkbox" id="${uniqueId}">
+                    <label for="${uniqueId}">
+                        <i class="fas fa-graduation-cap"></i>
+                        <span>${escapeHtml(course)}</span>
+                    </label>
+                `;
+                coursesList.appendChild(courseItem);
+            });
+            
+            // Tab switching
+            const tabBtns = roadmapCard.querySelectorAll('.tab-btn');
+            const tabContents = roadmapCard.querySelectorAll('.tab-content');
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const tabName = btn.getAttribute('data-tab');
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    btn.classList.add('active');
+                    const activeContent = roadmapCard.querySelector(`.tab-content[data-content="${tabName}"]`);
+                    if (activeContent) activeContent.classList.add('active');
+                });
+            });
+            
+            // Delete functionality
+            const deleteBtn = roadmapCard.querySelector('.btn-delete-roadmap');
+            deleteBtn.addEventListener('click', () => {
+                if (confirm('Are you sure you want to delete this roadmap?')) {
+                    roadmapCard.remove();
+                    checkEmptyState();
+                    showToast('Roadmap deleted', 'info');
+                }
+            });
+            
+            // Checkbox change listeners for progress
+            const allCheckboxes = roadmapCard.querySelectorAll('input[type="checkbox"]');
+            allCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', () => {
+                    updateRoadmapProgress(roadmapCard);
+                });
+            });
+            
+            return roadmapCard;
+        }
         
-        // Check if there are no roadmaps and show empty state
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Check empty state and show placeholder
         function checkEmptyState() {
             const grid = document.getElementById('roadmapsGrid');
             const existingEmpty = document.querySelector('.empty-state');
@@ -364,84 +463,36 @@
         function initializeRoadmaps() {
             const grid = document.getElementById('roadmapsGrid');
             grid.innerHTML = '';
-            
-            // Generate 3 sample roadmaps
             for (let i = 0; i < 3; i++) {
                 const roadmap = generateRoadmap();
                 grid.appendChild(roadmap);
             }
         }
         
-        // Add event listener for generate button
-        document.getElementById('generateNewRoadmap').addEventListener('click', () => {
-            const grid = document.getElementById('roadmapsGrid');
-            const newRoadmap = generateRoadmap();
-            grid.appendChild(newRoadmap);
+        // Setup infinite scroll? Not needed but we keep generate button
+        function setupEventListeners() {
+            const generateBtn = document.getElementById('generateNewRoadmap');
+            if (generateBtn) {
+                generateBtn.addEventListener('click', () => {
+                    const grid = document.getElementById('roadmapsGrid');
+                    const newRoadmap = generateRoadmap();
+                    grid.appendChild(newRoadmap);
+                    newRoadmap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    showToast('New roadmap generated!', 'success');
+                    checkEmptyState();
+                });
+            }
             
-            // Scroll to the new roadmap
-            newRoadmap.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            
-            // Show success message
-            const toast = document.createElement('div');
-            toast.className = 'toast-message';
-            toast.innerHTML = '<i class="fas fa-check-circle"></i> New roadmap generated!';
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3000);
-        });
+        }
         
-        // Start the app
-        initializeRoadmaps();
+        // Initialize page
+        async function init() {
+            await fetchCredits();
+            initializeRoadmaps();
+            setupEventListeners();
+        }
         
-        // Add CSS for toast message dynamically
-        const style = document.createElement('style');
-        style.textContent = `
-            .toast-message {
-                position: fixed;
-                bottom: 30px;
-                right: 30px;
-                background: #10b981;
-                color: white;
-                padding: 12px 24px;
-                border-radius: 60px;
-                font-weight: 500;
-                z-index: 1000;
-                animation: slideIn 0.3s ease;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            }
-            
-            @keyframes slideIn {
-                from {
-                    transform: translateX(100%);
-                    opacity: 0;
-                }
-                to {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-            }
-            
-            .empty-state {
-                grid-column: 1 / -1;
-                text-align: center;
-                padding: 4rem;
-                background: white;
-                border-radius: 32px;
-                color: #64748b;
-            }
-            
-            .empty-state i {
-                font-size: 4rem;
-                margin-bottom: 1rem;
-                color: #cbd5e1;
-            }
-            
-            .empty-state h3 {
-                font-size: 1.5rem;
-                margin-bottom: 0.5rem;
-                color: #334155;
-            }
-        `;
-        document.head.appendChild(style);
+        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>

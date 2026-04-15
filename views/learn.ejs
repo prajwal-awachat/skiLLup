@@ -1,4 +1,3 @@
-<!-- views/learn.ejs -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Learn Dashboard - Peer Learning Platform</title>
     <link rel="stylesheet" href="/learn.css">
+    <link rel="stylesheet" href="/chat.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Socket.io Client -->
@@ -17,7 +17,7 @@
         <aside class="sidebar">
             <div class="logo">
                 <span class="logo-icon">📚</span>
-                <span class="logo-text">SkillBridge</span>
+                <span class="logo-text">skillUp</span>
             </div>
             <nav class="nav-menu">
                 <a href="/learn" class="nav-item active">
@@ -143,9 +143,9 @@
             <form id="sessionRequestForm">
                 <input type="hidden" id="requestTeacherId">
                 <div class="form-group">
-              <label>Skill to Learn *</label>
-              <input type="text" id="requestSkillName" placeholder="e.g., JavaScript, React, Python, Communication Skills" required>
-            </div>
+                    <label>Skill to Learn *</label>
+                    <input type="text" id="requestSkillName" placeholder="e.g., JavaScript, React, Python, Communication Skills" required>
+                </div>
                 <div class="form-group">
                     <label>Session Title *</label>
                     <input type="text" id="requestTitle" placeholder="e.g., React Hooks Deep Dive" required>
@@ -164,47 +164,29 @@
                         <input type="time" id="requestTime" required>
                     </div>
                 </div>
-               
                 <button type="submit" class="submit-request-btn">Send Request</button>
             </form>
         </div>
     </div>
 
-    <!-- Chat Modal -->
-<div class="modal" id="chatModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3><i class="fas fa-comment-dots"></i> Chat with <span id="chatTeacherName"></span></h3>
-            <button class="close-modal" id="closeModalBtn">&times;</button>
-        </div>
-        <div class="chat-messages" id="chatMessages">
-            <div class="chat-message system">
-                <div class="message-bubble">Loading conversation...</div>
-            </div>
-        </div>
-        <div class="chat-input-area">
-            <input type="text" id="chatInput" placeholder="Type your message...">
-            <button id="sendMessageBtn"><i class="fas fa-paper-plane"></i></button>
-        </div>
-    </div>
-</div>
-
+    <!-- Chat Modal Partial -->
+    <%- include('partials/chat-modal') %>
 
     <script>
         // Get user data from server
-       const currentUser = {
-    id: '<%= user ? user._id : "" %>',
-    name: '<%= user ? user.name : "" %>',
-    email: '<%= user ? user.email : "" %>'
-};
+        const currentUser = {
+            id: '<%= user ? user._id : "" %>',
+            name: '<%= user ? user.name : "" %>',
+            email: '<%= user ? user.email : "" %>'
+        };
 
-// Add escapeHtml function here
-function escapeHtml(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+        // Escape HTML function
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
         
         // Socket.io connection
         let socket = null;
@@ -257,11 +239,6 @@ function escapeHtml(text) {
                 const data = await response.json();
                 if (data.success) {
                     skillsList = data.data;
-                    const skillSelect = document.getElementById('requestSkillId');
-                    if (skillSelect) {
-                        skillSelect.innerHTML = '<option value="">Select a skill</option>' + 
-                            data.data.map(skill => `<option value="${skill._id}">${skill.name} (${skill.category})</option>`).join('');
-                    }
                 }
             } catch (error) {
                 console.error('Error fetching skills:', error);
@@ -295,156 +272,162 @@ function escapeHtml(text) {
         }
         
         function renderTeachers(teachers) {
-            const container = document.getElementById('teachersList');
-            
-            if (teachers.length === 0) {
-                container.innerHTML = `
-                    <div class="no-results">
-                        <i class="fas fa-search"></i>
-                        <p>No teachers found matching your search.</p>
-                        <small>Try searching by name or skill</small>
-                    </div>
-                `;
-                return;
-            }
-            
-            container.innerHTML = teachers.map(teacher => {
-                // Get first letter of first and last name for avatar
-                const initials = teacher.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
-                const avatarColor = `linear-gradient(135deg, ${getRandomColor(teacher._id)}, ${getRandomColor(teacher._id + '2')})`;
-                const teachingSkills = teacher.teachingSkills?.map(s => s.name).join(', ') || 'Teaching';
-                const requestStatus = teacher.requestStatus;
-                
-                let actionButton = '';
-                if (!requestStatus) {
-                    actionButton = `<button class="request-btn" data-teacher='${JSON.stringify(teacher)}'>
-                                        <i class="fas fa-calendar-plus"></i> Request Session
-                                    </button>`;
-                } else if (requestStatus === 'accepted') {
-                    actionButton = `<button class="chat-btn" data-teacher='${JSON.stringify(teacher)}'>
-                                        <i class="fas fa-comment-dots"></i> Chat with Teacher
-                                    </button>`;
-                } else if (requestStatus === 'rejected') {
-                    actionButton = `<button class="disabled-btn" disabled>
-                                        <i class="fas fa-ban"></i> Request Rejected
-                                    </button>`;
-                } else if (requestStatus === 'pending') {
-                    actionButton = `<button class="pending-btn" disabled>
-                                        <i class="fas fa-clock"></i> Request Pending
-                                    </button>`;
-                }
-                
-                return `
-                    <div class="teacher-card" data-teacher-id="${teacher._id}">
-                        <div class="teacher-avatar" style="background: ${avatarColor}">
-                            ${initials}
-                        </div>
-                        <div class="teacher-info">
-                            <div class="teacher-name">${escapeHtml(teacher.name)}</div>
-                            <div class="teacher-skill">${escapeHtml(teachingSkills)}</div>
-                            <div class="teacher-bio">${escapeHtml(teacher.bio?.substring(0, 80) || 'No bio available')}${teacher.bio?.length > 80 ? '...' : ''}</div>
-                            <div class="teacher-rating">
-                                <i class="fas fa-star" style="color: #fbbf24; font-size: 12px;"></i>
-                                <span class="rating-value">${teacher.rating || 0}</span>
-                                <span class="rating-max">/ 5.0</span>
-                                <span class="rating-count">(${teacher.totalReviews || 0} reviews)</span>
-                            </div>
-                        </div>
-                        <div class="teacher-actions">
-                            ${actionButton}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            // Attach event listeners
-            document.querySelectorAll('.request-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const teacherData = JSON.parse(btn.dataset.teacher);
-                    openRequestModal(teacherData);
-                });
-            });
-            
-            document.querySelectorAll('.chat-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const teacherData = JSON.parse(btn.dataset.teacher);
-                    openChat(teacherData);
-                });
-            });
+    const container = document.getElementById('teachersList');
+    
+    if (teachers.length === 0) {
+        container.innerHTML = `
+            <div class="no-results">
+                <i class="fas fa-search"></i>
+                <p>No teachers found matching your search.</p>
+                <small>Try searching by name or skill</small>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = teachers.map(teacher => {
+        const initials = teacher.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+        const avatarColor = `linear-gradient(135deg, ${getRandomColor(teacher._id)}, ${getRandomColor(teacher._id + '2')})`;
+        const teachingSkills = teacher.teachingSkills?.map(s => s.name).join(', ') || 'Teaching';
+        const requestStatus = teacher.requestStatus;
+        
+        let actionButton = '';
+        let teacherDataForButton = {
+            _id: teacher._id,
+            name: teacher.name,
+            email: teacher.email
+        };
+        const teacherDataJson = JSON.stringify(teacherDataForButton).replace(/'/g, "&#39;");
+        
+        if (requestStatus === 'pending') {
+            actionButton = `<button class="pending-btn" disabled>
+                                <i class="fas fa-clock"></i> Request Pending
+                            </button>`;
+        } else if (requestStatus === 'rejected') {
+            actionButton = `<button class="request-btn" data-teacher='${teacherDataJson}'>
+                                <i class="fas fa-calendar-plus"></i> Request Again
+                            </button>`;
+        } else {
+            actionButton = `<button class="request-btn" data-teacher='${teacherDataJson}'>
+                                <i class="fas fa-calendar-plus"></i> Request Session
+                            </button>`;
         }
         
-        function appendTeachers(newTeachers) {
-            const container = document.getElementById('teachersList');
-            newTeachers.forEach(teacher => {
-                const initials = teacher.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
-                const avatarColor = `linear-gradient(135deg, ${getRandomColor(teacher._id)}, ${getRandomColor(teacher._id + '2')})`;
-                const teachingSkills = teacher.teachingSkills?.map(s => s.name).join(', ') || 'Teaching';
-                const requestStatus = teacher.requestStatus;
-                
-                let actionButton = '';
-                if (!requestStatus) {
-                    actionButton = `<button class="request-btn" data-teacher='${JSON.stringify(teacher)}'>
-                                        <i class="fas fa-calendar-plus"></i> Request Session
-                                    </button>`;
-                } else if (requestStatus === 'accepted') {
-                    actionButton = `<button class="chat-btn" data-teacher='${JSON.stringify(teacher)}'>
-                                        <i class="fas fa-comment-dots"></i> Chat with Teacher
-                                    </button>`;
-                } else if (requestStatus === 'rejected') {
-                    actionButton = `<button class="disabled-btn" disabled>
-                                        <i class="fas fa-ban"></i> Request Rejected
-                                    </button>`;
-                } else if (requestStatus === 'pending') {
-                    actionButton = `<button class="pending-btn" disabled>
-                                        <i class="fas fa-clock"></i> Request Pending
-                                    </button>`;
-                }
-                
-                const cardHtml = `
-                    <div class="teacher-card" data-teacher-id="${teacher._id}">
-                        <div class="teacher-avatar" style="background: ${avatarColor}">
-                            ${initials}
-                        </div>
-                        <div class="teacher-info">
-                            <div class="teacher-name">${escapeHtml(teacher.name)}</div>
-                            <div class="teacher-skill">${escapeHtml(teachingSkills)}</div>
-                            <div class="teacher-bio">${escapeHtml(teacher.bio?.substring(0, 80) || 'No bio available')}${teacher.bio?.length > 80 ? '...' : ''}</div>
-                            <div class="teacher-rating">
-                                <i class="fas fa-star" style="color: #fbbf24; font-size: 12px;"></i>
-                                <span class="rating-value">${teacher.rating || 0}</span>
-                                <span class="rating-max">/ 5.0</span>
-                                <span class="rating-count">(${teacher.totalReviews || 0} reviews)</span>
-                            </div>
-                        </div>
-                        <div class="teacher-actions">
-                            ${actionButton}
-                        </div>
+        return `
+            <div class="teacher-card" data-teacher-id="${teacher._id}">
+                <div class="teacher-avatar" style="background: ${avatarColor}">
+                    ${initials}
+                </div>
+                <div class="teacher-info">
+                    <div class="teacher-name">${escapeHtml(teacher.name)}</div>
+                    <div class="teacher-skill">${escapeHtml(teachingSkills)}</div>
+                    <div class="teacher-bio">${escapeHtml(teacher.bio?.substring(0, 80) || 'No bio available')}${teacher.bio?.length > 80 ? '...' : ''}</div>
+                    <div class="teacher-rating">
+                        <i class="fas fa-star" style="color: #fbbf24; font-size: 12px;"></i>
+                        <span class="rating-value">${teacher.rating || 0}</span>
+                        <span class="rating-max">/ 5.0</span>
+                        <span class="rating-count">(${teacher.totalReviews || 0} reviews)</span>
                     </div>
-                `;
-                container.insertAdjacentHTML('beforeend', cardHtml);
-            });
-            
-            // Re-attach event listeners for new buttons
-            document.querySelectorAll('.request-btn').forEach(btn => {
-                btn.removeEventListener('click', () => {});
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const teacherData = JSON.parse(btn.dataset.teacher);
+                </div>
+                <div class="teacher-actions">
+                    ${actionButton}
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    // Fix the event listener - make sure to parse correctly
+    document.querySelectorAll('.request-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            try {
+                const teacherData = JSON.parse(btn.getAttribute('data-teacher'));
+                console.log('Teacher data from button:', teacherData); // Debug log
+                if (teacherData && teacherData._id) {
                     openRequestModal(teacherData);
-                });
-            });
-            
-            document.querySelectorAll('.chat-btn').forEach(btn => {
-                btn.removeEventListener('click', () => {});
-                btn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const teacherData = JSON.parse(btn.dataset.teacher);
-                    openChat(teacherData);
-                });
-            });
+                } else {
+                    showToast('Invalid teacher data', 'error');
+                }
+            } catch (error) {
+                console.error('Error parsing teacher data:', error);
+                showToast('Failed to process request', 'error');
+            }
+        });
+    });
+}
+        
+        function appendTeachers(newTeachers) {
+    const container = document.getElementById('teachersList');
+    newTeachers.forEach(teacher => {
+        const initials = teacher.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+        const avatarColor = `linear-gradient(135deg, ${getRandomColor(teacher._id)}, ${getRandomColor(teacher._id + '2')})`;
+        const teachingSkills = teacher.teachingSkills?.map(s => s.name).join(', ') || 'Teaching';
+        const requestStatus = teacher.requestStatus;
+        
+        let actionButton = '';
+        let teacherDataForButton = {
+            _id: teacher._id,
+            name: teacher.name,
+            email: teacher.email
+        };
+        const teacherDataJson = JSON.stringify(teacherDataForButton).replace(/'/g, "&#39;");
+        
+        if (requestStatus === 'pending') {
+            actionButton = `<button class="pending-btn" disabled>
+                                <i class="fas fa-clock"></i> Request Pending
+                            </button>`;
+        } else if (requestStatus === 'rejected') {
+            actionButton = `<button class="request-btn" data-teacher='${teacherDataJson}'>
+                                <i class="fas fa-calendar-plus"></i> Request Again
+                            </button>`;
+        } else {
+            actionButton = `<button class="request-btn" data-teacher='${teacherDataJson}'>
+                                <i class="fas fa-calendar-plus"></i> Request Session
+                            </button>`;
         }
+        
+        const cardHtml = `
+            <div class="teacher-card" data-teacher-id="${teacher._id}">
+                <div class="teacher-avatar" style="background: ${avatarColor}">
+                    ${initials}
+                </div>
+                <div class="teacher-info">
+                    <div class="teacher-name">${escapeHtml(teacher.name)}</div>
+                    <div class="teacher-skill">${escapeHtml(teachingSkills)}</div>
+                    <div class="teacher-bio">${escapeHtml(teacher.bio?.substring(0, 80) || 'No bio available')}${teacher.bio?.length > 80 ? '...' : ''}</div>
+                    <div class="teacher-rating">
+                        <i class="fas fa-star" style="color: #fbbf24; font-size: 12px;"></i>
+                        <span class="rating-value">${teacher.rating || 0}</span>
+                        <span class="rating-max">/ 5.0</span>
+                        <span class="rating-count">(${teacher.totalReviews || 0} reviews)</span>
+                    </div>
+                </div>
+                <div class="teacher-actions">
+                    ${actionButton}
+                </div>
+            </div>
+        `;
+        container.insertAdjacentHTML('beforeend', cardHtml);
+    });
+    
+    document.querySelectorAll('.request-btn').forEach(btn => {
+        btn.removeEventListener('click', () => {});
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            try {
+                const teacherData = JSON.parse(btn.getAttribute('data-teacher'));
+                if (teacherData && teacherData._id) {
+                    openRequestModal(teacherData);
+                } else {
+                    showToast('Invalid teacher data', 'error');
+                }
+            } catch (error) {
+                console.error('Error parsing teacher data:', error);
+                showToast('Failed to process request', 'error');
+            }
+        });
+    });
+}
         
         function getRandomColor(str) {
             let hash = 0;
@@ -471,97 +454,196 @@ function escapeHtml(text) {
         }
         
         function renderAcceptedSessions(acceptedSessions) {
-            const container = document.getElementById('acceptedSessionsList');
-            
-            if (!acceptedSessions || acceptedSessions.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-sessions">
-                        <i class="fas fa-calendar-check"></i>
-                        <p>No accepted sessions yet</p>
-                        <small>Request a session from a teacher above</small>
-                    </div>
-                `;
-                return;
-            }
-            
-            container.innerHTML = acceptedSessions.map(session => {
-                const teacher = session.teacher;
-                const teacherInitials = teacher.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
-                const sessionDate = new Date(session.preferredDate);
-                const formattedDate = sessionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                
-                return `
-                    <div class="session-card-item accepted">
-                        <div class="session-card-header">
-                            <div class="session-teacher">
-                                <div class="session-avatar small" style="background: ${getRandomColor(teacher._id)}">${teacherInitials}</div>
-                                <div class="session-info">
-                                    <h4>${escapeHtml(teacher.name)}</h4>
-                                    <span class="session-skill-tag">${session.skill?.name || 'Skill'}</span>
-                                </div>
-                            </div>
-                            <div class="session-status accepted">
-                                <i class="fas fa-check-circle"></i> Accepted
-                            </div>
-                        </div>
-                        <div class="session-details">
-                            <div class="session-detail-item">
-                                <i class="fas fa-calendar-alt"></i>
-                                <span>${formattedDate} at ${session.preferredTime}</span>
-                            </div>
-                            <div class="session-detail-item">
-                                <i class="fas fa-clock"></i>
-                                <span>${session.duration} minutes</span>
-                            </div>
-                            <div class="session-detail-item">
-                                <i class="fas fa-coins"></i>
-                                <span>${session.proposedCredits} credits</span>
-                            </div>
-                            ${session.session ? `
-                                <div class="session-code-box">
-                                    <span class="code-label">Session Code:</span>
-                                    <span class="code-value">${session.session.joinCode || session.session.roomId?.substring(0, 8)}</span>
-                                    <button class="copy-code-btn" data-code="${session.session.joinCode || session.session.roomId?.substring(0, 8)}">
-                                        <i class="fas fa-copy"></i>
-                                    </button>
-                                </div>
-                                <div class="session-actions">
-                                    ${session.session.meetingLink ? 
-                                        `<a href="${session.session.meetingLink}" target="_blank" class="join-class-btn">
-                                            <i class="fas fa-video"></i> Join Class
-                                        </a>` : ''
-                                    }
-                                    <button class="chat-session-btn" data-teacher='${JSON.stringify({name: teacher.name, id: teacher._id})}'>
-                                        <i class="fas fa-comment-dots"></i> Chat
-                                    </button>
-                                </div>
-                            ` : `
-                                <div class="session-pending-message">
-                                    <i class="fas fa-hourglass-half"></i>
-                                    <span>Waiting for teacher to confirm session details</span>
-                                </div>
-                            `}
-                        </div>
-                    </div>
-                `;
-            }).join('');
-            
-            document.querySelectorAll('.copy-code-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const code = btn.dataset.code;
-                    navigator.clipboard.writeText(code);
-                    showToast("Session code copied!", "success");
-                });
-            });
-            
-            document.querySelectorAll('.chat-session-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const teacherData = JSON.parse(btn.dataset.teacher);
-                    openChat(teacherData);
-                });
-            });
+    const container = document.getElementById('acceptedSessionsList');
+    
+    if (!acceptedSessions || acceptedSessions.length === 0) {
+        container.innerHTML = `
+            <div class="empty-sessions">
+                <i class="fas fa-calendar-check"></i>
+                <p>No accepted sessions yet</p>
+                <small>Request a session from a teacher above</small>
+            </div>
+        `;
+        return;
+    }
+    
+    // Filter out completed sessions
+    const uniqueSessions = [];
+    const seenSessionIds = new Set();
+    
+    acceptedSessions.forEach(session => {
+        // Skip completed sessions
+        if (session.session && session.session.status === 'completed') {
+            return;
         }
         
+        const sessionId = session.session?._id || session._id;
+        if (sessionId && seenSessionIds.has(sessionId.toString())) {
+            return;
+        }
+        if (sessionId) {
+            seenSessionIds.add(sessionId.toString());
+        }
+        
+        uniqueSessions.push(session);
+    });
+    
+    if (uniqueSessions.length === 0) {
+        container.innerHTML = `
+            <div class="empty-sessions">
+                <i class="fas fa-calendar-check"></i>
+                <p>No active accepted sessions</p>
+                <small>Your completed sessions will appear in history</small>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = uniqueSessions.map(session => {
+        const teacher = session.teacher;
+        const teacherInitials = teacher.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+        const sessionDate = new Date(session.preferredDate);
+        const formattedDate = sessionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        
+        const isOngoing = session.session && session.session.status === 'ongoing';
+        const isConfirmed = session.session && session.session.status === 'confirmed';
+        const sessionId = session.session ? session.session._id : null;
+        
+        // Check if roomId and joinCode exist
+        const hasRoomId = session.session && session.session.roomId && session.session.roomId !== null;
+        const hasJoinCode = session.session && session.session.joinCode && session.session.joinCode !== null;
+        
+        return `
+            <div class="session-card-item accepted" data-session-id="${sessionId || ''}">
+                <div class="session-card-header">
+                    <div class="session-teacher">
+                        <div class="session-avatar small" style="background: ${getRandomColor(teacher._id)}">${teacherInitials}</div>
+                        <div class="session-info">
+                            <h4>${escapeHtml(teacher.name)}</h4>
+                            <span class="session-skill-tag">${session.skill?.name || 'Skill'}</span>
+                        </div>
+                    </div>
+                    <div class="session-status accepted">
+                        <i class="fas fa-check-circle"></i> ${session.session ? (session.session.status === 'ongoing' ? 'ONGOING' : 'CONFIRMED') : 'ACCEPTED'}
+                    </div>
+                </div>
+                <div class="session-details">
+                    <div class="session-detail-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>${formattedDate} at ${session.preferredTime}</span>
+                    </div>
+                    <div class="session-detail-item">
+                        <i class="fas fa-clock"></i>
+                        <span>${session.duration} minutes</span>
+                    </div>
+                    <div class="session-detail-item">
+                        <i class="fas fa-coins"></i>
+                        <span>${session.proposedCredits} credits</span>
+                    </div>
+                    
+                    ${session.session ? `
+                        ${isOngoing ? `
+                            <div class="session-join-section">
+                                ${hasRoomId && hasJoinCode ? `
+                                    <div class="session-code-box" style="margin-bottom: 12px;">
+                                        <div class="code-row">
+                                            <span class="code-label">Session ID:</span>
+                                            <span class="code-value">${session.session.roomId}</span>
+                                            <button class="copy-code-btn" data-code="${session.session.roomId}">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                        <div class="code-row">
+                                            <span class="code-label">Join Code:</span>
+                                            <span class="code-value code-password">${session.session.joinCode}</span>
+                                            <button class="copy-code-btn" data-code="${session.session.joinCode}">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                                <button class="join-session-btn-main" data-session-id="${sessionId}" data-session-title="${escapeHtml(session.session.title)}">
+                                    <i class="fas fa-video"></i> Join Session Now
+                                </button>
+                            </div>
+                        ` : isConfirmed ? `
+                            <div class="session-waiting">
+                                <i class="fas fa-hourglass-half"></i>
+                                <span>Waiting for teacher to start the session...</span>
+                            </div>
+                            ${hasRoomId || hasJoinCode ? `
+                                <div class="session-code-box">
+                                    ${hasRoomId ? `
+                                    <div class="code-row">
+                                        <span class="code-label">Session ID:</span>
+                                        <span class="code-value">${session.session.roomId}</span>
+                                        <button class="copy-code-btn" data-code="${session.session.roomId}">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                    ` : '<div class="code-row"><span class="code-label">Session ID:</span><span class="code-value">Not yet generated</span></div>'}
+                                    ${hasJoinCode ? `
+                                    <div class="code-row">
+                                        <span class="code-label">Join Code:</span>
+                                        <span class="code-value code-password">${session.session.joinCode}</span>
+                                        <button class="copy-code-btn" data-code="${session.session.joinCode}">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                    </div>
+                                    ` : ''}
+                                </div>
+                            ` : `
+                                <div class="session-info-message">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>Session details will appear when teacher starts the session</span>
+                                </div>
+                            `}
+                        ` : ''}
+                        
+                        <div class="session-actions">
+                            <button class="chat-session-btn" data-teacher='${JSON.stringify({name: teacher.name, id: teacher._id})}'>
+                                <i class="fas fa-comment-dots"></i> Chat
+                            </button>
+                        </div>
+                    ` : `
+                        <div class="session-pending-message">
+                            <i class="fas fa-hourglass-half"></i>
+                            <span>Waiting for teacher to confirm session details</span>
+                        </div>
+                    `}
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    // Attach event listeners
+    document.querySelectorAll('.copy-code-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const code = btn.dataset.code;
+            if (code && code !== 'Not available' && code !== 'Not yet generated') {
+                navigator.clipboard.writeText(code);
+                showToast("Copied to clipboard!", "success");
+            } else {
+                showToast("No code available to copy", "error");
+            }
+        });
+    });
+    
+    document.querySelectorAll('.chat-session-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const teacherData = JSON.parse(btn.dataset.teacher);
+            openChat(teacherData);
+        });
+    });
+    
+    document.querySelectorAll('.join-session-btn-main').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const sessionId = btn.dataset.sessionId;
+            const sessionTitle = btn.dataset.sessionTitle;
+            openJoinSessionModal(sessionId, sessionTitle);
+        });
+    });
+}
         function renderRejectedSessions(rejectedSessions) {
             const container = document.getElementById('rejectedSessionsList');
             
@@ -583,7 +665,7 @@ function escapeHtml(text) {
                 const formattedDate = sessionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                 
                 return `
-                    <div class="session-card-item rejected">
+                    <div class="session-card-item rejected" data-request-id="${session._id}">
                         <div class="session-card-header">
                             <div class="session-teacher">
                                 <div class="session-avatar small" style="background: #fee2e2;">${teacherInitials}</div>
@@ -607,74 +689,245 @@ function escapeHtml(text) {
                                     <span>Reason: ${escapeHtml(session.teacherMessage)}</span>
                                 </div>
                             ` : ''}
+                            <div class="session-actions">
+                                <button class="delete-rejected-btn" data-request-id="${session._id}">
+                                    <i class="fas fa-trash-alt"></i> Remove from list
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
             }).join('');
+            
+            document.querySelectorAll('.delete-rejected-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const requestId = btn.dataset.requestId;
+                    if (confirm('Remove this rejected request from your list?')) {
+                        await deleteRejectedRequest(requestId);
+                    }
+                });
+            });
         }
         
-        // Request Modal Functions
+        async function deleteRejectedRequest(requestId) {
+            try {
+                const response = await fetch(`/api/learn/session-requests/${requestId}/delete`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Request removed from list', 'success');
+                    const element = document.querySelector(`.session-card-item.rejected[data-request-id="${requestId}"]`);
+                    if (element) {
+                        element.remove();
+                    }
+                    const remainingRejected = document.querySelectorAll('.session-card-item.rejected').length;
+                    document.getElementById('rejectedCount').textContent = remainingRejected;
+                } else {
+                    showToast(data.message || 'Failed to remove', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting rejected request:', error);
+                showToast('Failed to remove request', 'error');
+            }
+        }
+        
+        function openJoinSessionModal(sessionId, sessionTitle) {
+            let modal = document.getElementById('joinSessionModal');
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'joinSessionModal';
+                modal.className = 'modal';
+                modal.innerHTML = `
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3><i class="fas fa-video"></i> Join Session: ${escapeHtml(sessionTitle)}</h3>
+                            <button class="close-modal" id="closeJoinModalBtn">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <p class="join-instruction">Enter the session credentials provided by your teacher:</p>
+                            <div class="form-group">
+                                <label><i class="fas fa-key"></i> Session ID *</label>
+                                <input type="text" id="joinRoomId" placeholder="Enter the Session ID" required>
+                                <small>The teacher shared this ID with you</small>
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-lock"></i> Join Code *</label>
+                                <input type="text" id="joinCode" placeholder="Enter the 6-digit join code" required maxlength="6">
+                                <small>6-digit code from your teacher</small>
+                            </div>
+                            <div class="info-note">
+                                <i class="fas fa-info-circle"></i>
+                                <strong>Need both credentials!</strong> You must enter BOTH the Session ID and Join Code to join the session.
+                            </div>
+                        </div>
+                        <div class="modal-actions">
+                            <button class="cancel-join-btn" id="cancelJoinBtn">Cancel</button>
+                            <button class="submit-join-btn" id="submitJoinBtn">
+                                <i class="fas fa-video"></i> Verify & Join
+                            </button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                
+                const closeBtn = document.getElementById('closeJoinModalBtn');
+                const cancelBtn = document.getElementById('cancelJoinBtn');
+                
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => {
+                        modal.classList.remove('show');
+                    });
+                }
+                if (cancelBtn) {
+                    cancelBtn.addEventListener('click', () => {
+                        modal.classList.remove('show');
+                    });
+                }
+                
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) modal.classList.remove('show');
+                });
+            }
+            
+            const modalTitle = modal.querySelector('h3');
+            if (modalTitle) {
+                modalTitle.innerHTML = `<i class="fas fa-video"></i> Join Session: ${escapeHtml(sessionTitle)}`;
+            }
+            
+            document.getElementById('joinRoomId').value = '';
+            document.getElementById('joinCode').value = '';
+            
+            modal.classList.add('show');
+            
+            const submitBtn = document.getElementById('submitJoinBtn');
+            const handleJoin = async () => {
+                const roomId = document.getElementById('joinRoomId').value.trim();
+                const joinCode = document.getElementById('joinCode').value.trim();
+                
+                if (!roomId || !joinCode) {
+                    showToast('Please enter both Session ID and Join Code', 'error');
+                    return;
+                }
+                
+                if (joinCode.length !== 6) {
+                    showToast('Join Code must be 6 characters', 'error');
+                    return;
+                }
+                
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Validating...';
+                
+                try {
+                    const response = await fetch(`/meeting/api/validate/${sessionId}?roomId=${encodeURIComponent(roomId)}&joinCode=${encodeURIComponent(joinCode)}`);
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        modal.classList.remove('show');
+                        showToast('Credentials verified! Joining session...', 'success');
+                        window.location.href = `/meeting/join/${sessionId}`;
+                    } else {
+                        showToast(data.message || 'Invalid session credentials. Please check and try again.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error validating session:', error);
+                    showToast('Failed to validate session. Please try again.', 'error');
+                } finally {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-video"></i> Verify & Join';
+                }
+            };
+            
+            submitBtn.onclick = handleJoin;
+            
+            const roomIdInput = document.getElementById('joinRoomId');
+            const codeInput = document.getElementById('joinCode');
+            
+            roomIdInput.onkeypress = (e) => {
+                if (e.key === 'Enter') handleJoin();
+            };
+            codeInput.onkeypress = (e) => {
+                if (e.key === 'Enter') handleJoin();
+            };
+        }
+        
         function openRequestModal(teacher) {
+
+              if (!teacher || !teacher._id) {
+        showToast('Invalid teacher data', 'error');
+        console.error('Teacher data missing _id:', teacher);
+        return;
+    }
+     
             currentChatTeacher = teacher;
             document.getElementById('requestTeacherId').value = teacher._id;
             document.getElementById('requestTeacherName').textContent = teacher.name;
             
-           
-         // Set min date to today
-             const today = new Date();
-             today.setHours(0, 0, 0, 0);
-              document.getElementById('requestDate').min = today.toISOString().split('T')[0];
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            document.getElementById('requestDate').min = today.toISOString().split('T')[0];
             
             document.getElementById('requestModal').classList.add('show');
         }
         
-     // Submit session request
-document.getElementById('sessionRequestForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
+        document.getElementById('sessionRequestForm')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const requestData = {
+                teacherId: document.getElementById('requestTeacherId').value,
+                skillName: document.getElementById('requestSkillName').value,
+                title: document.getElementById('requestTitle').value,
+                description: document.getElementById('requestDescription').value,
+                preferredDate: document.getElementById('requestDate').value,
+                preferredTime: document.getElementById('requestTime').value,
+                duration: 60,
+                proposedCredits: 0
+            };
+            
+            if (!requestData.skillName || !requestData.title || !requestData.preferredDate || !requestData.preferredTime) {
+                showToast('Please fill all required fields', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/learn/session-request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showToast('Session request sent successfully!', 'success');
+                    document.getElementById('requestModal').classList.remove('show');
+                    document.getElementById('sessionRequestForm').reset();
+                    fetchSessionRequests();
+                    fetchTeachers(currentSearchTerm, 1, false);
+                } else {
+                    showToast(data.message || 'Failed to send request', 'error');
+                }
+            } catch (error) {
+                console.error('Error sending request:', error);
+                showToast('Failed to send request', 'error');
+            }
+        });
+        
+      // Chat Functions - FIXED
+async function openChat(teacher) {
+    console.log('Opening chat for teacher:', teacher);
     
-    const requestData = {
-        teacherId: document.getElementById('requestTeacherId').value,
-        skillName: document.getElementById('requestSkillName').value,  // CHANGE THIS LINE
-        title: document.getElementById('requestTitle').value,
-        description: document.getElementById('requestDescription').value,
-        preferredDate: document.getElementById('requestDate').value,
-        preferredTime: document.getElementById('requestTime').value,
-        duration: 60,
-        proposedCredits: 0
-    };
-    
-    // Validate
-if (!requestData.skillName || !requestData.title || !requestData.preferredDate || !requestData.preferredTime) {
-        showToast('Please fill all required fields', 'error');
+    // Make sure teacher has _id
+    if (!teacher || !teacher._id) {
+        showToast('Invalid teacher data', 'error');
+        console.error('Teacher data missing _id:', teacher);
         return;
     }
     
-    try {
-        const response = await fetch('/api/learn/session-request', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(requestData)
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showToast('Session request sent successfully!', 'success');
-            document.getElementById('requestModal').classList.remove('show');
-            document.getElementById('sessionRequestForm').reset();
-            fetchSessionRequests();
-            fetchTeachers(currentSearchTerm, 1, false);
-        } else {
-            showToast(data.message || 'Failed to send request', 'error');
-        }
-    } catch (error) {
-        console.error('Error sending request:', error);
-        showToast('Failed to send request', 'error');
-    }
-    });
-        
-        // Chat Functions
-       async function openChat(teacher) {
     currentChatTeacher = teacher;
     
     // Check if chat is allowed
@@ -701,18 +954,18 @@ if (!requestData.skillName || !requestData.title || !requestData.preferredDate |
             currentConversationId = data.data.conversation._id;
             renderChatMessages(data.data.messages, teacher.name);
             
-            // FIX: Use correct element ID
             const modal = document.getElementById('chatModal');
-            const teacherNameSpan = document.getElementById('chatTeacherName');
-            if (teacherNameSpan) {
-                teacherNameSpan.textContent = teacher.name;
+            const userNameSpan = document.getElementById('chatUserName');
+            if (userNameSpan) {
+                userNameSpan.textContent = teacher.name;
             }
             modal.classList.add('show');
             
-            // Join socket room
             if (socket) {
                 socket.emit('join_conversation', currentConversationId);
             }
+        } else {
+            showToast(data.message || 'Failed to load conversation', 'error');
         }
     } catch (error) {
         console.error('Error opening chat:', error);
@@ -720,142 +973,129 @@ if (!requestData.skillName || !requestData.title || !requestData.preferredDate |
     }
 }
         
-      function renderChatMessages(messages, otherUserName) {
-    const container = document.getElementById('chatMessages');
-    
-    if (!messages || messages.length === 0) {
-        container.innerHTML = `<div class="chat-message system">
-            <div class="message-bubble"><i class="fas fa-comment"></i> Start chatting with ${escapeHtml(otherUserName || 'the user')}!</div>
-        </div>`;
-        return;
-    }
-    
-    container.innerHTML = messages.map(msg => {
-        const isCurrentUser = msg.sender && msg.sender._id === currentUser.id;
-        const senderName = msg.sender ? escapeHtml(msg.sender.name) : 'Unknown';
-        const content = escapeHtml(msg.content);
-        const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        const messageId = msg._id;
-        
-        const messageClass = isCurrentUser ? 'sent' : 'received';
-        
-        // Add delete button only for current user's messages
-        const deleteButton = isCurrentUser ? `
-            <div class="message-actions">
-                <button class="delete-message-btn" data-message-id="${messageId}" onclick="deleteMessage('${messageId}')">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        ` : '';
-        
-        return `
-            <div class="chat-message ${messageClass}" data-message-id="${messageId}">
-                <div class="message-bubble">
-                    ${!isCurrentUser ? `<div class="message-sender">${senderName}</div>` : ''}
-                    <div class="message-content">${content}</div>
-                    <div class="message-time">${time}</div>
-                    ${deleteButton}
-                </div>
-            </div>
-        `;
-    }).join('');
-    
-    container.scrollTop = container.scrollHeight;
-}
-
-   // Delete Message Function
-async function deleteMessage(messageId) {
-    if (!confirm('Are you sure you want to delete this message?')) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`/api/learn/chat/message/${messageId}`, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            const messageElement = document.querySelector(`.chat-message[data-message-id="${messageId}"]`);
-            if (messageElement) {
-                messageElement.remove();
-                showToast('Message deleted successfully', 'success');
-            }
-        } else {
-            showToast(data.message || 'Failed to delete message', 'error');
-        }
-    } catch (error) {
-        console.error('Error deleting message:', error);
-        showToast('Failed to delete message', 'error');
-    }
-}
-        
-       async function sendChatMessage() {
-    const input = document.getElementById('chatInput');
-    const message = input.value.trim();
-    
-    if (!message || !currentChatTeacher) return;
-    
-    const sendBtn = document.getElementById('sendMessageBtn');
-    if (sendBtn) sendBtn.disabled = true;
-    
-    try {
-        const response = await fetch('/api/learn/chat/message', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                receiverId: currentChatTeacher._id,
-                content: message,
-                type: 'text'
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
+        function renderChatMessages(messages, otherUserName) {
             const container = document.getElementById('chatMessages');
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'chat-message sent';
-            messageDiv.setAttribute('data-message-id', data.data._id);
-            messageDiv.innerHTML = `
-                <div class="message-bubble">
-                    <div class="message-content">${escapeHtml(message)}</div>
-                    <div class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+            
+            if (!messages || messages.length === 0) {
+                container.innerHTML = `<div class="chat-message system">
+                    <div class="message-bubble"><i class="fas fa-comment"></i> Start chatting with ${escapeHtml(otherUserName || 'the user')}!</div>
+                </div>`;
+                return;
+            }
+            
+            container.innerHTML = messages.map(msg => {
+                const isCurrentUser = msg.sender && msg.sender._id === currentUser.id;
+                const senderName = msg.sender ? escapeHtml(msg.sender.name) : 'Unknown';
+                const content = escapeHtml(msg.content);
+                const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const messageId = msg._id;
+                
+                const messageClass = isCurrentUser ? 'sent' : 'received';
+                
+                const deleteButton = isCurrentUser ? `
                     <div class="message-actions">
-                        <button class="delete-message-btn" onclick="deleteMessage('${data.data._id}')">
+                        <button class="delete-message-btn" onclick="deleteMessage('${messageId}')">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
-                </div>
-            `;
-            container.appendChild(messageDiv);
+                ` : '';
+                
+                return `
+                    <div class="chat-message ${messageClass}" data-message-id="${messageId}">
+                        <div class="message-bubble">
+                            ${!isCurrentUser ? `<div class="message-sender">${senderName}</div>` : ''}
+                            <div class="message-content">${content}</div>
+                            <div class="message-time">${time}</div>
+                            ${deleteButton}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
             container.scrollTop = container.scrollHeight;
-            input.value = '';
-        } else {
-            showToast(data.message || 'Failed to send message', 'error');
         }
-    } catch (error) {
-        console.error('Error sending message:', error);
-        showToast('Failed to send message', 'error');
-    } finally {
-        if (sendBtn) sendBtn.disabled = false;
-        input.focus();
-    }
-}
         
-        // Add credits
-        async function addCredits() {
-            const amount = prompt("Enter amount of credits to add:", "100");
-            if (amount && !isNaN(amount) && parseInt(amount) > 0) {
-                // This would call a payment API - for now just update locally
-                showToast(`Add credits feature - would add ${amount} credits`, "info");
-                // In production, call: POST /api/learn/credits/add
+        async function deleteMessage(messageId) {
+            if (!confirm('Are you sure you want to delete this message?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/learn/chat/message/${messageId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const messageElement = document.querySelector(`.chat-message[data-message-id="${messageId}"]`);
+                    if (messageElement) {
+                        messageElement.remove();
+                        showToast('Message deleted successfully', 'success');
+                    }
+                } else {
+                    showToast(data.message || 'Failed to delete message', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting message:', error);
+                showToast('Failed to delete message', 'error');
             }
         }
         
-        // Scroll loading for teachers
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message || !currentChatTeacher) return;
+            
+            const sendBtn = document.getElementById('sendMessageBtn');
+            if (sendBtn) sendBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/learn/chat/message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        receiverId: currentChatTeacher._id,
+                        content: message,
+                        type: 'text'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const container = document.getElementById('chatMessages');
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'chat-message sent';
+                    messageDiv.setAttribute('data-message-id', data.data._id);
+                    messageDiv.innerHTML = `
+                        <div class="message-bubble">
+                            <div class="message-content">${escapeHtml(message)}</div>
+                            <div class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                            <div class="message-actions">
+                                <button class="delete-message-btn" onclick="deleteMessage('${data.data._id}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    container.appendChild(messageDiv);
+                    container.scrollTop = container.scrollHeight;
+                    input.value = '';
+                } else {
+                    showToast(data.message || 'Failed to send message', 'error');
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                showToast('Failed to send message', 'error');
+            } finally {
+                if (sendBtn) sendBtn.disabled = false;
+                input.focus();
+            }
+        }
+        
         function setupInfiniteScroll() {
             const container = document.getElementById('teachersContainer');
             container.addEventListener('scroll', () => {
@@ -868,7 +1108,6 @@ async function deleteMessage(messageId) {
             });
         }
         
-        // Search functionality
         function setupSearch() {
             const searchInput = document.getElementById('searchInput');
             let debounceTimer;
@@ -883,7 +1122,6 @@ async function deleteMessage(messageId) {
             });
         }
         
-        // Initialize socket
         function initSocket() {
             socket = io();
             
@@ -892,73 +1130,65 @@ async function deleteMessage(messageId) {
                 socket.emit('register_user', currentUser.id);
             });
             
-           socket.on('new_message', (data) => {
-    if (currentConversationId === data.conversationId) {
-        const container = document.getElementById('chatMessages');
-        const message = data.message;
-        const isCurrentUser = message.sender._id === currentUser.id;
-        
-        // Don't duplicate if already added
-        if (document.querySelector(`.chat-message[data-message-id="${message._id}"]`)) {
-            return;
+            socket.on('new_message', (data) => {
+                if (currentConversationId === data.conversationId) {
+                    const container = document.getElementById('chatMessages');
+                    const message = data.message;
+                    const isCurrentUser = message.sender && message.sender._id === currentUser.id;
+                    
+                    if (document.querySelector(`.chat-message[data-message-id="${message._id}"]`)) {
+                        return;
+                    }
+                    
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = `chat-message ${isCurrentUser ? 'sent' : 'received'}`;
+                    messageDiv.setAttribute('data-message-id', message._id);
+                    
+                    const deleteButton = isCurrentUser ? `
+                        <div class="message-actions">
+                            <button class="delete-message-btn" onclick="deleteMessage('${message._id}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    ` : '';
+                    
+                    messageDiv.innerHTML = `
+                        <div class="message-bubble">
+                            ${!isCurrentUser ? `<div class="message-sender">${escapeHtml(message.sender.name)}</div>` : ''}
+                            <div class="message-content">${escapeHtml(message.content)}</div>
+                            <div class="message-time">${new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                            ${deleteButton}
+                        </div>
+                    `;
+                    container.appendChild(messageDiv);
+                    container.scrollTop = container.scrollHeight;
+                }
+            });
+            
+            socket.on('session_started', (data) => {
+                console.log('Session started:', data);
+                showToast(`Session "${data.sessionTitle}" has started! You can now join.`, 'success');
+                fetchSessionRequests();
+            });
         }
         
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `chat-message ${isCurrentUser ? 'sent' : 'received'}`;
-        messageDiv.setAttribute('data-message-id', message._id);
-        
-        const deleteButton = isCurrentUser ? `
-            <div class="message-actions">
-                <button class="delete-message-btn" onclick="deleteMessage('${message._id}')">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        ` : '';
-        
-        messageDiv.innerHTML = `
-            <div class="message-bubble">
-                ${!isCurrentUser ? `<div class="message-sender">${escapeHtml(message.sender.name)}</div>` : ''}
-                <div class="message-content">${escapeHtml(message.content)}</div>
-                <div class="message-time">${new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                ${deleteButton}
-            </div>
-        `;
-        container.appendChild(messageDiv);
-        container.scrollTop = container.scrollHeight;
-    }
-});
-}     
-       
-        
-        // Initialize page
         async function init() {
-            // Show user info
             if (currentUser.name) {
                 console.log('Logged in as:', currentUser.name);
             }
             
-            // Initialize socket
             initSocket();
             
-            // Fetch initial data
             await fetchCredits();
             await fetchSkills();
             await fetchTeachers('', 1, false);
             await fetchSessionRequests();
             
-            // Setup event listeners
             setupSearch();
             setupInfiniteScroll();
             
-            document.getElementById('addCreditsBtn')?.addEventListener('click', addCredits);
-            
-            // Modal close buttons
-            document.getElementById('closeModalBtn')?.addEventListener('click', () => {
-                document.getElementById('chatModal').classList.remove('show');
-                if (socket && currentConversationId) {
-                    socket.emit('leave_conversation', currentConversationId);
-                    currentConversationId = null;
-                }
+            document.getElementById('addCreditsBtn')?.addEventListener('click', () => {
+                window.location.href = '/store';
             });
             
             document.getElementById('closeRequestModalBtn')?.addEventListener('click', () => {
@@ -971,7 +1201,14 @@ async function deleteMessage(messageId) {
                 if (e.key === 'Enter') sendChatMessage();
             });
             
-            // Close modals on outside click
+            document.getElementById('closeChatModalBtn')?.addEventListener('click', () => {
+                document.getElementById('chatModal').classList.remove('show');
+                if (socket && currentConversationId) {
+                    socket.emit('leave_conversation', currentConversationId);
+                    currentConversationId = null;
+                }
+            });
+            
             document.getElementById('chatModal')?.addEventListener('click', (e) => {
                 if (e.target === document.getElementById('chatModal')) {
                     document.getElementById('chatModal').classList.remove('show');

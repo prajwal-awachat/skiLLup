@@ -1037,76 +1037,7 @@ body {
     color: white;
 }
 
-/* Chat Modal */
-.chat-messages {
-    height: 400px;
-    overflow-y: auto;
-    padding: 1rem;
-    background: #f9fafb;
-}
 
-.chat-message {
-    margin-bottom: 1rem;
-    display: flex;
-}
-
-.chat-message.user {
-    justify-content: flex-end;
-}
-
-.chat-message.teacher {
-    justify-content: flex-start;
-}
-
-.message-bubble {
-    max-width: 70%;
-    padding: 0.75rem;
-    border-radius: 12px;
-    background: white;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.chat-message.user .message-bubble {
-    background: #667eea;
-    color: white;
-}
-
-.message-bubble strong {
-    display: block;
-    margin-bottom: 0.25rem;
-    font-size: 0.75rem;
-}
-
-.message-bubble small {
-    display: block;
-    font-size: 0.625rem;
-    opacity: 0.7;
-    margin-top: 0.25rem;
-}
-
-.chat-input-area {
-    display: flex;
-    padding: 1rem;
-    gap: 0.5rem;
-    border-top: 1px solid #e5e7eb;
-}
-
-.chat-input-area input {
-    flex: 1;
-    padding: 0.75rem;
-    border: 1px solid #e5e7eb;
-    border-radius: 8px;
-    font-family: 'Inter', sans-serif;
-}
-
-.chat-input-area button {
-    padding: 0.75rem 1rem;
-    background: #667eea;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-}
 
 /* Empty States */
 .empty-state {
@@ -1285,7 +1216,7 @@ body {
     cursor: pointer;
 }
 
-/* ========== CHAT MODAL - BIGGER SIZE ========== */
+/* ========== CHAT MODAL STYLES ========== */
 #chatModal .modal-content {
     width: 90%;
     max-width: 600px;
@@ -1298,7 +1229,7 @@ body {
 }
 
 /* Chat Messages Container */
-.chat-messages {
+#chatModal .chat-messages {
     flex: 1;
     overflow-y: auto;
     padding: 20px;
@@ -1309,7 +1240,7 @@ body {
 }
 
 /* Individual Message */
-.chat-message {
+#chatModal .chat-message {
     display: flex;
     margin-bottom: 8px;
     animation: fadeIn 0.3s ease;
@@ -1320,31 +1251,32 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Sent Messages (Current User - Right Side) */
-.chat-message.sent {
+/* SENT Messages (Current User - Right Side) */
+#chatModal .chat-message.sent {
     justify-content: flex-end;
 }
 
-.chat-message.sent .message-bubble {
+#chatModal .chat-message.sent .message-bubble {
     background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     color: white;
     border-radius: 20px 20px 4px 20px;
 }
 
-/* Received Messages (Other User - Left Side) */
-.chat-message.received {
+/* RECEIVED Messages (Other User - Left Side) */
+#chatModal .chat-message.received {
     justify-content: flex-start;
 }
 
-.chat-message.received .message-bubble {
+#chatModal .chat-message.received .message-bubble {
     background: white;
     color: #1f2937;
     border-radius: 20px 20px 20px 4px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border: 1px solid #e5e7eb;
 }
 
 /* Message Bubble */
-.message-bubble {
+#chatModal .message-bubble {
     max-width: 70%;
     padding: 10px 14px;
     position: relative;
@@ -1352,39 +1284,39 @@ body {
 }
 
 /* Sender Name (for received messages) */
-.message-sender {
+#chatModal .message-sender {
     font-size: 11px;
     font-weight: 600;
-    color: #6b7280;
+    color: #6366f1;
     margin-bottom: 4px;
     display: block;
 }
 
 /* Message Content */
-.message-content {
+#chatModal .message-content {
     font-size: 14px;
     line-height: 1.4;
     margin-bottom: 4px;
 }
 
 /* Message Time */
-.message-time {
+#chatModal .message-time {
     font-size: 10px;
     opacity: 0.7;
     display: block;
     text-align: right;
 }
 
-.chat-message.sent .message-time {
+#chatModal .chat-message.sent .message-time {
     color: rgba(255, 255, 255, 0.8);
 }
 
-.chat-message.received .message-time {
+#chatModal .chat-message.received .message-time {
     color: #9ca3af;
 }
 
 /* Message Actions (Delete Button) */
-.message-actions {
+#chatModal .message-actions {
     position: absolute;
     top: -8px;
     right: -8px;
@@ -1392,11 +1324,11 @@ body {
     gap: 4px;
 }
 
-.message-bubble:hover .message-actions {
+#chatModal .message-bubble:hover .message-actions {
     display: flex;
 }
 
-.delete-message-btn {
+#chatModal .delete-message-btn {
     background: #ef4444;
     border: none;
     border-radius: 50%;
@@ -1411,17 +1343,17 @@ body {
     font-size: 10px;
 }
 
-.delete-message-btn:hover {
+#chatModal .delete-message-btn:hover {
     background: #dc2626;
     transform: scale(1.05);
 }
 
 /* System Message */
-.chat-message.system {
+#chatModal .chat-message.system {
     justify-content: center;
 }
 
-.chat-message.system .message-bubble {
+#chatModal .chat-message.system .message-bubble {
     background: #f3f4f6;
     color: #6b7280;
     font-size: 12px;
@@ -1431,7 +1363,7 @@ body {
 }
 
 /* Chat Input Area */
-.chat-input-area {
+#chatModal .chat-input-area {
     display: flex;
     gap: 12px;
     padding: 16px 20px;
@@ -1439,7 +1371,7 @@ body {
     border-top: 1px solid #e5e7eb;
 }
 
-.chat-input-area input {
+#chatModal .chat-input-area input {
     flex: 1;
     padding: 12px 16px;
     border: 1px solid #e5e7eb;
@@ -1449,12 +1381,12 @@ body {
     transition: all 0.2s;
 }
 
-.chat-input-area input:focus {
+#chatModal .chat-input-area input:focus {
     border-color: #6366f1;
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
-.chat-input-area button {
+#chatModal .chat-input-area button {
     background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
     border: none;
     border-radius: 50%;
@@ -1468,13 +1400,54 @@ body {
     color: white;
 }
 
-.chat-input-area button:hover {
+#chatModal .chat-input-area button:hover {
     transform: scale(1.05);
     box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
-.chat-input-area button:disabled {
+#chatModal .chat-input-area button:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
+}
+
+.rate-control {
+    text-align: center;
+}
+
+.rate-control .rate-message {
+    font-size: 12px;
+    color: #ffd700;
+    margin-bottom: 8px;
+}
+
+.rate-control .rate-message.warning {
+    color: #ff9800;
+}
+
+.rate-control .rate-message.disabled {
+    color: #9e9e9e;
+}
+
+.rate-control .set-rate-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.rate-control .set-rate-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.rate-control .current-rate {
+    font-size: 14px;
+    color: #4caf50;
+    font-weight: bold;
 }
