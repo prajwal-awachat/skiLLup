@@ -15,7 +15,8 @@ const {
     getAvailableSkills,
     getUpcomingSessions,
     getSessionHistory,
-    deleteMessage
+    deleteMessage,
+    deleteRejectedRequest
 } = require('../controllers/learnController');
 
 // All routes require authentication
@@ -46,5 +47,7 @@ router.get('/chat/check/:teacherId', checkChatAccess);
 router.get('/chat/conversation/:teacherId', getConversation);
 router.post('/chat/message', sendMessage);
 router.delete('/chat/message/:messageId', deleteMessage);
+// Delete rejected session request
+router.delete('/session-requests/:requestId/delete',deleteRejectedRequest);
 
 module.exports = router;

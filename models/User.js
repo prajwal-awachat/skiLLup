@@ -99,7 +99,11 @@ const userSchema = new mongoose.Schema({
     updatedAt: {
         type: Date,
         default: Date.now
-    }
+    },balance: {
+    type: Number,
+    default: 0,
+    min: 0
+    },
 });
 
 // Calculate credit rate based on level
