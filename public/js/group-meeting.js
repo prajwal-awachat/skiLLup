@@ -96,6 +96,30 @@ function setupSocketListeners() {
     socket.on('group-chat-message', ({ message, userName, timestamp }) => {
         addChatMessage(message, userName, false, timestamp);
     });
+
+    socket.on('session-warning', (data) => {
+    showToast(data.message, 'info');
+});
+
+socket.on('meeting-ended', (data) => {
+    showToast(data.message || 'Group session ended', 'info');
+
+    for (const [userId, pc] of peerConnections) {
+        pc.close();
+    }
+    peerConnections.clear();
+
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+    }
+    if (screenStream) {
+        screenStream.getTracks().forEach(track => track.stop());
+    }
+
+    setTimeout(() => {
+        window.location.href = isTeacher ? '/teach' : '/learn';
+    }, 1000);
+});
 }
 
 async function createPeerConnection(userId, userName) {
