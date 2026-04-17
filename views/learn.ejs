@@ -601,9 +601,9 @@
                         ` : ''}
                         
                         <div class="session-actions">
-                            <button class="chat-session-btn" data-teacher='${JSON.stringify({name: teacher.name, id: teacher._id})}'>
-                                <i class="fas fa-comment-dots"></i> Chat
-                            </button>
+                           <button class="chat-session-btn" data-teacher='${JSON.stringify({_id: teacher._id, name: teacher.name, email: teacher.email || ""})}'>
+    <i class="fas fa-comment-dots"></i> Chat
+</button>
                         </div>
                     ` : `
                         <div class="session-pending-message">
@@ -764,6 +764,9 @@
                                 <i class="fas fa-info-circle"></i>
                                 <strong>Need both credentials!</strong> You must enter BOTH the Session ID and Join Code to join the session.
                             </div>
+                            <div class="session-warning-note">
+                           ⚠️ Session must be at least <strong>35 minutes</strong> to be valid
+                            </div>
                         </div>
                         <div class="modal-actions">
                             <button class="cancel-join-btn" id="cancelJoinBtn">Cancel</button>
@@ -772,6 +775,7 @@
                             </button>
                         </div>
                     </div>
+                     
                 `;
                 document.body.appendChild(modal);
                 

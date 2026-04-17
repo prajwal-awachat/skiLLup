@@ -10,84 +10,194 @@
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-    <div class="meeting-container">
-        <!-- Meeting Header -->
-        <div class="meeting-header">
-            <div class="meeting-info">
-                <h1><i class="fas fa-video"></i> <%= session.title %></h1>
-                <div class="meeting-details">
-                    <span><i class="fas fa-chalkboard-user"></i> Teacher: <%= session.teacher.name %></span>
-                    <span><i class="fas fa-code"></i> Room: <span id="roomIdDisplay"><%= session.roomId %></span></span>
-                    <span><i class="fas fa-key"></i> Code: <span id="joinCodeDisplay"><%= session.joinCode %></span></span>
-                </div>
-            </div>
-            <button class="end-call-btn" id="endCallBtn">
-                <i class="fas fa-phone-slash"></i> End Call
-            </button>
-        </div>
+       <div class="meeting-shell">
+        <div class="meeting-bg-orb orb-1"></div>
+        <div class="meeting-bg-orb orb-2"></div>
 
-        <!-- Video Grid -->
-        <div class="video-grid" id="videoGrid">
-            <div class="video-container local-video" id="localVideoContainer">
-                <video id="localVideo" autoplay playsinline muted></video>
-                <div class="video-overlay">
-                    <span class="participant-name">You (<%= user.name %>)</span>
-                    <div class="video-controls-overlay">
-                        <button class="control-icon" id="toggleMicBtn" title="Mute">
-                            <i class="fas fa-microphone"></i>
-                        </button>
-                        <button class="control-icon" id="toggleVideoBtn" title="Turn off camera">
+        <div class="meeting-container">
+            <header class="meeting-header glass-card">
+                <div class="meeting-header-left">
+                    <div class="meeting-title-wrap">
+                        <div class="meeting-title-icon">
                             <i class="fas fa-video"></i>
-                        </button>
+                        </div>
+                        <div>
+                            <h1><%= session.title %></h1>
+                            <p class="meeting-subtitle">Live one-on-one session</p>
+                        </div>
+                    </div>
+
+                    <div class="meeting-details">
+                        <div class="detail-pill">
+                            <i class="fas fa-chalkboard-user"></i>
+                            <span>Teacher: <%= session.teacher.name %></span>
+                        </div>
+                        <div class="detail-pill">
+                            <i class="fas fa-code"></i>
+                            <span>Room: <span id="roomIdDisplay"><%= session.roomId %></span></span>
+                        </div>
+                        <div class="detail-pill">
+                            <i class="fas fa-key"></i>
+                            <span>Code: <span id="joinCodeDisplay"><%= session.joinCode %></span></span>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="video-container remote-video" id="remoteVideoContainer" style="display: none;">
-                <video id="remoteVideo" autoplay playsinline></video>
-                <div class="video-overlay">
-                    <span class="participant-name" id="remoteParticipantName">Remote User</span>
+
+                <div class="meeting-header-right">
+                    <div class="live-chip" id="liveChip">
+                        <span class="live-dot"></span>
+                        <span>In Session</span>
+                    </div>
+                    <button class="end-call-btn" id="endCallBtn">
+                        <i class="fas fa-phone-slash"></i>
+                        <span><%= session.isTeacher ? 'End Call' : 'Leave Call' %></span>
+                    </button>
+                </div>
+            </header>
+
+            <main class="meeting-main">
+                <section class="video-stage">
+                    <div class="video-grid" id="videoGrid">
+                        <div class="video-container local-video glass-card" id="localVideoContainer">
+                            <video id="localVideo" autoplay playsinline muted></video>
+                            <div class="video-empty-state" id="localVideoFallback" style="display:none;">
+                                <div class="video-empty-avatar">
+                                    <%= user.name ? user.name.charAt(0).toUpperCase() : 'Y' %>
+                                </div>
+                                <p>Camera is off</p>
+                            </div>
+
+                            <div class="video-overlay">
+                                <div class="participant-meta">
+                                    <span class="participant-name">You (<%= user.name %>)</span>
+                                    <span class="participant-badge">Local</span>
+                                </div>
+
+                                <div class="video-controls-overlay">
+                                    <button class="control-icon" id="toggleMicBtn" title="Mute / Unmute">
+                                        <i class="fas fa-microphone"></i>
+                                    </button>
+                                    <button class="control-icon" id="toggleVideoBtn" title="Camera On / Off">
+                                        <i class="fas fa-video"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="video-container remote-video glass-card" id="remoteVideoContainer" style="display: none;">
+                            <video id="remoteVideo" autoplay playsinline></video>
+                            <div class="video-empty-state" id="remoteVideoFallback" style="display:none;">
+                                <div class="video-empty-avatar" id="remoteAvatarFallback">R</div>
+                                <p>Waiting for participant video</p>
+                            </div>
+
+                            <div class="video-overlay">
+                                <div class="participant-meta">
+                                    <span class="participant-name" id="remoteParticipantName">Remote User</span>
+                                    <span class="participant-badge participant-remote">Remote</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="meeting-bottom-bar glass-card">
+                        <div class="bottom-status">
+                            <div class="connection-status" id="connectionStatus">
+                                <i class="fas fa-spinner fa-pulse"></i>
+                                <span>Connecting to session...</span>
+                            </div>
+                        </div>
+
+                        <div class="bottom-actions">
+                            <button class="toolbar-btn" id="toggleChatBtn">
+                                <i class="fas fa-comment-dots"></i>
+                                <span>Chat</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <aside class="chat-sidebar glass-card" id="chatSidebar" style="display: none;">
+                    <div class="chat-header">
+                        <div>
+                            <h3><i class="fas fa-comment-dots"></i> Session Chat</h3>
+                            <p>Quick discussion during the session</p>
+                        </div>
+                        <button class="close-chat" id="closeChatBtn" aria-label="Close chat">&times;</button>
+                    </div>
+
+                    <div class="chat-messages" id="meetingChatMessages">
+                        <div class="chat-message system">
+                            <div class="message-bubble">
+                                Chat is available during the session
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="chat-input">
+                        <input type="text" id="meetingChatInput" placeholder="Type a message...">
+                        <button id="sendMeetingChatBtn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </aside>
+            </main>
+        </div>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+           <!-- Rating Modal -->
+    <div id="ratingModal" class="rating-modal-backdrop" style="display:none;">
+        <div class="rating-modal-card">
+            <div class="rating-modal-top">
+                <div class="rating-modal-icon">
+                    <i class="fas fa-star"></i>
+                </div>
+                <div>
+                    <h3>Rate your teacher</h3>
+                    <p>Your feedback helps keep session quality high.</p>
                 </div>
             </div>
-        </div>
 
-        <!-- Connection Status -->
-        <div class="connection-status" id="connectionStatus">
-            <i class="fas fa-spinner fa-pulse"></i> Connecting to session...
-        </div>
+            <div class="rating-stars-wrap">
+                <button class="rating-star" data-rating="1" type="button"><i class="fas fa-star"></i></button>
+                <button class="rating-star" data-rating="2" type="button"><i class="fas fa-star"></i></button>
+                <button class="rating-star" data-rating="3" type="button"><i class="fas fa-star"></i></button>
+                <button class="rating-star" data-rating="4" type="button"><i class="fas fa-star"></i></button>
+                <button class="rating-star" data-rating="5" type="button"><i class="fas fa-star"></i></button>
+            </div>
 
-        <!-- Chat Sidebar (Optional) -->
-        <div class="chat-sidebar" id="chatSidebar" style="display: none;">
-            <div class="chat-header">
-                <h3><i class="fas fa-comment-dots"></i> Session Chat</h3>
-                <button class="close-chat" id="closeChatBtn">&times;</button>
+            <div class="rating-selected-label" id="ratingSelectedLabel">Select a rating</div>
+            <input type="hidden" id="ratingValue" value="">
+
+            <div class="rating-review-wrap">
+                <label for="ratingReview">Review (optional)</label>
+                <textarea id="ratingReview" rows="4" placeholder="Share a short review about the session..."></textarea>
             </div>
-            <div class="chat-messages" id="meetingChatMessages">
-                <div class="chat-message system">
-                    <div class="message-bubble">Chat is available during the session</div>
-                </div>
-            </div>
-            <div class="chat-input">
-                <input type="text" id="meetingChatInput" placeholder="Type a message...">
-                <button id="sendMeetingChatBtn"><i class="fas fa-paper-plane"></i></button>
+
+            <div class="rating-modal-actions">
+                <button id="skipRatingBtn" type="button" class="rating-btn rating-btn-secondary">Skip</button>
+                <button id="submitRatingBtn" type="button" class="rating-btn rating-btn-primary">Submit Rating</button>
             </div>
         </div>
-
-        <!-- Toggle Chat Button -->
-        <button class="toggle-chat-btn" id="toggleChatBtn">
-            <i class="fas fa-comment"></i>
-        </button>
     </div>
 
     <script>
         // Get session data from server
-        const sessionData = <%- JSON.stringify(session) %>;
-        const currentUser = <%- JSON.stringify(user) %>;
+       const sessionData = <%- JSON.stringify(session) %>;
+      const currentUser = <%- JSON.stringify(user) %>;
         
         // WebRTC variables
-        let localStream = null;
-        let peerConnection = null;
-        let socket = null;
-        let isInitiator = sessionData.isTeacher;
+      let localStream = null;
+let peerConnection = null;
+let socket = null;
+let isInitiator = sessionData.isTeacher;
+let meetingAlreadyEnding = false;
+let selectedRating = 0;
+let hasRemoteParticipant = false;
+let isReconnectingFlow = false;
+let reconnectAttemptCount = 0;
+let manualDisconnect = false;
         
         // Configuration
         const configuration = {
@@ -99,231 +209,332 @@
         };
         
         // Initialize
-        async function init() {
-            // Connect socket
-            socket = io();
-            
-            socket.on('connect', () => {
-                console.log('Socket connected');
-                socket.emit('register_user', currentUser.id);
-                socket.emit('join_meeting_room', sessionData.roomId);
-                
-                updateConnectionStatus('Connected! Setting up call...');
+       async function init() {
+    socket = io({
+        reconnection: true,
+        reconnectionAttempts: 8,
+        reconnectionDelay: 1200,
+        reconnectionDelayMax: 5000
+    });
+
+    socket.on('connect', () => {
+        console.log('Socket connected');
+        socket.emit('register_user', currentUser.id);
+        socket.emit('join_meeting_room', {
+            roomId: sessionData.roomId,
+            userId: currentUser.id
+        });
+
+        if (manualDisconnect) return;
+        updateConnectionStatus('Connected! Setting up call...', 'info');
+    });
+
+    socket.on('disconnect', (reason) => {
+        if (meetingAlreadyEnding || manualDisconnect) return;
+        console.log('Socket disconnected:', reason);
+        updateConnectionStatus('Socket disconnected. Reconnecting...', 'warning');
+    });
+
+    socket.on('reconnect', async () => {
+        if (meetingAlreadyEnding) return;
+        showToast('Reconnected to server', 'success');
+        await handleReconnectFlow(true);
+    });
+
+    socket.on('offer', async (offer) => {
+        await handleOffer(offer);
+    });
+
+    socket.on('answer', async (answer) => {
+        await handleAnswer(answer);
+    });
+
+    socket.on('ice-candidate', async (candidate) => {
+        await handleIceCandidate(candidate);
+    });
+
+    socket.on('user-joined', () => {
+        hasRemoteParticipant = true;
+        if (isInitiator && peerConnection) {
+            createAndSendOffer();
+        }
+    });
+
+    socket.on('user-left', () => {
+        hideRemoteVideo();
+        updateConnectionStatus('The other participant left the session.', 'warning');
+        showToast('The other participant has left the call', 'info');
+    });
+
+    socket.on('session-warning', (data) => {
+        showToast(data.message, 'info');
+    });
+
+    socket.on('meeting-ended', async (data) => {
+        meetingAlreadyEnding = true;
+        manualDisconnect = true;
+
+        showToast(data.message || `Session ended by ${data.endedByName || 'teacher'}`, 'info');
+
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+        }
+
+        if (peerConnection) {
+            peerConnection.close();
+        }
+
+        if (socket) {
+            socket.disconnect();
+        }
+
+        if (!sessionData.isTeacher) {
+            const shouldShowRating =
+                data &&
+                data.sessionValidity === 'valid' &&
+                data.ratingEligible === true;
+
+            if (shouldShowRating) {
+                openRatingModal();
+            } else {
+                setTimeout(() => {
+                    window.location.href = '/learn';
+                }, 1000);
+            }
+        } else {
+            setTimeout(() => {
+                window.location.href = '/teach';
+            }, 1000);
+        }
+    });
+
+    try {
+        await ensureLocalMedia();
+        updateConnectionStatus('Ready to connect', 'success');
+        createPeerConnection();
+
+        if (isInitiator) {
+            updateConnectionStatus('Waiting for student to join...', 'warning');
+        } else {
+            updateConnectionStatus('Joining session...', 'warning');
+        }
+    } catch (error) {
+        console.error('Error accessing media devices:', error);
+        updateConnectionStatus('Cannot access camera/microphone', 'error');
+        showToast('Please allow camera and microphone access', 'error');
+    }
+
+    setupControls();
+    setupRatingStars();
+}
+        
+       async function ensureLocalMedia() {
+    if (localStream) return;
+
+    localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    document.getElementById('localVideo').srcObject = localStream;
+    updateVideoFallbacks();
+}
+
+function resetPeerConnection() {
+    if (peerConnection) {
+        try {
+            peerConnection.ontrack = null;
+            peerConnection.onicecandidate = null;
+            peerConnection.onconnectionstatechange = null;
+            peerConnection.close();
+        } catch (err) {
+            console.error('Peer reset error:', err);
+        }
+    }
+    peerConnection = null;
+}
+
+function createPeerConnection() {
+    resetPeerConnection();
+    peerConnection = new RTCPeerConnection(configuration);
+
+    if (localStream) {
+        localStream.getTracks().forEach(track => {
+            peerConnection.addTrack(track, localStream);
+        });
+    }
+
+    peerConnection.ontrack = (event) => {
+        const remoteVideo = document.getElementById('remoteVideo');
+        if (remoteVideo) {
+            remoteVideo.srcObject = event.streams[0];
+            showRemoteVideo();
+        }
+    };
+
+    peerConnection.onicecandidate = (event) => {
+        if (event.candidate && socket) {
+            socket.emit('ice-candidate', {
+                candidate: event.candidate,
+                roomId: sessionData.roomId
             });
-            
-            // WebRTC Signaling
-            socket.on('offer', async (offer) => {
-                console.log('Received offer');
-                await handleOffer(offer);
+        }
+    };
+
+    peerConnection.onconnectionstatechange = async () => {
+        if (!peerConnection) return;
+        const state = peerConnection.connectionState;
+        console.log('Connection state:', state);
+
+        if (state === 'connected') {
+            reconnectAttemptCount = 0;
+            isReconnectingFlow = false;
+            updateConnectionStatus('Connected! Session is stable.', 'success');
+        } else if (state === 'disconnected') {
+            updateConnectionStatus('Connection interrupted. Reconnecting...', 'warning');
+            showToast('Connection interrupted. Trying to reconnect...', 'info');
+            await handleReconnectFlow();
+        } else if (state === 'failed') {
+            updateConnectionStatus('Connection failed. Rebuilding session...', 'error');
+            await handleReconnectFlow(true);
+        }
+    };
+}
+
+async function createAndSendOffer() {
+    if (!peerConnection || !socket) return;
+
+    try {
+        const offer = await peerConnection.createOffer();
+        await peerConnection.setLocalDescription(offer);
+
+        socket.emit('offer', {
+            offer,
+            roomId: sessionData.roomId
+        });
+    } catch (error) {
+        console.error('Error creating offer:', error);
+    }
+}
+
+async function handleOffer(offer) {
+    try {
+        if (!peerConnection) createPeerConnection();
+
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await peerConnection.createAnswer();
+        await peerConnection.setLocalDescription(answer);
+
+        socket.emit('answer', {
+            answer,
+            roomId: sessionData.roomId
+        });
+    } catch (error) {
+        console.error('Error handling offer:', error);
+    }
+}
+
+async function handleAnswer(answer) {
+    try {
+        if (!peerConnection) return;
+        await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    } catch (error) {
+        console.error('Error handling answer:', error);
+    }
+}
+
+async function handleIceCandidate(candidate) {
+    try {
+        if (!peerConnection) return;
+        await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch (error) {
+        console.error('Error adding ICE candidate:', error);
+    }
+}
+
+async function handleReconnectFlow(force = false) {
+    if (meetingAlreadyEnding) return;
+    if (isReconnectingFlow && !force) return;
+
+    isReconnectingFlow = true;
+    reconnectAttemptCount += 1;
+
+    try {
+        updateConnectionStatus(`Reconnecting... attempt ${reconnectAttemptCount}`, 'warning');
+        resetPeerConnection();
+        createPeerConnection();
+
+        if (socket && socket.connected) {
+            socket.emit('join_meeting_room', {
+                roomId: sessionData.roomId,
+                userId: currentUser.id,
+                isReconnect: true
             });
-            
-            socket.on('answer', async (answer) => {
-                console.log('Received answer');
-                await handleAnswer(answer);
-            });
-            
-            socket.on('ice-candidate', async (candidate) => {
-                console.log('Received ICE candidate');
-                await handleIceCandidate(candidate);
-            });
-            
-            socket.on('user-joined', () => {
-                console.log('Remote user joined');
-                if (isInitiator && peerConnection) {
+
+            if (isInitiator && hasRemoteParticipant) {
+                setTimeout(() => {
                     createAndSendOffer();
-                }
-            });
-            
-            socket.on('user-left', () => {
-                console.log('Remote user left');
-                hideRemoteVideo();
-                showToast('The other participant has left the call', 'info');
-            });
-            
-            // Get user media
-            try {
-                localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-                document.getElementById('localVideo').srcObject = localStream;
-                updateConnectionStatus('Ready to connect');
-                
-                // Create peer connection
-                createPeerConnection();
-                
-                // If teacher, wait for student to join
-                if (isInitiator) {
-                    updateConnectionStatus('Waiting for student to join...');
-                } else {
-                    // Student joins immediately
-                    socket.emit('join-meeting', { roomId: sessionData.roomId, userId: currentUser.id });
-                }
-            } catch (error) {
-                console.error('Error accessing media devices:', error);
-                updateConnectionStatus('Error: Cannot access camera/microphone', true);
-                showToast('Please allow camera and microphone access', 'error');
-            }
-            
-            // Setup UI controls
-            setupControls();
-        }
-        
-        function createPeerConnection() {
-            peerConnection = new RTCPeerConnection(configuration);
-            
-            // Add local stream tracks
-            if (localStream) {
-                localStream.getTracks().forEach(track => {
-                    peerConnection.addTrack(track, localStream);
-                });
-            }
-            
-            // Handle remote stream
-            peerConnection.ontrack = (event) => {
-                console.log('Received remote track');
-                const remoteVideo = document.getElementById('remoteVideo');
-                if (remoteVideo) {
-                    remoteVideo.srcObject = event.streams[0];
-                    showRemoteVideo();
-                }
-            };
-            
-            // Handle ICE candidates
-            peerConnection.onicecandidate = (event) => {
-                if (event.candidate) {
-                    socket.emit('ice-candidate', {
-                        candidate: event.candidate,
-                        roomId: sessionData.roomId
-                    });
-                }
-            };
-            
-            // Handle connection state changes
-            peerConnection.onconnectionstatechange = () => {
-                console.log('Connection state:', peerConnection.connectionState);
-                if (peerConnection.connectionState === 'connected') {
-                    updateConnectionStatus('Connected!', false);
-                    document.getElementById('connectionStatus').style.display = 'none';
-                } else if (peerConnection.connectionState === 'disconnected') {
-                    updateConnectionStatus('Disconnected', true);
-                } else if (peerConnection.connectionState === 'failed') {
-                    updateConnectionStatus('Connection failed', true);
-                    showToast('Connection failed. Please check your network.', 'error');
-                }
-            };
-        }
-        
-        async function createAndSendOffer() {
-            if (!peerConnection) return;
-            
-            try {
-                const offer = await peerConnection.createOffer();
-                await peerConnection.setLocalDescription(offer);
-                socket.emit('offer', {
-                    offer: offer,
-                    roomId: sessionData.roomId
-                });
-                console.log('Offer sent');
-            } catch (error) {
-                console.error('Error creating offer:', error);
+                }, 500);
             }
         }
+    } catch (error) {
+        console.error('Reconnect flow error:', error);
+        updateConnectionStatus('Reconnect failed. Please refresh if issue continues.', 'error');
+    } finally {
+        setTimeout(() => {
+            isReconnectingFlow = false;
+        }, 1200);
+    }
+}
         
-        async function handleOffer(offer) {
-            if (!peerConnection) createPeerConnection();
-            
-            try {
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
-                const answer = await peerConnection.createAnswer();
-                await peerConnection.setLocalDescription(answer);
-                socket.emit('answer', {
-                    answer: answer,
-                    roomId: sessionData.roomId
-                });
-                console.log('Answer sent');
-            } catch (error) {
-                console.error('Error handling offer:', error);
+      function setupControls() {
+    const micBtn = document.getElementById('toggleMicBtn');
+    let micEnabled = true;
+
+    micBtn.addEventListener('click', () => {
+        if (localStream) {
+            const audioTrack = localStream.getAudioTracks()[0];
+            if (audioTrack) {
+                micEnabled = !micEnabled;
+                audioTrack.enabled = micEnabled;
+                micBtn.innerHTML = micEnabled ? '<i class="fas fa-microphone"></i>' : '<i class="fas fa-microphone-slash"></i>';
+                micBtn.style.backgroundColor = micEnabled ? '' : '#7f1d1d';
+                showToast(micEnabled ? 'Microphone unmuted' : 'Microphone muted', 'info');
             }
         }
-        
-        async function handleAnswer(answer) {
-            if (!peerConnection) return;
-            
-            try {
-                await peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
-                console.log('Answer set');
-            } catch (error) {
-                console.error('Error handling answer:', error);
+    });
+
+    const videoBtn = document.getElementById('toggleVideoBtn');
+    let videoEnabled = true;
+
+    videoBtn.addEventListener('click', () => {
+        if (localStream) {
+            const videoTrack = localStream.getVideoTracks()[0];
+            if (videoTrack) {
+                videoEnabled = !videoEnabled;
+                videoTrack.enabled = videoEnabled;
+                videoBtn.innerHTML = videoEnabled ? '<i class="fas fa-video"></i>' : '<i class="fas fa-video-slash"></i>';
+                videoBtn.style.backgroundColor = videoEnabled ? '' : '#7f1d1d';
+                updateVideoFallbacks();
+                showToast(videoEnabled ? 'Camera on' : 'Camera off', 'info');
             }
         }
-        
-        async function handleIceCandidate(candidate) {
-            if (!peerConnection) return;
-            
-            try {
-                await peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
-                console.log('ICE candidate added');
-            } catch (error) {
-                console.error('Error adding ICE candidate:', error);
-            }
-        }
-        
-        function showRemoteVideo() {
-            document.getElementById('remoteVideoContainer').style.display = 'flex';
-            document.getElementById('remoteParticipantName').textContent = 
-                isInitiator ? 'Student' : sessionData.teacher.name;
-            updateConnectionStatus('Connected! Both parties are in the call');
-        }
-        
-        function hideRemoteVideo() {
-            document.getElementById('remoteVideoContainer').style.display = 'none';
-            const remoteVideo = document.getElementById('remoteVideo');
-            if (remoteVideo && remoteVideo.srcObject) {
-                remoteVideo.srcObject.getTracks().forEach(track => track.stop());
-                remoteVideo.srcObject = null;
-            }
-        }
-        
-        function setupControls() {
-            // Toggle microphone
-            const micBtn = document.getElementById('toggleMicBtn');
-            let micEnabled = true;
-            micBtn.addEventListener('click', () => {
-                if (localStream) {
-                    const audioTrack = localStream.getAudioTracks()[0];
-                    if (audioTrack) {
-                        micEnabled = !micEnabled;
-                        audioTrack.enabled = micEnabled;
-                        micBtn.innerHTML = micEnabled ? '<i class="fas fa-microphone"></i>' : '<i class="fas fa-microphone-slash"></i>';
-                        micBtn.style.backgroundColor = micEnabled ? '' : '#dc2626';
-                        showToast(micEnabled ? 'Microphone unmuted' : 'Microphone muted', 'info');
-                    }
-                }
-            });
-            
-            // Toggle video
-            const videoBtn = document.getElementById('toggleVideoBtn');
-            let videoEnabled = true;
-            videoBtn.addEventListener('click', () => {
-                if (localStream) {
-                    const videoTrack = localStream.getVideoTracks()[0];
-                    if (videoTrack) {
-                        videoEnabled = !videoEnabled;
-                        videoTrack.enabled = videoEnabled;
-                        videoBtn.innerHTML = videoEnabled ? '<i class="fas fa-video"></i>' : '<i class="fas fa-video-slash"></i>';
-                        videoBtn.style.backgroundColor = videoEnabled ? '' : '#dc2626';
-                        showToast(videoEnabled ? 'Camera on' : 'Camera off', 'info');
-                    }
-                }
-            });
-            
-            // End call
-            const endCallBtn = document.getElementById('endCallBtn');
-            endCallBtn.addEventListener('click', () => {
-                endCall();
-            });
-            
-            // Chat functionality
-            setupChat();
-        }
+    });
+
+    const endCallBtn = document.getElementById('endCallBtn');
+    endCallBtn.addEventListener('click', () => {
+        endCall();
+    });
+
+    const submitRatingBtn = document.getElementById('submitRatingBtn');
+    const skipRatingBtn = document.getElementById('skipRatingBtn');
+
+    if (submitRatingBtn) {
+        submitRatingBtn.addEventListener('click', submitSessionRating);
+    }
+
+    if (skipRatingBtn) {
+        skipRatingBtn.addEventListener('click', skipSessionRating);
+    }
+
+    setupChat();
+}
         
         function setupChat() {
             const toggleChatBtn = document.getElementById('toggleChatBtn');
@@ -332,13 +543,16 @@
             const chatInput = document.getElementById('meetingChatInput');
             const sendBtn = document.getElementById('sendMeetingChatBtn');
             
-            toggleChatBtn.addEventListener('click', () => {
-                chatSidebar.style.display = chatSidebar.style.display === 'none' ? 'flex' : 'none';
-            });
+           toggleChatBtn.addEventListener('click', () => {
+    const isHidden = chatSidebar.style.display === 'none';
+    chatSidebar.style.display = isHidden ? 'flex' : 'none';
+    toggleChatBtn.classList.toggle('active', isHidden);
+});
             
             closeChatBtn.addEventListener('click', () => {
-                chatSidebar.style.display = 'none';
-            });
+    chatSidebar.style.display = 'none';
+    toggleChatBtn.classList.remove('active');
+});
             
             const sendMessage = () => {
                 const message = chatInput.value.trim();
@@ -384,68 +598,301 @@
             container.scrollTop = container.scrollHeight;
         }
         
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+     function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.innerHTML = `
+        <div class="toast-icon">
+            <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-info'}"></i>
+        </div>
+        <div class="toast-text">${escapeHtml(message)}</div>
+    `;
+    container.appendChild(toast);
+
+    requestAnimationFrame(() => toast.classList.add('show'));
+
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 250);
+    }, 3200);
+}
+
+function updateConnectionStatus(message, type = 'info') {
+    const statusDiv = document.getElementById('connectionStatus');
+    if (!statusDiv) return;
+
+    const icon =
+        type === 'error' ? 'fa-triangle-exclamation' :
+        type === 'success' ? 'fa-circle-check' :
+        type === 'warning' ? 'fa-wifi' :
+        'fa-spinner fa-pulse';
+
+    statusDiv.className = `connection-status ${type}`;
+    statusDiv.innerHTML = `<i class="fas ${icon}"></i><span>${escapeHtml(message)}</span>`;
+}
+
+function updateVideoFallbacks() {
+    const localFallback = document.getElementById('localVideoFallback');
+    const remoteFallback = document.getElementById('remoteVideoFallback');
+
+    const localTrack = localStream?.getVideoTracks?.()[0];
+    if (localFallback) {
+        localFallback.style.display = !localTrack || !localTrack.enabled ? 'flex' : 'none';
+    }
+
+    const remoteVideo = document.getElementById('remoteVideo');
+    const hasRemoteStream = !!remoteVideo?.srcObject;
+    if (remoteFallback) {
+        remoteFallback.style.display = hasRemoteParticipant && !hasRemoteStream ? 'flex' : 'none';
+    }
+}
+
+function openRatingModal() {
+    const modal = document.getElementById('ratingModal');
+    if (!modal) {
+        setTimeout(() => {
+            window.location.href = '/learn';
+        }, 1000);
+        return;
+    }
+
+    modal.style.display = 'flex';
+}
+
+function setupRatingStars() {
+    const stars = document.querySelectorAll('.rating-star');
+    const label = document.getElementById('ratingSelectedLabel');
+    const hiddenInput = document.getElementById('ratingValue');
+
+    const labels = {
+        1: '1 Star - Very Poor',
+        2: '2 Stars - Poor',
+        3: '3 Stars - Average',
+        4: '4 Stars - Good',
+        5: '5 Stars - Excellent'
+    };
+
+    function paintStars(value) {
+        stars.forEach((star, index) => {
+            star.classList.toggle('active', index < value);
+        });
+        label.textContent = value ? labels[value] : 'Select a rating';
+        hiddenInput.value = value || '';
+        selectedRating = value || 0;
+    }
+
+    stars.forEach((star) => {
+        star.addEventListener('mouseenter', () => {
+            const value = Number(star.dataset.rating);
+            stars.forEach((item, index) => {
+                item.classList.toggle('hovered', index < value);
+            });
+        });
+
+        star.addEventListener('mouseleave', () => {
+            stars.forEach((item) => item.classList.remove('hovered'));
+        });
+
+        star.addEventListener('click', () => {
+            const value = Number(star.dataset.rating);
+            paintStars(value);
+        });
+    });
+
+    paintStars(0);
+}
+
+async function submitSessionRating() {
+    const reviewInput = document.getElementById('ratingReview');
+    const submitBtn = document.getElementById('submitRatingBtn');
+
+    if (!selectedRating || selectedRating < 1 || selectedRating > 5) {
+        showToast('Please select a star rating.', 'error');
+        return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+
+    try {
+        const response = await fetch(`/meeting/api/rate/${sessionData.id}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                rating: selectedRating,
+                review: (reviewInput.value || '').trim()
+            })
+        });
+
+        const data = await response.json();
+
+        if (!data.success) {
+            showToast(data.message || 'Failed to submit rating', 'error');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit Rating';
+            return;
         }
-        
-        function updateConnectionStatus(message, isError = false) {
-            const statusDiv = document.getElementById('connectionStatus');
-            statusDiv.innerHTML = `<i class="fas ${isError ? 'fa-exclamation-triangle' : 'fa-spinner fa-pulse'}"></i> ${message}`;
-            if (isError) {
-                statusDiv.style.background = '#fee2e2';
-                statusDiv.style.color = '#dc2626';
-            } else {
-                statusDiv.style.background = '#e0e7ff';
-                statusDiv.style.color = '#4f46e5';
+
+        showToast('Rating submitted successfully', 'success');
+
+        setTimeout(() => {
+            window.location.href = '/learn';
+        }, 800);
+    } catch (error) {
+        console.error('Rating submit error:', error);
+        showToast('Failed to submit rating', 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Rating';
+    }
+}
+
+function skipSessionRating() {
+    showToast('Rating skipped', 'info');
+    setTimeout(() => {
+        window.location.href = '/learn';
+    }, 500);
+}
+
+function showRemoteVideo() {
+    const remoteContainer = document.getElementById('remoteVideoContainer');
+    const remoteName = document.getElementById('remoteParticipantName');
+    const remoteAvatar = document.getElementById('remoteAvatarFallback');
+
+    hasRemoteParticipant = true;
+    remoteContainer.style.display = 'flex';
+    remoteName.textContent = isInitiator ? 'Student' : sessionData.teacher.name;
+    remoteAvatar.textContent = (isInitiator ? 'S' : (sessionData.teacher.name?.charAt(0)?.toUpperCase() || 'T'));
+    updateConnectionStatus('Connected! Both participants are in the session.', 'success');
+    updateVideoFallbacks();
+}
+
+function hideRemoteVideo() {
+    const remoteContainer = document.getElementById('remoteVideoContainer');
+    const remoteVideo = document.getElementById('remoteVideo');
+
+    hasRemoteParticipant = false;
+    remoteContainer.style.display = 'none';
+
+    if (remoteVideo && remoteVideo.srcObject) {
+        remoteVideo.srcObject.getTracks().forEach(track => track.stop());
+        remoteVideo.srcObject = null;
+    }
+    updateVideoFallbacks();
+}
+
+ async function endCall() {
+    try {
+        if (meetingAlreadyEnding) return;
+        meetingAlreadyEnding = true;
+        manualDisconnect = true;
+
+        if (sessionData.isTeacher) {
+            const response = await fetch(`/api/teacher/sessions/${sessionData.id}/complete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notes: '' })
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                meetingAlreadyEnding = false;
+                manualDisconnect = false;
+                showToast(data.message || 'Failed to complete session', 'error');
+                return;
             }
-        }
-        
-        function showToast(message, type = 'info') {
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i><span>${escapeHtml(message)}</span>`;
-            document.body.appendChild(toast);
-            setTimeout(() => {
-                toast.classList.add('show');
-                setTimeout(() => {
-                    toast.classList.remove('show');
-                    setTimeout(() => toast.remove(), 300);
-                }, 3000);
-            }, 100);
-        }
-        
-        function endCall() {
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-            }
-            if (peerConnection) {
-                peerConnection.close();
-            }
+
             if (socket) {
-                socket.emit('leave-meeting', { roomId: sessionData.roomId, userId: currentUser.id });
-                socket.disconnect();
+                socket.emit('meeting-ended', {
+                    roomId: sessionData.roomId,
+                    sessionId: sessionData.id,
+                    endedBy: currentUser.id,
+                    endedByName: currentUser.name,
+                    message: `${currentUser.name} ended the session.`,
+                    sessionValidity: data.data?.sessionValidity || null,
+                    ratingEligible: data.data?.ratingEligible || false
+                });
             }
-            
-            // Redirect back to dashboard
-            const redirectUrl = sessionData.isTeacher ? '/teach' : '/learn';
-            window.location.href = redirectUrl;
+        } else {
+            const wantsEarlyEnd = confirm('If you are ending within first 20 minutes due to poor teaching or issue, press OK. Otherwise press Cancel to just leave.');
+
+            if (wantsEarlyEnd) {
+                const reason = prompt('Enter reason: teacher not teaching well / technical issue / other') || 'Student ended early';
+
+                const response = await fetch(`/meeting/api/end-early/${sessionData.id}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reason })
+                });
+
+                const data = await response.json();
+
+                if (!data.success) {
+                    meetingAlreadyEnding = false;
+                    manualDisconnect = false;
+                    showToast(data.message || 'Failed to end session early', 'error');
+                    return;
+                }
+            } else {
+                if (socket) {
+                    socket.emit('leave-meeting', {
+                        roomId: sessionData.roomId,
+                        userId: currentUser.id,
+                        userName: currentUser.name
+                    });
+                }
+            }
         }
+
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+        }
+
+        if (peerConnection) {
+            peerConnection.close();
+        }
+
+        if (socket) {
+            socket.disconnect();
+        }
+
+        const redirectUrl = sessionData.isTeacher ? '/teach' : '/learn';
+        window.location.href = redirectUrl;
+
+    } catch (error) {
+        console.error('End call error:', error);
+        meetingAlreadyEnding = false;
+        manualDisconnect = false;
+        showToast('Failed to end call properly', 'error');
+    }
+}
         
         // Handle page unload
-        window.addEventListener('beforeunload', () => {
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-            }
-            if (peerConnection) {
-                peerConnection.close();
-            }
-            if (socket) {
-                socket.emit('leave-meeting', { roomId: sessionData.roomId, userId: currentUser.id });
-            }
+     window.addEventListener('beforeunload', () => {
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+    }
+
+    if (peerConnection) {
+        peerConnection.close();
+    }
+
+    if (socket && !meetingAlreadyEnding && !manualDisconnect) {
+        socket.emit('leave-meeting', {
+            roomId: sessionData.roomId,
+            userId: currentUser.id,
+            userName: currentUser.name
         });
+    }
+});
         
         // Start the meeting
         init();

@@ -45,10 +45,11 @@ exports.searchTeachers = async (req, res, next) => {
             .sort({ rating: -1, totalReviews: -1 });
         
         // Get pending/accepted/rejected requests for current student
-        const existingRequests = await SessionRequest.find({
-            student: req.user.id,
-            teacher: { $in: teachers.map(t => t._id) }
-        }).select('teacher status');
+      const existingRequests = await SessionRequest.find({
+    student: req.user.id,
+    teacher: { $in: teachers.map(t => t._id) },
+    status: { $in: ['pending', 'accepted'] }
+}).select('teacher status updatedAt').sort({ updatedAt: -1 });
         
         const requestMap = {};
         existingRequests.forEach(req => {
@@ -227,20 +228,18 @@ exports.createSessionRequest = async (req, res, next) => {
             });
         }
         
-        // Check if there's already a pending request
-        const existingRequest = await SessionRequest.findOne({
-            student: req.user.id,
-            teacher: teacherId,
-            status: 'pending'
-        });
-        
-        if (existingRequest) {
+       const existingRequest = await SessionRequest.findOne({
+        student: req.user.id,
+         teacher: teacherId,
+        status: { $in: ['pending', 'accepted'] }
+         });
+
+           if (existingRequest) {
             return res.status(400).json({
-                success: false,
-                message: `You already have a pending request with this teacher`,
-                data: { requestId: existingRequest._id, status: existingRequest.status }
-            });
-        }
+               success: false,
+             message: 'You already have a request/session in progress with this teacher. Finish that cycle before sending a new request.'
+               });
+            }
         
         // Calculate credits (2 credits per hour by default)
         const durationMinutes = parseInt(duration) || 60;
@@ -303,15 +302,14 @@ exports.getStudentSessionRequests = async (req, res, next) => {
             
             // For accepted requests, try to find the associated session
             if (request.status === 'accepted') {
-                const session = await Session.findOne({
-                    $or: [
-                        { teacher: request.teacher._id, student: req.user.id, skill: request.skill._id },
-                        { teacher: request.teacher._id, enrolledStudents: req.user.id }
-                    ],
-                    status: { $in: ['confirmed', 'ongoing', 'completed'] }
-                }).populate('teacher', 'name email');
-                
-                requestObj.session = session || null;
+                let session = null;
+
+             if (request.session) {
+                 session = await Session.findById(request.session)
+              .populate('teacher', 'name email');
+               }
+
+requestObj.session = session || null;
                 accepted.push(requestObj);
             } 
             else if (request.status === 'rejected') {
@@ -363,13 +361,9 @@ exports.getSessionRequestStatus = async (req, res, next) => {
         
         // Check if session has been created for accepted request
         let session = null;
-        if (sessionRequest.status === 'accepted') {
-            session = await Session.findOne({
-                teacher: sessionRequest.teacher._id,
-                student: req.user.id,
-                skill: sessionRequest.skill
-            });
-        }
+       if (sessionRequest.status === 'accepted' && sessionRequest.session) {
+          session = await Session.findById(sessionRequest.session);
+          }
         
         res.status(200).json({
             success: true,
@@ -435,80 +429,80 @@ exports.cancelSessionRequest = async (req, res, next) => {
 exports.checkChatAccess = async (req, res, next) => {
     try {
         const { teacherId } = req.params;
-        
-         if (!teacherId || teacherId === 'undefined') {
+
+        if (!teacherId || teacherId === 'undefined') {
             return res.status(400).json({
                 success: false,
-                canChat: false,
-                message: 'Invalid teacher ID'
+                data: {
+                    canChat: false,
+                    message: 'Invalid teacher ID'
+                }
             });
         }
 
-        // Check if there's an accepted session request
         const acceptedRequest = await SessionRequest.findOne({
             student: req.user.id,
             teacher: teacherId,
             status: 'accepted'
         });
-        
-        if (!acceptedRequest) {
-            return res.status(403).json({
-                success: false,
-                canChat: false,
-                message: 'You can only chat with teachers who have accepted your session request'
-            });
-        }
-        
-        // Check if there's an active or completed session
-        const session = await Session.findOne({
+
+        const activeSession = await Session.findOne({
             $or: [
                 { teacher: teacherId, student: req.user.id },
                 { teacher: teacherId, enrolledStudents: req.user.id }
             ],
-            status: { $in: ['confirmed', 'ongoing', 'completed'] }
+            status: { $in: ['confirmed', 'ongoing'] }
         });
-        
-        res.status(200).json({
+
+        const canChat = !!(acceptedRequest || activeSession);
+
+        return res.status(200).json({
             success: true,
             data: {
-                canChat: true,
-                requestId: acceptedRequest._id,
-                sessionId: session ? session._id : null,
-                message: 'You can chat with this teacher'
+                canChat,
+                requestId: acceptedRequest ? acceptedRequest._id : null,
+                sessionId: activeSession ? activeSession._id : null,
+                message: canChat
+                    ? 'You can chat with this teacher'
+                    : 'Chat is available only after acceptance and before session completion'
             }
         });
-        
     } catch (error) {
         next(error);
     }
 };
-
 // @desc    Get or create conversation with teacher
 // @route   GET /api/learn/chat/conversation/:teacherId
 // @access  Private
 exports.getConversation = async (req, res, next) => {
     try {
         const { teacherId } = req.params;
-        
-        // Verify chat access
+
         const acceptedRequest = await SessionRequest.findOne({
             student: req.user.id,
             teacher: teacherId,
             status: 'accepted'
         });
-        
-        if (!acceptedRequest) {
+
+        const activeSession = await Session.findOne({
+            $or: [
+                { teacher: teacherId, student: req.user.id },
+                { teacher: teacherId, enrolledStudents: req.user.id }
+            ],
+            status: { $in: ['confirmed', 'ongoing'] }
+        });
+
+        if (!acceptedRequest && !activeSession) {
             return res.status(403).json({
                 success: false,
-                message: 'You can only chat with teachers who have accepted your session request'
+                message: 'Chat is available only after acceptance and before session completion'
             });
         }
-        
-        // Find or create conversation
+
         let conversation = await Conversation.findOne({
             participants: { $all: [req.user.id, teacherId] }
         }).populate('participants', 'name email avatar');
-        
+
         if (!conversation) {
             conversation = await Conversation.create({
                 participants: [req.user.id, teacherId],
@@ -516,30 +510,32 @@ exports.getConversation = async (req, res, next) => {
             });
             await conversation.populate('participants', 'name email avatar');
         }
-        
-        // Get messages for this conversation
+
         const messages = await Message.find({
             $or: [
                 { sender: req.user.id, receiver: teacherId },
                 { sender: teacherId, receiver: req.user.id }
             ]
-        }).sort({ createdAt: 1 }).limit(100);
-        
-        // Mark messages as read
+        })
+            .populate('sender', 'name email avatar')
+            .populate('receiver', 'name email avatar')
+            .sort({ createdAt: 1 })
+            .limit(100);
+
         await Message.updateMany(
             { sender: teacherId, receiver: req.user.id, isRead: false },
             { isRead: true, readAt: Date.now() }
         );
-        
+
         res.status(200).json({
             success: true,
             data: {
                 conversation,
                 messages,
-                sessionRequest: acceptedRequest
+                sessionRequest: acceptedRequest,
+                session: activeSession
             }
         });
-        
     } catch (error) {
         next(error);
     }
@@ -560,18 +556,26 @@ exports.sendMessage = async (req, res, next) => {
         }
         
         // Verify chat access
-        const acceptedRequest = await SessionRequest.findOne({
-            student: req.user.id,
-            teacher: receiverId,
-            status: 'accepted'
-        });
-        
-        if (!acceptedRequest) {
-            return res.status(403).json({
-                success: false,
-                message: 'You can only message teachers who have accepted your session request'
-            });
-        }
+       const acceptedRequest = await SessionRequest.findOne({
+    student: req.user.id,
+    teacher: receiverId,
+    status: 'accepted'
+});
+
+const activeSession = await Session.findOne({
+    $or: [
+        { teacher: receiverId, student: req.user.id },
+        { teacher: receiverId, enrolledStudents: req.user.id }
+    ],
+    status: { $in: ['confirmed', 'ongoing'] }
+});
+
+if (!acceptedRequest && !activeSession) {
+    return res.status(403).json({
+        success: false,
+        message: 'Chat is available only after acceptance and before session completion'
+    });
+}
         
         // Create message
         const message = await Message.create({

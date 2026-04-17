@@ -105,14 +105,65 @@ const sessionSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    actualStartTime: Date,
+    actualEndTime: Date,
+    actualDuration: {
+        type: Number,
+        default: 0
+    },
+    sessionValidity: {
+    type: String,
+       enum: ['invalid', 'partial', 'valid'],
+        default: 'invalid'
+     },
     createdAt: {
         type: Date,
         default: Date.now
     },
     updatedAt: {
-        type: Date,
-        default: Date.now
-    }
+    type: Date,
+    default: Date.now
+},
+endedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+},
+endedByRole: {
+    type: String,
+    enum: ['teacher', 'student', 'system']
+},
+endedReason: {
+    type: String,
+    maxlength: 500,
+    default: ''
+},
+reminder20Sent: {
+    type: Boolean,
+    default: false
+},
+reminder35Sent: {
+    type: Boolean,
+    default: false
+},
+reminder45Sent: {
+    type: Boolean,
+    default: false
+},
+reminder55Sent: {
+    type: Boolean,
+    default: false
+},
+autoEnded: {
+    type: Boolean,
+    default: false
+},ratingGiven: {
+    type: Boolean,
+    default: false
+},
+ratingEligible: {
+    type: Boolean,
+    default: false
+}
 });
 
 // Generate unique room ID and join code
@@ -127,7 +178,7 @@ sessionSchema.pre('save', async function(next) {
 // Check if session is full
 sessionSchema.methods.isFull = function() {
     if (this.sessionType === 'one-on-one') {
-        return this.enrolledStudents.length >= 1;
+        return !!this.student;
     }
     return this.enrolledStudents.length >= this.maxStudents;
 };
@@ -144,19 +195,17 @@ sessionSchema.methods.addStudent = async function(studentId) {
     }
 };
 
-// Add this method to session schema
 sessionSchema.methods.closeSession = async function() {
     this.status = 'completed';
     this.isCompleted = true;
     this.updatedAt = new Date();
-    
-    // Clear room data to prevent reuse
-    this.roomId = null;
-    this.joinCode = null;
+
+    // Remove room data completely
+    this.roomId = undefined;
+    this.joinCode = undefined;
     this.meetingLink = '';
-    
+
     await this.save();
-    
     return this;
 };
 module.exports = mongoose.model('Session', sessionSchema);

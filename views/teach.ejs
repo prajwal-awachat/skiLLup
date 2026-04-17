@@ -281,7 +281,7 @@
                     <input type="number" id="yearsExperience" min="0" step="0.5" value="0">
                 </div>
                 <div class="form-group" id="rateField" style="display: none;">
-                    <label>Hourly Rate (Credits)</label>
+                    <label>Rate Per Session (Credits)</label>
                     <input type="number" id="hourlyRate" min="1" step="1">
                     <small id="rateHint"></small>
                 </div>
@@ -430,9 +430,9 @@
     <script>
      // Get user data from EJS
 const currentUser = {
-    id: "<%= user && user._id ? user._id.toString() : '' %>",
-    name: "<%= user && user.name ? user.name.replace(/"/g, '&quot;') : '' %>",
-    email: "<%= user && user.email ? user.email.replace(/"/g, '&quot;') : '' %>",
+    id: '<%= user && user._id ? user._id.toString() : "" %>',
+    name: '<%= user && user.name ? user.name.replace(/'/g, "\\'") : "" %>',
+    email: '<%= user && user.email ? user.email.replace(/'/g, "\\'") : "" %>',
     level: <%= user && user.level ? user.level : 1 %>
 };
 
@@ -480,18 +480,20 @@ window.currentUser = currentUser;
             try {
                 const response = await fetch('/api/teacher/profile');
                 const data = await response.json();
-                if (data.success) {
-                    document.getElementById('teacherLevel').textContent = data.data.level;
-                    document.getElementById('creditAmount').textContent = data.data.user.credits;
-                    document.getElementById('totalEarned').textContent = data.data.user.totalCreditsEarned;
-                    document.getElementById('creditRate').textContent = data.data.creditRate;
-                    document.getElementById('teacherRating').textContent = data.data.user.rating || 0;
-                    document.getElementById('totalStudents').textContent = data.data.user.studentsCount || 0;
-                    
-                    updateLevelFeatures(data.data);
-                    updateRateControl(data.data);
-                    return data.data;
-                }
+              if (data.success) {
+    document.getElementById('teacherLevel').textContent = data.data.level;
+    document.getElementById('creditAmount').textContent = data.data.user.credits || 0;
+    document.getElementById('totalEarned').textContent = data.data.user.totalCreditsEarned || 0;
+    document.getElementById('creditRate').textContent = data.data.creditRate || 0;
+    document.getElementById('teacherRating').textContent = data.data.user.rating || 0;
+    document.getElementById('totalStudents').textContent = data.data.stats?.totalStudents || data.data.user.studentsCount || 0;
+    document.getElementById('totalHours').textContent = data.data.stats?.totalHours || 0;
+    document.getElementById('completionRate').textContent = `${data.data.stats?.completionRate || 0}%`;
+
+    updateLevelFeatures(data.data);
+    updateRateControl(data.data);
+    return data.data;
+}
             } catch (error) {
                 console.error('Error fetching profile:', error);
             }
@@ -586,22 +588,16 @@ window.currentUser = currentUser;
             }).join('');
             
             document.querySelectorAll('.add-trending-skill').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const skillId = btn.getAttribute('data-skill-id');
-                    const skillName = btn.getAttribute('data-skill-name');
-                    const skillSelect = document.getElementById('skillSelect');
-                    if (skillSelect) {
-                        for(let i = 0; i < skillSelect.options.length; i++) {
-                            if(skillSelect.options[i].value === skillId) {
-                                skillSelect.selectedIndex = i;
-                                break;
-                            }
-                        }
-                    }
-                    document.getElementById('addSkillModal').classList.add('show');
-                    showToast(`Adding ${skillName || 'skill'} to your skills`, 'info');
-                });
-            });
+    btn.addEventListener('click', () => {
+        const skillName = btn.getAttribute('data-skill-name') || '';
+        const skillNameInput = document.getElementById('skillName');
+        if (skillNameInput) {
+            skillNameInput.value = skillName;
+        }
+        document.getElementById('addSkillModal').classList.add('show');
+        showToast(`Adding ${skillName || 'skill'} to your skills`, 'info');
+    });
+});
         }
         
         async function fetchTeacherSkills() {
@@ -672,7 +668,7 @@ window.currentUser = currentUser;
                         <div class="skill-details">
                             <span class="skill-badge">${proficiencyLevel}</span>
                             <span class="skill-badge"><i class="fas fa-clock"></i> ${yearsOfExperience} years</span>
-                            <span class="skill-badge"><i class="fas fa-coins"></i> ${hourlyRate} credits/hr</span>
+                            <span class="skill-badge"><i class="fas fa-coins"></i> ${hourlyRate} credits/session</span>
                             <span class="skill-badge ${isAvailable ? 'available' : 'unavailable'}">
                                 <i class="fas ${isAvailable ? 'fa-check-circle' : 'fa-clock'}"></i>
                                 ${isAvailable ? 'Available' : 'Unavailable'}
@@ -937,25 +933,39 @@ function setupRateForm() {
                     data-title="${(request.title || 'Session Request').replace(/'/g, "\\'")}"
                     data-duration="${request.duration || 60}"
                     data-credits="${request.proposedCredits || 0}"
-                    data-time="${(request.preferredTime || '').replace(/'/g, "\\'")}">
+                    data-time="${(request.preferredTime || '').replace(/'/g, "\\'")}"
+                    data-date="${request.preferredDate || ''}">
                     <i class="fas fa-check-circle"></i> Accept
                 </button>
                 <button class="reject-request" data-request-id="${escapeHtml(request._id)}">
                     <i class="fas fa-times-circle"></i> Reject
                 </button>
             `;
-        } else if (request.status === 'accepted') {
+        }  else if (request.status === 'accepted') {
     statusClass = 'accepted';
     statusIcon = 'fa-check-circle';
-    const studentData = {
-        id: student._id,
-        name: student.name
-    };
-    actionButtons = `
-        <button class="chat-student" data-student='${JSON.stringify(studentData)}'>
-            <i class="fas fa-comment-dots"></i> Chat
-        </button>
-    `;
+
+    const sessionCompleted =
+        request.session &&
+        typeof request.session === 'object' &&
+        request.session.status === 'completed';
+
+    if (!sessionCompleted) {
+        const studentData = {
+            id: student._id,
+            name: student.name
+        };
+
+        actionButtons = `
+            <button class="chat-student" data-student='${JSON.stringify(studentData)}'>
+                <i class="fas fa-comment-dots"></i> Chat
+            </button>
+        `;
+    } else {
+        actionButtons = `
+            <span class="rejected-reason">Chat unavailable after session completion</span>
+        `;
+    }
 } else {
             statusClass = 'rejected';
             statusIcon = 'fa-times-circle';
@@ -1014,20 +1024,21 @@ function setupRateForm() {
     // Replace the accept-request event listener
     document.querySelectorAll('.accept-request').forEach(btn => {
         btn.addEventListener('click', () => {
-            const request = {
-                _id: btn.getAttribute('data-request-id'),
-                student: {
-                    _id: btn.getAttribute('data-student-id'),
-                    name: btn.getAttribute('data-student-name')
-                },
-                skill: {
-                    name: btn.getAttribute('data-skill-name')
-                },
-                title: btn.getAttribute('data-title'),
-                duration: parseInt(btn.getAttribute('data-duration')),
-                proposedCredits: parseInt(btn.getAttribute('data-credits')),
-                preferredTime: btn.getAttribute('data-time')
-            };
+           const request = {
+    _id: btn.getAttribute('data-request-id'),
+    preferredDate: btn.getAttribute('data-date'),
+    student: {
+        _id: btn.getAttribute('data-student-id'),
+        name: btn.getAttribute('data-student-name')
+    },
+    skill: {
+        name: btn.getAttribute('data-skill-name')
+    },
+    title: btn.getAttribute('data-title'),
+    duration: parseInt(btn.getAttribute('data-duration')) || 60,
+    proposedCredits: parseInt(btn.getAttribute('data-credits')) || 0,
+    preferredTime: btn.getAttribute('data-time')
+};
             openAcceptModal(request);
         });
     });
@@ -1109,20 +1120,30 @@ function openAcceptModal(request) {
         }
         
         async function fetchSessions(type = 'upcoming') {
-            try {
-                let url = '/api/teacher/sessions/upcoming';
-                if (type === 'completed') {
-                    url = '/api/teacher/sessions/completed';
-                }
-                const response = await fetch(url);
-                const data = await response.json();
-                if (data.success) {
-                    renderSessions(data.data, type);
-                }
-            } catch (error) {
-                console.error('Error fetching sessions:', error);
+    try {
+        let url = '/api/teacher/sessions/upcoming';
+
+        if (type === 'completed') {
+            url = '/api/teacher/sessions/completed';
+        } else if (type === 'ongoing') {
+            url = '/api/teacher/sessions/ongoing';
+        }
+
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.success) {
+            renderSessions(data.data, type);
+
+            if (type === 'upcoming') {
+                const upcomingSessions = Array.isArray(data.data) ? data.data : [];
+                renderUpcomingPreview(upcomingSessions);
             }
         }
+    } catch (error) {
+        console.error('Error fetching sessions:', error);
+    }
+}
         
         function renderSessions(sessions, type) {
             const container = document.getElementById('sessionsList');
@@ -1157,21 +1178,21 @@ function openAcceptModal(request) {
                         </button>
                     `;
                 } else if (session.status === 'ongoing') {
-                       actionButtons = `
-                     <a href="/meeting/join/${session._id}" class="join-session-btn" target="_blank">
-                     <i class="fas fa-video"></i> Join Session
-                        </a>
-                       <button class="complete-session" data-session-id="${escapeHtml(session._id)}">
-                     <i class="fas fa-check-circle"></i> Complete
-                  </button>
-                `;
-         } else if (type === 'completed') {
-                    actionButtons = `
-                        <button class="view-summary" data-session-id="${escapeHtml(session._id)}">
-                            <i class="fas fa-file-alt"></i> View Summary
-                        </button>
-                    `;
-                }
+   actionButtons = `
+        <a href="/meeting/join/${session._id}" class="join-session-btn" target="_blank">
+            <i class="fas fa-video"></i> Join Session
+        </a>
+        <button class="chat-student" data-student="${studentJSON}">
+            <i class="fas fa-comment-dots"></i> Chat
+        </button>
+   `;
+} else if (type === 'completed') {
+    actionButtons = `
+        <button class="view-summary" data-session-id="${escapeHtml(session._id)}">
+            <i class="fas fa-file-alt"></i> View Summary
+        </button>
+    `;
+}
                 
                 return `
                     <div class="session-card">
@@ -1237,12 +1258,7 @@ function openAcceptModal(request) {
                 });
             });
             
-            document.querySelectorAll('.complete-session').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const sessionId = btn.getAttribute('data-session-id');
-                    if (sessionId) completeSession(sessionId);
-                });
-            });
+        
             
             document.querySelectorAll('.chat-student').forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -1260,6 +1276,58 @@ function openAcceptModal(request) {
                 });
             });
         }
+
+        function renderUpcomingPreview(sessions) {
+    const container = document.getElementById('upcomingPreview');
+    if (!container) return;
+
+    if (!sessions || sessions.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-calendar-times"></i>
+                <p>No upcoming sessions</p>
+            </div>
+        `;
+        return;
+    }
+
+    const previewSessions = sessions.slice(0, 3);
+
+    container.innerHTML = previewSessions.map(session => {
+        const student = session.student || {};
+        const studentName = student.name || 'Student';
+        const sessionDate = new Date(session.scheduledDate);
+        const formattedDate = sessionDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+
+        return `
+            <div class="session-card preview-card">
+                <div class="session-header">
+                    <div class="session-info">
+                        <div class="student-name">${escapeHtml(studentName)}</div>
+                        <div class="session-title">${escapeHtml(session.title || 'Session')}</div>
+                    </div>
+                    <div class="session-status ${session.status || 'confirmed'}">
+                        ${(session.status || 'confirmed').toUpperCase()}
+                    </div>
+                </div>
+                <div class="session-body">
+                    <div class="session-detail">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>${formattedDate} at ${escapeHtml(session.scheduledTime || 'TBD')}</span>
+                    </div>
+                    <div class="session-detail">
+                        <i class="fas fa-clock"></i>
+                        <span>${session.duration || 60} minutes</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
         
        async function startSession(sessionId) {
     try {
@@ -1327,26 +1395,6 @@ function openAcceptModal(request) {
     }
 }
         
-        async function completeSession(sessionId) {
-            if (confirm('Mark this session as completed? This will add credits to your account.')) {
-                try {
-                    const response = await fetch(`/api/teacher/sessions/${sessionId}/complete`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ notes: '' })
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        showToast('Session completed! Credits added.', 'success');
-                        fetchSessions('upcoming');
-                        fetchCreditsAndEarnings();
-                    }
-                } catch (error) {
-                    console.error('Error completing session:', error);
-                    showToast('Failed to complete session', 'error');
-                }
-            }
-        }
         
         async function fetchCreditsAndEarnings() {
             try {
@@ -1453,6 +1501,25 @@ function openAcceptModal(request) {
                     if (subtab) fetchSessions(subtab);
                 });
             });
+            document.querySelectorAll('.view-all').forEach(link => {
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const tabId = link.getAttribute('data-tab');
+        if (!tabId) return;
+
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+        const targetBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+        const tabContent = document.getElementById(`${tabId}Tab`);
+
+        if (targetBtn) targetBtn.classList.add('active');
+        if (tabContent) tabContent.classList.add('active');
+
+        if (tabId === 'sessions') fetchSessions('upcoming');
+    });
+});
+
         }
         
         // Initialize page

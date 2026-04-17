@@ -22,14 +22,14 @@ const {
     
     // Session Management
     getUpcomingSessions,
+    getOngoingSessions,
     getCompletedSessions,
     startSession,
     getSessionDetails,
     completeSession,
     
     // Chat Access Check
-    canChatWithStudent,
-    teacherCanChatWithStudent,
+    canChatWithStudent, 
     teacherGetConversation,
     teacherSendMessage,
     
@@ -66,6 +66,7 @@ router.post('/requests/:requestId/reject', rejectSessionRequest);
 
 // Session Management
 router.get('/sessions/upcoming', getUpcomingSessions);
+router.get('/sessions/ongoing', getOngoingSessions);
 router.get('/sessions/completed', getCompletedSessions);
 router.post('/sessions/:sessionId/start', startSession);
 router.get('/sessions/:sessionId', getSessionDetails);
