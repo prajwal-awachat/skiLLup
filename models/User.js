@@ -92,6 +92,10 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+     earlyExitCount: {
+    type: Number,
+    default: 0
+    },
     createdAt: {
         type: Date,
         default: Date.now
@@ -119,6 +123,22 @@ userSchema.methods.getCreditRate = function() {
         case 5: return this.customCreditRate || 5;
         default: return 1;
     }
+};
+
+userSchema.methods.calculateLevelFromRating = function () {
+    const avg = Number(this.rating || 0);
+    const reviews = Number(this.totalReviews || 0);
+
+    // not enough data yet
+    if (reviews < 5) {
+        return this.level || 1;
+    }
+
+    if (avg < 2.5) return 1;
+    if (avg < 3.2) return 2;
+    if (avg < 4.0) return 3;
+    if (avg < 4.5) return 4;
+    return 5;
 };
 
 // Check if user can redeem credits

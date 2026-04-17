@@ -86,10 +86,41 @@ const groupSessionSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    }
+   createdAt: {
+    type: Date,
+    default: Date.now
+},
+actualStartTime: {
+    type: Date
+},
+actualEndTime: {
+    type: Date
+},
+actualDuration: {
+    type: Number,
+    default: 0
+},
+sessionValidity: {
+    type: String,
+    enum: ['invalid', 'partial', 'valid'],
+    default: 'invalid'
+},
+endedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+},
+endedByRole: {
+    type: String,
+    enum: ['teacher', 'student', 'system']
+},
+endedReason: {
+    type: String,
+    default: ''
+},
+autoEnded: {
+    type: Boolean,
+    default: false
+}
 });
 
 // Generate room ID and join code

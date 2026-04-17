@@ -44,7 +44,7 @@ exports.purchasePackage = async (req, res) => {
         // Deduct balance and add credits
         user.balance -= creditPackage.price;
         user.credits += creditPackage.credits;
-        user.totalCreditsEarned += creditPackage.credits;
+        // user.totalCreditsEarned += creditPackage.credits;
         await user.save();
         
         // Create transaction record for purchase
@@ -114,20 +114,20 @@ exports.withdrawCredits = async (req, res) => {
         }
         
         // Check if user has enough credits
-        if (user.credits < credits) {
-            return res.status(400).json({ 
-                success: false, 
-                message: `Insufficient credits. You have ${user.credits} credits available.` 
-            });
-        }
+       if (user.redeemableCredits < credits) {
+    return res.status(400).json({ 
+        success: false, 
+        message: `Insufficient redeemable credits. You have ${user.redeemableCredits} available.` 
+    });
+}
         
         // Convert credits to money (1 credit = ₹10)
         const moneyValue = credits * 10;
         
         // Deduct credits and add to balance
-        user.credits -= credits;
+        user.redeemableCredits = Math.max(0, user.redeemableCredits - credits);
+        user.credits -= credits; // optional: only if you want both reduced
         user.balance += moneyValue;
-        user.redeemableCredits = (user.redeemableCredits || 0) - credits;
         user.moneyEarned = (user.moneyEarned || 0) + moneyValue;
         await user.save();
         
@@ -180,7 +180,7 @@ exports.checkWithdrawalEligibility = async (req, res) => {
                 message,
                 currentLevel: user.level,
                 credits: user.credits,
-                redeemableCredits: user.redeemableCredits || user.credits,
+               redeemableCredits: user.redeemableCredits || 0,
                 minWithdrawal: 10
             }
         });
