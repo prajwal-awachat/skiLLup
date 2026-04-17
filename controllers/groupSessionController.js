@@ -63,7 +63,7 @@ exports.createGroupSession = async (req, res) => {
             maxStudents,
             scheduledDate: new Date(scheduledDate),
             scheduledTime,
-            duration,
+            duration: sessionDuration,
             status: 'scheduled'
         });
         
@@ -246,7 +246,10 @@ exports.startGroupSession = async (req, res) => {
         }
         
         groupSession.status = 'ongoing';
-        await groupSession.save();
+          if (!groupSession.actualStartTime) {
+         groupSession.actualStartTime = new Date();
+          }
+         await groupSession.save();
         
         // Notify all enrolled students
         const io = req.app.get('io');
@@ -308,14 +311,38 @@ exports.completeGroupSession = async (req, res) => {
             });
         }
         
-        // Calculate total credits earned (per student)
-        const totalCreditsEarned = groupSession.enrolledStudents.length * groupSession.creditsPerStudent;
-        
-        // Add credits to teacher
-        await groupSession.teacher.addEarnings(totalCreditsEarned, sessionId);
-        
-        groupSession.status = 'completed';
-        await groupSession.save();
+        const endTime = new Date();
+const actualDuration = groupSession.actualStartTime
+    ? Math.floor((endTime - groupSession.actualStartTime) / (1000 * 60))
+    : 0;
+
+groupSession.actualEndTime = endTime;
+groupSession.actualDuration = actualDuration;
+
+const totalCreditsEarned = groupSession.enrolledStudents.length * groupSession.creditsPerStudent;
+
+if (actualDuration < 20) {
+    groupSession.sessionValidity = 'invalid';
+
+    // refund all enrolled students
+    for (const enrolled of groupSession.enrolledStudents) {
+        const student = await User.findById(enrolled.student);
+        if (student) {
+            student.credits += enrolled.creditsPaid;
+            student.totalCreditsSpent = Math.max(0, (student.totalCreditsSpent || 0) - enrolled.creditsPaid);
+            await student.save();
+        }
+    }
+} else if (actualDuration >= 20 && actualDuration < 35) {
+    groupSession.sessionValidity = 'partial';
+    // teacher gets nothing
+} else {
+    groupSession.sessionValidity = 'valid';
+    await groupSession.teacher.addEarnings(totalCreditsEarned, sessionId);
+}
+
+groupSession.status = 'completed';
+await groupSession.save();
         
         // Notify students
         const io = req.app.get('io');

@@ -213,12 +213,39 @@ exports.getTeacherProfile = async (req, res) => {
         const user = await User.findById(req.user._id)
             .select('-password')
             .populate('teachingSkills');
-        
+
         const teachingSkills = await UserSkill.find({
             user: req.user._id,
             isTeaching: true
         }).populate('skill');
-        
+
+       const completedSessions = await Session.find({
+    teacher: req.user._id,
+    status: 'completed'
+});
+
+const validCompletedSessions = completedSessions.filter(
+    session => session.sessionValidity === 'valid'
+);
+
+const totalHours = validCompletedSessions.reduce((sum, session) => {
+    return sum + ((session.actualDuration || 0) / 60);
+}, 0);
+
+const totalCompleted = validCompletedSessions.length;
+
+        const totalScheduled = await Session.countDocuments({
+            teacher: req.user._id
+        });
+
+        const completionRate = totalScheduled > 0
+            ? Math.round((totalCompleted / totalScheduled) * 100)
+            : 0;
+
+        const uniqueStudents = new Set(
+            completedSessions.map(session => session.student?.toString()).filter(Boolean)
+        );
+
         res.json({
             success: true,
             data: {
@@ -227,7 +254,12 @@ exports.getTeacherProfile = async (req, res) => {
                 level: user.level,
                 creditRate: user.getCreditRate(),
                 canRedeem: user.canRedeemCredits(),
-                canHaveGroupSessions: user.canHaveGroupSessions()
+                canHaveGroupSessions: user.canHaveGroupSessions(),
+                stats: {
+                    totalStudents: uniqueStudents.size || user.studentsCount || 0,
+                    totalHours: Number(totalHours.toFixed(1)),
+                    completionRate
+                }
             }
         });
     } catch (error) {
@@ -318,9 +350,10 @@ exports.getIncomingRequests = async (req, res) => {
         }
         
         const requests = await SessionRequest.find(query)
-            .populate('student', 'name email avatar rating')
-            .populate('skill', 'name category')
-            .sort({ createdAt: -1 });
+           .populate('student', 'name email avatar rating')
+             .populate('skill', 'name category')
+            .populate('session', 'status')
+              .sort({ createdAt: -1 });
         
         const counts = {
             pending: await SessionRequest.countDocuments({ teacher: req.user._id, status: 'pending' }),
@@ -398,29 +431,28 @@ exports.acceptSessionRequest = async (req, res) => {
         const finalTime = scheduledTime || sessionRequest.preferredTime;
         
         // Create session (without meetingLink - it will be generated when session starts)
-       const session = await Session.create({
-            teacher: req.user._id,
-            student: sessionRequest.student,
-            skill: sessionRequest.skill,
-            title: sessionRequest.title,
-            description: sessionRequest.description,
-            creditsPerSession: creditsPerSession,
-            duration: sessionRequest.duration,
-            scheduledDate: finalDate,
-            scheduledTime: finalTime,
-            meetingLink: '',  
-            roomId: null,     
-            joinCode: null,    
-            status: 'confirmed'
-        });
+      const session = await Session.create({
+    teacher: req.user._id,
+    student: sessionRequest.student,
+    skill: sessionRequest.skill,
+    title: sessionRequest.title,
+    description: sessionRequest.description,
+    creditsPerSession: creditsPerSession,
+    duration: sessionRequest.duration,
+    scheduledDate: finalDate,
+    scheduledTime: finalTime,
+    meetingLink: '',
+    status: 'confirmed'
+});
         
         // Deduct credits from student
         await student.deductCredits(creditsPerSession, session._id);
         
         // Update session request
         sessionRequest.status = 'accepted';
-        sessionRequest.teacherMessage = 'Session accepted';
-        await sessionRequest.save();
+           sessionRequest.teacherMessage = 'Session accepted';
+          sessionRequest.session = session._id;
+          await sessionRequest.save();
         
         // Create conversation for chat
         let conversation = await Conversation.findOne({
@@ -518,17 +550,18 @@ exports.rejectSessionRequest = async (req, res) => {
 
 exports.getUpcomingSessions = async (req, res) => {
     try {
-        const now = new Date();
-        
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
         const sessions = await Session.find({
             teacher: req.user._id,
-            scheduledDate: { $gte: now },
+            scheduledDate: { $gte: todayStart },
             status: { $in: ['confirmed', 'ongoing'] }
         })
             .populate('student', 'name email avatar')
             .populate('skill', 'name')
             .sort({ scheduledDate: 1, scheduledTime: 1 });
-        
+
         res.json({
             success: true,
             data: sessions
@@ -538,6 +571,29 @@ exports.getUpcomingSessions = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to fetch sessions'
+        });
+    }
+};
+
+exports.getOngoingSessions = async (req, res) => {
+    try {
+        const sessions = await Session.find({
+            teacher: req.user._id,
+            status: 'ongoing'
+        })
+            .populate('student', 'name email avatar')
+            .populate('skill', 'name')
+            .sort({ updatedAt: -1 });
+
+        res.json({
+            success: true,
+            data: sessions
+        });
+    } catch (error) {
+        console.error('Get ongoing sessions error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch ongoing sessions'
         });
     }
 };
@@ -554,7 +610,9 @@ exports.getCompletedSessions = async (req, res) => {
             .limit(50);
         
         // Calculate earnings
-        const totalEarned = sessions.reduce((sum, session) => sum + session.creditsPerSession, 0);
+        const totalEarned = sessions.reduce((sum, session) => {
+    return sum + (session.sessionValidity === 'valid' ? session.creditsPerSession : 0);
+}, 0);
         
         res.json({
             success: true,
@@ -600,7 +658,10 @@ exports.startSession = async (req, res) => {
         }
         
         session.status = 'ongoing';
-        await session.save();
+if (!session.actualStartTime) {
+    session.actualStartTime = new Date();
+}
+await session.save();
         
         // Notify student that session has started
         const io = req.app.get('io');
@@ -672,17 +733,17 @@ exports.getSessionDetails = async (req, res) => {
 exports.completeSession = async (req, res) => {
     try {
         const { sessionId } = req.params;
-        const { notes, summary } = req.body;
-        
+        const { notes } = req.body;
+
         const session = await Session.findById(sessionId);
-        
+
         if (!session) {
             return res.status(404).json({
                 success: false,
                 message: 'Session not found'
             });
         }
-        
+
         if (session.teacher.toString() !== req.user._id.toString()) {
             return res.status(403).json({
                 success: false,
@@ -690,7 +751,6 @@ exports.completeSession = async (req, res) => {
             });
         }
 
-        // Check if already completed
         if (session.status === 'completed') {
             return res.status(400).json({
                 success: false,
@@ -698,23 +758,82 @@ exports.completeSession = async (req, res) => {
             });
         }
 
-        // Update session fields directly (don't rely on closeSession method)
+        if (!session.actualStartTime) {
+            return res.status(400).json({
+                success: false,
+                message: 'Session was not properly started'
+            });
+        }
+
+        const endTime = new Date();
+        session.actualEndTime = endTime;
+
+        const duration = Math.max(
+            0,
+            Math.floor((session.actualEndTime - session.actualStartTime) / (1000 * 60))
+        );
+
+        session.actualDuration = duration;
+
+        if (duration < 20) {
+            session.sessionValidity = 'invalid';
+
+            const student = await User.findById(session.student);
+            student.credits += session.creditsPerSession;
+            student.totalCreditsSpent = Math.max(
+                0,
+                (student.totalCreditsSpent || 0) - session.creditsPerSession
+            );
+            await student.save();
+
+            await Transaction.create({
+                user: student._id,
+                type: 'refund',
+                amount: session.creditsPerSession,
+                credits: session.creditsPerSession,
+                session: session._id,
+                description: `Refunded ${session.creditsPerSession} credits for invalid session`,
+                status: 'completed',
+                completedAt: new Date()
+            });
+
+            session.ratingEligible = false;
+        } else if (duration >= 20 && duration < 35) {
+            session.sessionValidity = 'partial';
+            session.ratingEligible = false;
+        } else {
+            session.sessionValidity = 'valid';
+            session.ratingEligible = true;
+
+            await req.user.addEarnings(session.creditsPerSession, session._id);
+        }
+
         session.status = 'completed';
         session.isCompleted = true;
-        if (notes) session.notes = notes;
+        session.endedBy = req.user._id;
+        session.endedByRole = 'teacher';
+        session.endedReason = 'Teacher completed the session';
         session.updatedAt = new Date();
-        
-        // Clear room data to prevent reuse
-        session.roomId = null;
-        session.joinCode = null;
+
+        if (notes) session.notes = notes;
+
+        session.set('roomId', undefined);
+        session.set('joinCode', undefined);
         session.meetingLink = '';
-        
-        await session.save(); // IMPORTANT: Save the changes
-        
-        // Add earnings to teacher
-        await req.user.addEarnings(session.creditsPerSession, session._id);
-        
-        // Notify student via socket
+
+        await session.save();
+
+        await SessionRequest.findOneAndUpdate(
+            { session: session._id },
+            {
+                $set: {
+                    status: 'completed',
+                    updatedAt: new Date(),
+                    teacherMessage: 'Session completed'
+                }
+            }
+        );
+
         const io = req.app.get('io');
         if (io) {
             io.to(`user_${session.student}`).emit('session_completed', {
@@ -722,10 +841,15 @@ exports.completeSession = async (req, res) => {
                 teacherName: req.user.name
             });
         }
-        
+
         res.json({
             success: true,
-            message: 'Session marked as completed and credits added to your account'
+            message: `Session completed with status: ${session.sessionValidity}`,
+            data: {
+                actualDuration: session.actualDuration,
+                sessionValidity: session.sessionValidity,
+                ratingEligible: session.ratingEligible
+            }
         });
     } catch (error) {
         console.error('Complete session error:', error);
@@ -741,8 +865,7 @@ exports.completeSession = async (req, res) => {
 exports.canChatWithStudent = async (req, res) => {
     try {
         const { studentId } = req.params;
-        
-        // FIX: Prevent chatting with yourself
+
         if (req.user._id.toString() === studentId) {
             return res.status(403).json({
                 success: false,
@@ -752,39 +875,32 @@ exports.canChatWithStudent = async (req, res) => {
                 }
             });
         }
-        
-        // Check if there's an accepted session or session request
+
         const acceptedRequest = await SessionRequest.findOne({
             teacher: req.user._id,
             student: studentId,
             status: 'accepted'
         });
-        
+
         const activeSession = await Session.findOne({
             teacher: req.user._id,
             student: studentId,
             status: { $in: ['confirmed', 'ongoing'] }
         });
-        
-        // Also check if there's a completed session (for history/feedback)
-        const completedSession = await Session.findOne({
-            teacher: req.user._id,
-            student: studentId,
-            status: 'completed'
-        });
-        
-        const canChat = !!(acceptedRequest || activeSession || completedSession);
-        
+
+        const canChat = !!(acceptedRequest || activeSession);
+
         let message = 'No active session found';
         if (acceptedRequest) message = 'Chat access granted (accepted request)';
         else if (activeSession) message = 'Chat access granted (active session)';
-        else if (completedSession) message = 'Chat access granted (completed session)';
-        
+
         res.json({
             success: true,
             data: {
                 canChat,
-                message: canChat ? message : 'You can only chat with students you have an accepted or completed session with'
+                message: canChat
+                    ? message
+                    : 'Chat is available only after acceptance and before session completion'
             }
         });
     } catch (error) {
@@ -798,108 +914,42 @@ exports.canChatWithStudent = async (req, res) => {
 
 // ==================== TEACHER CHAT FUNCTIONS ====================
 
-// Check if teacher can chat with student
-exports.teacherCanChatWithStudent = async (req, res) => {
-    try {
-        const { studentId } = req.params;
-        
-        // Prevent chatting with yourself
-        if (req.user._id.toString() === studentId) {
-            return res.status(403).json({
-                success: false,
-                data: {
-                    canChat: false,
-                    message: 'You cannot chat with yourself'
-                }
-            });
-        }
-        
-        // Check if there's an accepted session or session request
-        const acceptedRequest = await SessionRequest.findOne({
-            teacher: req.user._id,
-            student: studentId,
-            status: 'accepted'
-        });
-        
-        const activeSession = await Session.findOne({
-            teacher: req.user._id,
-            student: studentId,
-            status: { $in: ['confirmed', 'ongoing'] }
-        });
-        
-        const completedSession = await Session.findOne({
-            teacher: req.user._id,
-            student: studentId,
-            status: 'completed'
-        });
-        
-        const canChat = !!(acceptedRequest || activeSession || completedSession);
-        
-        let message = 'No active session found';
-        if (acceptedRequest) message = 'Chat access granted (accepted request)';
-        else if (activeSession) message = 'Chat access granted (active session)';
-        else if (completedSession) message = 'Chat access granted (completed session)';
-        
-        res.json({
-            success: true,
-            data: {
-                canChat,
-                message: canChat ? message : 'You can only chat with students you have an accepted or completed session with'
-            }
-        });
-    } catch (error) {
-        console.error('Teacher chat access check error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to check chat access'
-        });
-    }
-};
 
 // Get or create conversation for teacher
 exports.teacherGetConversation = async (req, res) => {
     try {
         const { studentId } = req.params;
-        
-        // Prevent chatting with yourself
+
         if (req.user._id.toString() === studentId) {
             return res.status(403).json({
                 success: false,
                 message: 'You cannot chat with yourself'
             });
         }
-        
-        // Verify chat access
+
         const acceptedRequest = await SessionRequest.findOne({
             teacher: req.user._id,
             student: studentId,
             status: 'accepted'
         });
-        
+
         const activeSession = await Session.findOne({
             teacher: req.user._id,
             student: studentId,
             status: { $in: ['confirmed', 'ongoing'] }
         });
-        
-        const completedSession = await Session.findOne({
-            teacher: req.user._id,
-            student: studentId,
-            status: 'completed'
-        });
-        
-        if (!acceptedRequest && !activeSession && !completedSession) {
+
+        if (!acceptedRequest && !activeSession) {
             return res.status(403).json({
                 success: false,
-                message: 'You can only chat with students you have an accepted or completed session with'
+                message: 'Chat is available only after acceptance and before session completion'
             });
         }
-        
-        // Find or create conversation
+
         let conversation = await Conversation.findOne({
             participants: { $all: [req.user._id, studentId] }
         }).populate('participants', 'name email avatar');
-        
+
         if (!conversation) {
             conversation = await Conversation.create({
                 participants: [req.user._id, studentId],
@@ -907,27 +957,30 @@ exports.teacherGetConversation = async (req, res) => {
             });
             await conversation.populate('participants', 'name email avatar');
         }
-        
-        // Get messages for this conversation
+
         const messages = await Message.find({
             $or: [
                 { sender: req.user._id, receiver: studentId },
                 { sender: studentId, receiver: req.user._id }
             ]
-        }).sort({ createdAt: 1 }).limit(100);
-        
-        // Mark messages as read
+        })
+            .populate('sender', 'name email avatar')
+            .populate('receiver', 'name email avatar')
+            .sort({ createdAt: 1 })
+            .limit(100);
+
         await Message.updateMany(
             { sender: studentId, receiver: req.user._id, isRead: false },
             { isRead: true, readAt: Date.now() }
         );
-        
+
         res.json({
             success: true,
             data: {
                 conversation,
                 messages,
-                sessionRequest: acceptedRequest
+                sessionRequest: acceptedRequest,
+                session: activeSession
             }
         });
     } catch (error) {
@@ -972,18 +1025,12 @@ exports.teacherSendMessage = async (req, res) => {
             status: { $in: ['confirmed', 'ongoing'] }
         });
         
-        const completedSession = await Session.findOne({
-            teacher: req.user._id,
-            student: receiverId,
-            status: 'completed'
-        });
-        
-        if (!acceptedRequest && !activeSession && !completedSession) {
-            return res.status(403).json({
-                success: false,
-                message: 'You can only message students you have an accepted or completed session with'
-            });
-        }
+       if (!acceptedRequest && !activeSession) {
+    return res.status(403).json({
+        success: false,
+        message: 'Chat is available only after acceptance and before session completion'
+    });
+}
         
         // Create message
         const message = await Message.create({

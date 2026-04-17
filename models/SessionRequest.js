@@ -44,7 +44,7 @@ const sessionRequestSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'accepted', 'rejected', 'cancelled'],
+       enum: ['pending', 'accepted', 'rejected', 'cancelled', 'completed'],
         default: 'pending'
     },
     teacherMessage: {
@@ -54,6 +54,11 @@ const sessionRequestSchema = new mongoose.Schema({
     studentMessage: {
         type: String,
         maxlength: 500
+    },
+    session: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Session',
+    default: null
     },
     createdAt: {
         type: Date,
