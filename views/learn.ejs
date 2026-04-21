@@ -246,6 +246,7 @@
         let currentSearchTerm = '';
         let currentChatTeacher = null;
         let currentConversationId = null;
+        let acceptedRequestSessions = [];
 
         function escapeHtml(text) {
             if (!text) return '';
@@ -311,6 +312,20 @@
                 minute: '2-digit'
             });
         }
+
+        function combineDateAndTime(dateValue, timeValue) {
+    if (!dateValue) return null;
+
+    const date = new Date(dateValue);
+    if (Number.isNaN(date.getTime())) return null;
+
+    if (timeValue && typeof timeValue === 'string' && timeValue.includes(':')) {
+        const [hours, minutes] = timeValue.split(':');
+        date.setHours(Number(hours) || 0, Number(minutes) || 0, 0, 0);
+    }
+
+    return date.toISOString();
+}
 
         async function fetchCredits() {
             try {
@@ -522,56 +537,94 @@
             });
         }
 
-        async function fetchSessionRequests() {
-            try {
-                const response = await fetch('/api/learn/session-requests');
-                const data = await response.json();
+async function fetchSessionRequests() {
+    try {
+        const response = await fetch('/api/learn/session-requests');
+        const data = await response.json();
 
-                if (!data.success) {
-                    throw new Error(data.message || 'Failed to fetch requests');
-                }
-
-                const pending = data.data.pending || [];
-                const rejected = data.data.rejected || [];
-
-                renderPendingRequests(pending);
-                renderRejectedRequests(rejected);
-
-                document.getElementById('pendingCount').textContent = pending.length;
-                document.getElementById('rejectedCount').textContent = rejected.length;
-                document.getElementById('pendingOverviewCount').textContent = pending.length;
-                document.getElementById('rejectedOverviewCount').textContent = rejected.length;
-            } catch (error) {
-                console.error('Error fetching session requests:', error);
-                showToast('Failed to load requests', 'error');
-            }
+        if (!data.success) {
+            throw new Error(data.message || 'Failed to fetch requests');
         }
 
-        async function fetchUpcomingSessions() {
-            try {
-                const response = await fetch('/api/learn/upcoming-sessions');
-                const data = await response.json();
+        const pending = data.data.pending || [];
+        const rejected = data.data.rejected || [];
+        const accepted = data.data.accepted || [];
 
-                if (!data.success) {
-                    throw new Error(data.message || 'Failed to fetch upcoming sessions');
-                }
+        acceptedRequestSessions = accepted.map(request => {
+            const session = request.session || {};
 
-                const sessions = data.data || [];
-                renderUpcomingSessions(sessions);
+            return {
+                _id: session._id || `accepted-request-${request._id}`,
+                requestId: request._id,
+                teacher: session.teacher || request.teacher || {},
+                skill: session.skill || request.skill || {},
+                title: session.title || request.title || request.skill?.name || 'Session',
+                duration: session.duration || request.duration || 60,
+                scheduledDate: session.scheduledDate || combineDateAndTime(request.currentProposedDate, request.currentStartTime),
+                roomId: session.roomId || '',
+                joinCode: session.joinCode || '',
+                status: session.status || 'confirmed',
+                fromAcceptedRequest: true
+            };
+        });
 
-                document.getElementById('upcomingCount').textContent = sessions.length;
-                document.getElementById('upcomingOverviewCount').textContent = sessions.length;
-            } catch (error) {
-                console.error('Error fetching upcoming sessions:', error);
-                document.getElementById('upcomingSessionsList').innerHTML = `
-                    <div class="empty-sessions">
-                        <i class="fas fa-calendar-times"></i>
-                        <p>Could not load upcoming sessions</p>
-                        <small>Please refresh and try again</small>
-                    </div>
-                `;
-            }
+        renderPendingRequests(pending);
+        renderRejectedRequests(rejected);
+
+        document.getElementById('pendingCount').textContent = pending.length;
+        document.getElementById('rejectedCount').textContent = rejected.length;
+        document.getElementById('pendingOverviewCount').textContent = pending.length;
+        document.getElementById('rejectedOverviewCount').textContent = rejected.length;
+    } catch (error) {
+        console.error('Error fetching session requests:', error);
+        showToast('Failed to load requests', 'error');
+    }
+}
+
+      async function fetchUpcomingSessions() {
+    try {
+        const response = await fetch('/api/learn/upcoming-sessions');
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.message || 'Failed to fetch upcoming sessions');
         }
+
+        const apiSessions = data.data || [];
+        const mergedMap = new Map();
+
+        apiSessions.forEach(session => {
+            mergedMap.set(String(session._id), session);
+        });
+
+        acceptedRequestSessions.forEach(session => {
+            const key = session._id ? String(session._id) : String(session.requestId);
+            if (!mergedMap.has(key)) {
+                mergedMap.set(key, session);
+            }
+        });
+
+        const sessions = Array.from(mergedMap.values()).sort((a, b) => {
+            const aTime = a.scheduledDate ? new Date(a.scheduledDate).getTime() : 0;
+            const bTime = b.scheduledDate ? new Date(b.scheduledDate).getTime() : 0;
+            return aTime - bTime;
+        });
+
+        renderUpcomingSessions(sessions);
+
+        document.getElementById('upcomingCount').textContent = sessions.length;
+        document.getElementById('upcomingOverviewCount').textContent = sessions.length;
+    } catch (error) {
+        console.error('Error fetching upcoming sessions:', error);
+        document.getElementById('upcomingSessionsList').innerHTML = `
+            <div class="empty-sessions">
+                <i class="fas fa-calendar-times"></i>
+                <p>Could not load upcoming sessions</p>
+                <small>Please refresh and try again</small>
+            </div>
+        `;
+    }
+}
 
       function renderPendingRequests(pendingRequests) {
     const container = document.getElementById('pendingSessionsList');
@@ -697,134 +750,153 @@
     });
 }
 
-        function renderUpcomingSessions(sessions) {
-            const container = document.getElementById('upcomingSessionsList');
+function renderUpcomingSessions(sessions) {
+    const container = document.getElementById('upcomingSessionsList');
 
-            if (!sessions || sessions.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-sessions">
-                        <i class="fas fa-calendar-check"></i>
-                        <p>No upcoming sessions</p>
-                        <small>Accepted sessions will appear here</small>
-                    </div>
-                `;
-                return;
-            }
+    if (!sessions || sessions.length === 0) {
+        container.innerHTML = `
+            <div class="empty-sessions">
+                <i class="fas fa-calendar-check"></i>
+                <p>No upcoming sessions</p>
+                <small>Accepted sessions will appear here</small>
+            </div>
+        `;
+        return;
+    }
 
-            container.innerHTML = sessions.map(session => {
-                const teacher = session.teacher || {};
-                const initials = getInitials(teacher.name || 'T');
-                const teacherData = JSON.stringify({
-                    _id: teacher._id,
-                    name: teacher.name,
-                    email: teacher.email || ''
-                }).replace(/'/g, '&#39;');
+    container.innerHTML = sessions.map(session => {
+        const teacher = session.teacher || {};
+        const initials = getInitials(teacher.name || 'T');
+        const teacherData = JSON.stringify({
+            _id: teacher._id,
+            name: teacher.name,
+            email: teacher.email || ''
+        }).replace(/'/g, '&#39;');
 
-                const hasRoomId = !!session.roomId;
-                const hasJoinCode = !!session.joinCode;
-                const isOngoing = session.status === 'ongoing';
-                const isConfirmed = session.status === 'confirmed';
+        const hasRoomId = !!session.roomId;
+        const hasJoinCode = !!session.joinCode;
+        const isOngoing = session.status === 'ongoing';
+        const isConfirmed = session.status === 'confirmed';
+        const canJoin = isOngoing && hasRoomId && hasJoinCode;
 
-                return `
-                    <div class="session-card-item accepted" data-session-id="${session._id}">
-                        <div class="session-card-header">
-                            <div class="session-teacher">
-                                <div class="session-avatar small" style="background: ${getRandomColor(teacher._id || teacher.name || 'T')}">
-                                    ${initials}
-                                </div>
-                                <div class="session-info">
-                                    <h4>${escapeHtml(teacher.name || 'Teacher')}</h4>
-                                    <span class="session-skill-tag">${escapeHtml(session.skill?.name || session.title || 'Session')}</span>
-                                </div>
-                            </div>
-
-                            <div class="session-status accepted">
-                                <i class="fas fa-check-circle"></i> ${isOngoing ? 'ONGOING' : 'UPCOMING'}
-                            </div>
+        return `
+            <div class="session-card-item accepted" data-session-id="${session._id}">
+                <div class="session-card-header">
+                    <div class="session-teacher">
+                        <div class="session-avatar small" style="background: ${getRandomColor(teacher._id || teacher.name || 'T')}">
+                            ${initials}
                         </div>
+                        <div class="session-info">
+                            <h4>${escapeHtml(teacher.name || 'Teacher')}</h4>
+                            <span class="session-skill-tag">${escapeHtml(session.skill?.name || session.title || 'Session')}</span>
+                        </div>
+                    </div>
 
-                        <div class="session-details">
-                            <div class="session-detail-item">
-                                <i class="fas fa-calendar-alt"></i>
-                                <span>${formatDateTime(session.scheduledDate)}</span>
-                            </div>
+                    <div class="session-status accepted">
+                        <i class="fas fa-check-circle"></i> ${isOngoing ? 'ONGOING' : 'CONFIRMED'}
+                    </div>
+                </div>
 
-                            ${session.duration ? `
-                                <div class="session-detail-item">
-                                    <i class="fas fa-clock"></i>
-                                    <span>${session.duration} minutes</span>
-                                </div>
-                            ` : ''}
+                <div class="session-details">
+                    <div class="session-detail-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>${formatDateTime(session.scheduledDate)}</span>
+                    </div>
 
-                            ${hasRoomId || hasJoinCode ? `
-                                <div class="session-code-box">
-                                    ${hasRoomId ? `
-                                        <div class="code-row">
-                                            <span class="code-label">Session ID</span>
-                                            <span class="code-value">${escapeHtml(session.roomId)}</span>
-                                            <button class="copy-code-btn" data-code="${escapeHtml(session.roomId)}">
-                                                <i class="fas fa-copy"></i>
-                                            </button>
-                                        </div>
-                                    ` : ''}
+                    ${session.duration ? `
+                        <div class="session-detail-item">
+                            <i class="fas fa-clock"></i>
+                            <span>${session.duration} minutes</span>
+                        </div>
+                    ` : ''}
 
-                                    ${hasJoinCode ? `
-                                        <div class="code-row">
-                                            <span class="code-label">Join Code</span>
-                                            <span class="code-value code-password">${escapeHtml(session.joinCode)}</span>
-                                            <button class="copy-code-btn" data-code="${escapeHtml(session.joinCode)}">
-                                                <i class="fas fa-copy"></i>
-                                            </button>
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            ` : ''}
-
-                            ${isOngoing ? `
-                                <div class="session-join-section">
-                                    <button class="join-session-btn-main" data-session-id="${session._id}" data-session-title="${escapeHtml(session.title || 'Session')}">
-                                        <i class="fas fa-video"></i> Join Session Now
-                                    </button>
-                                </div>
-                            ` : isConfirmed ? `
-                                <div class="session-waiting">
-                                    <i class="fas fa-hourglass-half"></i>
-                                    <span>Session is scheduled. Join will open when teacher starts.</span>
-                                </div>
-                            ` : ''}
-
-                            <div class="session-actions">
-                                <button class="chat-session-btn" data-teacher='${teacherData}'>
-                                    <i class="fas fa-comment-dots"></i> Chat
+                    <div class="session-code-box">
+                        <div class="code-row">
+                            <span class="code-label">Session ID</span>
+                            <span class="code-value">${escapeHtml(session.roomId || 'Will appear when teacher starts')}</span>
+                            ${hasRoomId ? `
+                                <button class="copy-code-btn" data-code="${escapeHtml(session.roomId)}">
+                                    <i class="fas fa-copy"></i>
                                 </button>
-                            </div>
+                            ` : ''}
+                        </div>
+
+                        <div class="code-row">
+                            <span class="code-label">Join Code</span>
+                            <span class="code-value code-password">${escapeHtml(session.joinCode || 'Will appear when teacher starts')}</span>
+                            ${hasJoinCode ? `
+                                <button class="copy-code-btn" data-code="${escapeHtml(session.joinCode)}">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            ` : ''}
                         </div>
                     </div>
-                `;
-            }).join('');
 
-            document.querySelectorAll('.copy-code-btn').forEach(btn => {
-                btn.onclick = async () => {
-                    const code = btn.dataset.code;
-                    if (!code) return;
-                    await navigator.clipboard.writeText(code);
-                    showToast('Copied to clipboard', 'success');
-                };
-            });
+                    <div class="session-join-section">
+                        <button
+                            class="join-session-btn-main"
+                            data-session-id="${session._id}"
+                            data-session-title="${escapeHtml(session.title || 'Session')}"
+                            data-room-id="${escapeHtml(session.roomId || '')}"
+                            data-join-code="${escapeHtml(session.joinCode || '')}"
+                            ${canJoin ? '' : 'disabled'}
+                        >
+                            <i class="fas fa-video"></i> Join Session
+                        </button>
+                    </div>
 
-            document.querySelectorAll('.chat-session-btn').forEach(btn => {
-                btn.onclick = () => {
-                    const teacher = JSON.parse(btn.getAttribute('data-teacher'));
-                    openChat(teacher);
-                };
-            });
+                    ${isConfirmed ? `
+                        <div class="session-waiting">
+                            <i class="fas fa-hourglass-half"></i>
+                            <span>Teacher has confirmed. Join will enable when teacher starts the session.</span>
+                        </div>
+                    ` : ''}
 
-            document.querySelectorAll('.join-session-btn-main').forEach(btn => {
-                btn.onclick = () => {
-                    openJoinSessionModal(btn.dataset.sessionId, btn.dataset.sessionTitle);
-                };
-            });
-        }
+                    ${isOngoing && !canJoin ? `
+                        <div class="session-waiting">
+                            <i class="fas fa-hourglass-half"></i>
+                            <span>Teacher started the session, but session credentials are not ready yet.</span>
+                        </div>
+                    ` : ''}
+
+                    <div class="session-actions">
+                        <button class="chat-session-btn" data-teacher='${teacherData}'>
+                            <i class="fas fa-comment-dots"></i> Chat
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    document.querySelectorAll('.copy-code-btn').forEach(btn => {
+        btn.onclick = async () => {
+            const code = btn.dataset.code;
+            if (!code) return;
+            await navigator.clipboard.writeText(code);
+            showToast('Copied to clipboard', 'success');
+        };
+    });
+
+    document.querySelectorAll('.chat-session-btn').forEach(btn => {
+        btn.onclick = () => {
+            const teacher = JSON.parse(btn.getAttribute('data-teacher'));
+            openChat(teacher);
+        };
+    });
+
+    document.querySelectorAll('.join-session-btn-main').forEach(btn => {
+        btn.onclick = () => {
+            if (btn.disabled) return;
+            openJoinSessionModal(
+                btn.dataset.sessionId,
+                btn.dataset.sessionTitle,
+                btn.dataset.roomId,
+                btn.dataset.joinCode
+            );
+        };
+    });
+}
 
         function renderRejectedRequests(rejectedRequests) {
             const container = document.getElementById('rejectedSessionsList');
@@ -1118,101 +1190,101 @@ async function acceptNegotiatedRequest(requestId) {
             }
         }
 
-        function openJoinSessionModal(sessionId, sessionTitle) {
-            let modal = document.getElementById('joinSessionModal');
+        function openJoinSessionModal(sessionId, sessionTitle, presetRoomId = '', presetJoinCode = '') {
+    let modal = document.getElementById('joinSessionModal');
 
-            if (!modal) {
-                modal = document.createElement('div');
-                modal.id = 'joinSessionModal';
-                modal.className = 'modal';
-                modal.innerHTML = `
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h3><i class="fas fa-video"></i> Join Session: <span id="joinSessionTitleText"></span></h3>
-                            <button class="close-modal" id="closeJoinModalBtn">&times;</button>
-                        </div>
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'joinSessionModal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-video"></i> Join Session: <span id="joinSessionTitleText"></span></h3>
+                    <button class="close-modal" id="closeJoinModalBtn">&times;</button>
+                </div>
 
-                        <div class="modal-body join-modal-body">
-                            <p class="join-instruction">Enter the session credentials provided by your teacher:</p>
+                <div class="modal-body join-modal-body">
+                    <p class="join-instruction">Enter the session credentials provided by your teacher:</p>
 
-                            <div class="form-group">
-                                <label><i class="fas fa-key"></i> Session ID *</label>
-                                <input type="text" id="joinRoomId" placeholder="Enter Session ID">
-                            </div>
-
-                            <div class="form-group">
-                                <label><i class="fas fa-lock"></i> Join Code *</label>
-                                <input type="text" id="joinCode" placeholder="Enter Join Code" maxlength="6">
-                            </div>
-
-                            <div class="info-note">
-                                <i class="fas fa-info-circle"></i>
-                                You need both Session ID and Join Code to join.
-                            </div>
-
-                            <div class="session-warning-note">
-                                ⚠️ Session must be at least <strong>35 minutes</strong> to be valid
-                            </div>
-
-                            <div class="modal-actions">
-                                <button class="cancel-join-btn" id="cancelJoinBtn">Cancel</button>
-                                <button class="submit-join-btn" id="submitJoinBtn">
-                                    <i class="fas fa-video"></i> Verify & Join
-                                </button>
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label><i class="fas fa-key"></i> Session ID *</label>
+                        <input type="text" id="joinRoomId" placeholder="Enter Session ID">
                     </div>
-                `;
 
-                document.body.appendChild(modal);
+                    <div class="form-group">
+                        <label><i class="fas fa-lock"></i> Join Code *</label>
+                        <input type="text" id="joinCode" placeholder="Enter Join Code" maxlength="6">
+                    </div>
 
-                document.getElementById('closeJoinModalBtn').onclick = () => modal.classList.remove('show');
-                document.getElementById('cancelJoinBtn').onclick = () => modal.classList.remove('show');
+                    <div class="info-note">
+                        <i class="fas fa-info-circle"></i>
+                        You need both Session ID and Join Code to join.
+                    </div>
 
-                modal.addEventListener('click', (e) => {
-                    if (e.target === modal) modal.classList.remove('show');
-                });
-            }
+                    <div class="session-warning-note">
+                        ⚠️ Session must be at least <strong>35 minutes</strong> to be valid
+                    </div>
 
-            document.getElementById('joinSessionTitleText').textContent = sessionTitle || 'Session';
-            document.getElementById('joinRoomId').value = '';
-            document.getElementById('joinCode').value = '';
-            modal.classList.add('show');
+                    <div class="modal-actions">
+                        <button class="cancel-join-btn" id="cancelJoinBtn">Cancel</button>
+                        <button class="submit-join-btn" id="submitJoinBtn">
+                            <i class="fas fa-video"></i> Verify & Join
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
 
-            const submitBtn = document.getElementById('submitJoinBtn');
+        document.body.appendChild(modal);
 
-            submitBtn.onclick = async () => {
-                const roomId = document.getElementById('joinRoomId').value.trim();
-                const joinCode = document.getElementById('joinCode').value.trim();
+        document.getElementById('closeJoinModalBtn').onclick = () => modal.classList.remove('show');
+        document.getElementById('cancelJoinBtn').onclick = () => modal.classList.remove('show');
 
-                if (!roomId || !joinCode) {
-                    showToast('Please enter both Session ID and Join Code', 'error');
-                    return;
-                }
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.classList.remove('show');
+        });
+    }
 
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Validating...';
+    document.getElementById('joinSessionTitleText').textContent = sessionTitle || 'Session';
+    document.getElementById('joinRoomId').value = presetRoomId || '';
+    document.getElementById('joinCode').value = presetJoinCode || '';
+    modal.classList.add('show');
 
-                try {
-                    const response = await fetch(`/meeting/api/validate/${sessionId}?roomId=${encodeURIComponent(roomId)}&joinCode=${encodeURIComponent(joinCode)}`);
-                    const data = await response.json();
+    const submitBtn = document.getElementById('submitJoinBtn');
 
-                    if (data.success) {
-                        modal.classList.remove('show');
-                        showToast('Joining session...', 'success');
-                        window.location.href = `/meeting/join/${sessionId}`;
-                    } else {
-                        showToast(data.message || 'Invalid session credentials', 'error');
-                    }
-                } catch (error) {
-                    console.error('Join validation error:', error);
-                    showToast('Failed to validate session', 'error');
-                } finally {
-                    submitBtn.disabled = false;
-                    submitBtn.innerHTML = '<i class="fas fa-video"></i> Verify & Join';
-                }
-            };
+    submitBtn.onclick = async () => {
+        const roomId = document.getElementById('joinRoomId').value.trim();
+        const joinCode = document.getElementById('joinCode').value.trim();
+
+        if (!roomId || !joinCode) {
+            showToast('Please enter both Session ID and Join Code', 'error');
+            return;
         }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Validating...';
+
+        try {
+            const response = await fetch(`/meeting/api/validate/${sessionId}?roomId=${encodeURIComponent(roomId)}&joinCode=${encodeURIComponent(joinCode)}`);
+            const data = await response.json();
+
+            if (data.success) {
+                modal.classList.remove('show');
+                showToast('Joining session...', 'success');
+                window.location.href = `/meeting/join/${sessionId}`;
+            } else {
+                showToast(data.message || 'Invalid session credentials', 'error');
+            }
+        } catch (error) {
+            console.error('Join validation error:', error);
+            showToast('Failed to validate session', 'error');
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-video"></i> Verify & Join';
+        }
+    };
+}
 
         async function openChat(teacher) {
             if (!teacher || !teacher._id) {

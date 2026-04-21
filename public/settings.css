@@ -1,4 +1,5 @@
-/* settings.css - Matching learn.ejs styling */
+/* settings.css - Settings page with Premium Dark/Luxury Glassmorphism Theme */
+
 * {
     margin: 0;
     padding: 0;
@@ -7,8 +8,8 @@
 
 body {
     font-family: 'Inter', sans-serif;
-    background: linear-gradient(135deg, #f5f7fa 0%, #eef2f6 100%);
-    color: #1e293b;
+    background: linear-gradient(135deg, #0a0f1c 0%, #05070d 100%);
+    color: #e2e8f0;
 }
 
 .app-container {
@@ -16,17 +17,34 @@ body {
     min-height: 100vh;
 }
 
-/* Sidebar Styles */
+/* ==================== SIDEBAR STYLES - Glassmorphism ==================== */
 .sidebar {
     width: 280px;
-    background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
-    color: white;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(10px);
     display: flex;
     flex-direction: column;
     position: fixed;
     height: 100vh;
     overflow-y: auto;
-    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+    border-right: 1px solid rgba(250, 204, 21, 0.15);
+    transition: all 0.3s ease;
+    z-index: 100;
+}
+
+/* Custom Scrollbar for Sidebar */
+.sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(250, 204, 21, 0.3);
+    border-radius: 4px;
 }
 
 .logo {
@@ -34,21 +52,23 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(250, 204, 21, 0.15);
     margin-bottom: 24px;
 }
 
 .logo-icon {
     font-size: 32px;
+    color: #facc15;
 }
 
 .logo-text {
     font-size: 24px;
-    font-weight: 700;
-    background: linear-gradient(135deg, #fff, #94a3b8);
+    font-weight: 800;
+    background: linear-gradient(135deg, #ffffff 0%, #facc15 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    letter-spacing: -0.02em;
 }
 
 .nav-menu {
@@ -62,23 +82,44 @@ body {
     gap: 12px;
     padding: 12px 16px;
     margin: 4px 0;
-    color: #cbd5e1;
+    color: #94a3b8;
     text-decoration: none;
     border-radius: 12px;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     font-weight: 500;
+    position: relative;
+    overflow: hidden;
+}
+
+.nav-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 3px;
+    background: linear-gradient(135deg, #facc15, #ffcc00);
+    transform: scaleY(0);
+    transition: transform 0.2s ease;
 }
 
 .nav-item:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: rgba(250, 204, 21, 0.1);
+    color: #facc15;
     transform: translateX(4px);
 }
 
+.nav-item:hover::before {
+    transform: scaleY(1);
+}
+
 .nav-item.active {
-    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-    color: white;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    background: linear-gradient(135deg, rgba(250, 204, 21, 0.15), rgba(255, 204, 0, 0.05));
+    color: #facc15;
+}
+
+.nav-item.active::before {
+    transform: scaleY(1);
 }
 
 .nav-icon {
@@ -88,7 +129,7 @@ body {
 
 .user-profile {
     padding: 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(250, 204, 21, 0.15);
     display: flex;
     align-items: center;
     gap: 12px;
@@ -97,14 +138,21 @@ body {
 .avatar {
     width: 48px;
     height: 48px;
-    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    background: linear-gradient(135deg, #facc15, #ffcc00);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
     font-size: 18px;
-    color: white;
+    color: #0a0f1c;
+    box-shadow: 0 0 20px rgba(250, 204, 21, 0.3);
+    transition: all 0.3s ease;
+}
+
+.avatar:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(250, 204, 21, 0.5);
 }
 
 .user-info {
@@ -115,7 +163,7 @@ body {
     display: block;
     font-weight: 600;
     font-size: 14px;
-    color: white;
+    color: #ffffff;
 }
 
 .user-email {
@@ -124,7 +172,7 @@ body {
     color: #94a3b8;
 }
 
-/* Main Content */
+/* ==================== MAIN CONTENT ==================== */
 .main-content {
     flex: 1;
     margin-left: 280px;
@@ -137,39 +185,55 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 32px;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
 .header-section h1 {
     font-size: 28px;
-    font-weight: 700;
-    color: #0f172a;
+    font-weight: 800;
+    background: linear-gradient(135deg, #ffffff 0%, #facc15 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
     margin-bottom: 8px;
+    letter-spacing: -0.02em;
 }
 
 .header-section h1 i {
-    color: #3b82f6;
+    color: #facc15;
     margin-right: 12px;
+    background: none;
+    -webkit-background-clip: unset;
+    background-clip: unset;
 }
 
 .header-subtitle {
-    color: #64748b;
+    color: #94a3b8;
     font-size: 14px;
 }
 
-/* Credits Card */
+/* Credits Card - Glassmorphism */
 .credits-card {
-    background: linear-gradient(135deg, #fbbf24, #f59e0b);
-    border-radius: 16px;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
     padding: 16px 24px;
     display: flex;
     align-items: center;
     gap: 16px;
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    border: 1px solid rgba(250, 204, 21, 0.15);
+    transition: all 0.3s ease;
+}
+
+.credits-card:hover {
+    border-color: rgba(250, 204, 21, 0.3);
+    transform: translateY(-2px);
 }
 
 .credits-icon {
     font-size: 28px;
-    color: white;
+    color: #facc15;
 }
 
 .credits-info {
@@ -179,31 +243,31 @@ body {
 .credits-label {
     display: block;
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.9);
+    color: #94a3b8;
 }
 
 .credits-amount {
     display: block;
     font-size: 24px;
     font-weight: 700;
-    color: white;
+    color: #facc15;
 }
 
 .add-credits-btn {
-    background: white;
+    background: linear-gradient(135deg, #facc15, #ffcc00);
     border: none;
     padding: 8px 16px;
-    border-radius: 24px;
-    font-weight: 600;
-    color: #f59e0b;
+    border-radius: 40px;
+    font-weight: 700;
+    color: #0a0f1c;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     font-size: 14px;
 }
 
 .add-credits-btn:hover {
     transform: scale(1.05);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 12px rgba(250, 204, 21, 0.3);
 }
 
 /* Settings Container */
@@ -212,16 +276,22 @@ body {
     margin: 0 auto;
 }
 
-/* Profile Overview Card */
+/* Profile Overview Card - Glassmorphism */
 .profile-overview-card {
-    background: white;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(10px);
     border-radius: 24px;
     padding: 32px;
     display: flex;
     align-items: center;
     gap: 32px;
     margin-bottom: 32px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(250, 204, 21, 0.15);
+    transition: all 0.3s ease;
+}
+
+.profile-overview-card:hover {
+    border-color: rgba(250, 204, 21, 0.3);
 }
 
 .profile-avatar-section {
@@ -231,31 +301,39 @@ body {
 .profile-avatar-large {
     width: 120px;
     height: 120px;
-    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    background: linear-gradient(135deg, #facc15, #ffcc00);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 48px;
     font-weight: 700;
-    color: white;
+    color: #0a0f1c;
     margin-bottom: 12px;
-}
-
-.change-avatar-btn {
-    background: #f1f5f9;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 500;
-    color: #3b82f6;
-    cursor: pointer;
+    box-shadow: 0 0 30px rgba(250, 204, 21, 0.3);
     transition: all 0.3s ease;
 }
 
+.profile-avatar-large:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 40px rgba(250, 204, 21, 0.5);
+}
+
+.change-avatar-btn {
+    background: rgba(250, 204, 21, 0.1);
+    border: 1px solid rgba(250, 204, 21, 0.2);
+    padding: 8px 16px;
+    border-radius: 40px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #facc15;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
 .change-avatar-btn:hover {
-    background: #e2e8f0;
+    background: rgba(250, 204, 21, 0.2);
+    transform: translateY(-2px);
 }
 
 .profile-stats {
@@ -272,7 +350,7 @@ body {
 .stat-label {
     display: block;
     font-size: 12px;
-    color: #64748b;
+    color: #94a3b8;
     margin-bottom: 8px;
 }
 
@@ -280,11 +358,11 @@ body {
     display: block;
     font-size: 32px;
     font-weight: 700;
-    color: #0f172a;
+    color: #ffffff;
 }
 
 .star-icon {
-    color: #fbbf24;
+    color: #facc15;
     font-size: 14px;
     margin-left: 4px;
 }
@@ -294,7 +372,7 @@ body {
     display: flex;
     gap: 12px;
     margin-bottom: 32px;
-    border-bottom: 2px solid #e2e8f0;
+    border-bottom: 1px solid rgba(250, 204, 21, 0.15);
     padding-bottom: 12px;
 }
 
@@ -304,9 +382,9 @@ body {
     padding: 12px 24px;
     font-size: 16px;
     font-weight: 600;
-    color: #64748b;
+    color: #94a3b8;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     border-radius: 12px;
 }
 
@@ -315,13 +393,14 @@ body {
 }
 
 .tab-btn:hover {
-    background: #f1f5f9;
-    color: #3b82f6;
+    background: rgba(250, 204, 21, 0.1);
+    color: #facc15;
 }
 
 .tab-btn.active {
-    background: #3b82f6;
-    color: white;
+    background: linear-gradient(135deg, rgba(250, 204, 21, 0.2), rgba(255, 204, 0, 0.1));
+    color: #facc15;
+    border: 1px solid rgba(250, 204, 21, 0.3);
 }
 
 /* Tab Content */
@@ -345,12 +424,13 @@ body {
     }
 }
 
-/* Settings Form */
+/* Settings Form - Glassmorphism */
 .settings-form {
-    background: white;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(10px);
     border-radius: 24px;
     padding: 32px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(250, 204, 21, 0.15);
 }
 
 .form-group {
@@ -361,11 +441,11 @@ body {
     display: block;
     font-weight: 600;
     margin-bottom: 8px;
-    color: #0f172a;
+    color: #ffffff;
 }
 
 .form-group label i {
-    color: #3b82f6;
+    color: #facc15;
     margin-right: 8px;
 }
 
@@ -373,18 +453,25 @@ body {
 .form-group textarea {
     width: 100%;
     padding: 12px 16px;
-    border: 2px solid #e2e8f0;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(250, 204, 21, 0.2);
     border-radius: 12px;
     font-size: 14px;
     font-family: 'Inter', sans-serif;
-    transition: all 0.3s ease;
+    color: #ffffff;
+    transition: all 0.2s ease;
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
     outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    border-color: #facc15;
+    box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.1);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+    color: #64748b;
 }
 
 .form-group small {
@@ -395,30 +482,31 @@ body {
 }
 
 .save-btn {
-    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-    color: white;
+    background: linear-gradient(135deg, #facc15, #ffcc00);
+    color: #0a0f1c;
     border: none;
     padding: 12px 24px;
-    border-radius: 12px;
-    font-weight: 600;
+    border-radius: 40px;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     width: 100%;
     font-size: 16px;
 }
 
 .save-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 4px 12px rgba(250, 204, 21, 0.3);
 }
 
-/* Skills Section */
+/* Skills Section - Glassmorphism */
 .skills-section {
-    background: white;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(10px);
     border-radius: 24px;
     padding: 24px;
     margin-bottom: 24px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(250, 204, 21, 0.15);
 }
 
 .skills-header {
@@ -430,29 +518,29 @@ body {
 
 .skills-header h3 {
     font-size: 18px;
-    color: #0f172a;
+    color: #ffffff;
 }
 
 .skills-header h3 i {
-    color: #3b82f6;
+    color: #facc15;
     margin-right: 8px;
 }
 
 .add-skill-btn {
-    background: #3b82f6;
-    color: white;
+    background: linear-gradient(135deg, #facc15, #ffcc00);
+    color: #0a0f1c;
     border: none;
     padding: 8px 16px;
-    border-radius: 20px;
+    border-radius: 40px;
     font-size: 14px;
-    font-weight: 500;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .add-skill-btn:hover {
-    background: #2563eb;
     transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(250, 204, 21, 0.3);
 }
 
 .skills-list {
@@ -462,26 +550,33 @@ body {
 }
 
 .skill-tag {
-    background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+    background: rgba(250, 204, 21, 0.1);
     padding: 8px 16px;
-    border-radius: 20px;
+    border-radius: 40px;
     display: inline-flex;
     align-items: center;
     gap: 8px;
     font-size: 14px;
     font-weight: 500;
-    color: #3730a3;
+    color: #facc15;
+    border: 1px solid rgba(250, 204, 21, 0.2);
+    transition: all 0.2s ease;
+}
+
+.skill-tag:hover {
+    background: rgba(250, 204, 21, 0.2);
+    transform: translateX(2px);
 }
 
 .remove-skill {
     background: transparent;
     border: none;
-    color: #818cf8;
+    color: #facc15;
     cursor: pointer;
     font-size: 12px;
     padding: 2px;
     border-radius: 50%;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .remove-skill:hover {
@@ -490,13 +585,13 @@ body {
 }
 
 .no-skills {
-    color: #94a3b8;
+    color: #64748b;
     font-size: 14px;
     text-align: center;
     padding: 24px;
 }
 
-/* Financial Stats */
+/* Financial Stats - Glassmorphism */
 .financial-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -505,31 +600,33 @@ body {
 }
 
 .financial-card {
-    background: white;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(10px);
     border-radius: 20px;
     padding: 20px;
     display: flex;
     align-items: center;
     gap: 16px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(250, 204, 21, 0.15);
     transition: all 0.3s ease;
 }
 
 .financial-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    border-color: rgba(250, 204, 21, 0.3);
+    box-shadow: 0 12px 24px rgba(250, 204, 21, 0.1);
 }
 
 .financial-icon {
     width: 50px;
     height: 50px;
-    background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+    background: rgba(250, 204, 21, 0.1);
     border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 24px;
-    color: #3b82f6;
+    color: #facc15;
 }
 
 .financial-info {
@@ -539,7 +636,7 @@ body {
 .financial-label {
     display: block;
     font-size: 12px;
-    color: #64748b;
+    color: #94a3b8;
     margin-bottom: 4px;
 }
 
@@ -547,28 +644,29 @@ body {
     display: block;
     font-size: 24px;
     font-weight: 700;
-    color: #0f172a;
+    color: #facc15;
 }
 
-/* Redeem Section */
+/* Redeem Section - Glassmorphism */
 .redeem-section,
 .custom-rate-section {
-    background: white;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(10px);
     border-radius: 24px;
     padding: 24px;
     margin-bottom: 24px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid rgba(250, 204, 21, 0.15);
 }
 
 .redeem-section h3,
 .custom-rate-section h3 {
     font-size: 18px;
     margin-bottom: 12px;
-    color: #0f172a;
+    color: #ffffff;
 }
 
 .redeem-info {
-    color: #64748b;
+    color: #94a3b8;
     font-size: 14px;
     margin-bottom: 16px;
 }
@@ -583,34 +681,49 @@ body {
 .rate-form input {
     flex: 1;
     padding: 12px 16px;
-    border: 2px solid #e2e8f0;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(250, 204, 21, 0.2);
     border-radius: 12px;
     font-size: 14px;
+    color: #ffffff;
+    transition: all 0.2s ease;
+}
+
+.redeem-form input:focus,
+.rate-form input:focus {
+    outline: none;
+    border-color: #facc15;
+    box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.1);
 }
 
 .redeem-btn,
 .save-rate-btn {
-    background: linear-gradient(135deg, #10b981, #059669);
+    background: linear-gradient(135deg, #14b8a6, #0d9488);
     color: white;
     border: none;
     padding: 12px 24px;
-    border-radius: 12px;
-    font-weight: 600;
+    border-radius: 40px;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .save-rate-btn {
-    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    background: linear-gradient(135deg, #facc15, #ffcc00);
+    color: #0a0f1c;
 }
 
 .redeem-btn:hover,
 .save-rate-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
 }
 
-/* Modal */
+.save-rate-btn:hover {
+    box-shadow: 0 4px 12px rgba(250, 204, 21, 0.3);
+}
+
+/* Modal - Glassmorphism */
 .modal {
     display: none;
     position: fixed;
@@ -618,7 +731,8 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
     z-index: 1000;
     align-items: center;
     justify-content: center;
@@ -630,12 +744,14 @@ body {
 }
 
 .modal-content {
-    background: white;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(10px);
     border-radius: 24px;
     max-width: 500px;
     width: 90%;
     max-height: 80vh;
     overflow-y: auto;
+    border: 1px solid rgba(250, 204, 21, 0.3);
     animation: slideUp 0.3s ease;
 }
 
@@ -652,7 +768,7 @@ body {
 
 .modal-header {
     padding: 20px 24px;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid rgba(250, 204, 21, 0.15);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -660,7 +776,8 @@ body {
 
 .modal-header h3 {
     font-size: 20px;
-    color: #0f172a;
+    color: #ffffff;
+    font-weight: 700;
 }
 
 .close-modal {
@@ -669,11 +786,12 @@ body {
     font-size: 28px;
     cursor: pointer;
     color: #94a3b8;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .close-modal:hover {
-    color: #ef4444;
+    color: #facc15;
+    transform: rotate(90deg);
 }
 
 .modal-body {
@@ -688,20 +806,23 @@ body {
 
 .search-result-item {
     padding: 12px;
-    border-radius: 8px;
+    border-radius: 12px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     gap: 12px;
+    border: 1px solid transparent;
 }
 
 .search-result-item:hover {
-    background: #f1f5f9;
+    background: rgba(250, 204, 21, 0.1);
+    border-color: rgba(250, 204, 21, 0.2);
+    transform: translateX(4px);
 }
 
 .search-result-item i {
-    color: #3b82f6;
+    color: #facc15;
 }
 
 .search-result-item small {
@@ -714,24 +835,46 @@ body {
 .no-results {
     text-align: center;
     padding: 24px;
-    color: #94a3b8;
+    color: #64748b;
 }
 
-/* Toast Notifications */
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(250, 204, 21, 0.3);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(250, 204, 21, 0.5);
+}
+
+/* Toast Notifications - Glassmorphism */
 .toast {
     position: fixed;
     bottom: 24px;
     right: 24px;
     padding: 12px 20px;
-    border-radius: 12px;
-    background: white;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    border-radius: 16px;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     display: flex;
     align-items: center;
     gap: 12px;
     z-index: 1100;
     transform: translateX(400px);
     transition: transform 0.3s ease;
+    border: 1px solid rgba(250, 204, 21, 0.2);
 }
 
 .toast.show {
@@ -739,11 +882,11 @@ body {
 }
 
 .toast.success {
-    border-left: 4px solid #10b981;
+    border-left: 4px solid #14b8a6;
 }
 
 .toast.success i {
-    color: #10b981;
+    color: #14b8a6;
 }
 
 .toast.error {
@@ -755,19 +898,33 @@ body {
 }
 
 .toast.info {
-    border-left: 4px solid #3b82f6;
+    border-left: 4px solid #facc15;
 }
 
 .toast.info i {
-    color: #3b82f6;
+    color: #facc15;
 }
 
-/* Responsive */
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .profile-stats {
+        gap: 16px;
+    }
+    
+    .stat-value {
+        font-size: 24px;
+    }
+}
+
 @media (max-width: 768px) {
     .sidebar {
         transform: translateX(-100%);
         transition: transform 0.3s ease;
         z-index: 100;
+    }
+    
+    .sidebar.open {
+        transform: translateX(0);
     }
     
     .main-content {
@@ -789,6 +946,11 @@ body {
         flex-wrap: wrap;
     }
     
+    .tab-btn {
+        flex: 1;
+        text-align: center;
+    }
+    
     .financial-stats {
         grid-template-columns: 1fr;
     }
@@ -797,4 +959,53 @@ body {
     .rate-form {
         flex-direction: column;
     }
+    
+    .top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .credits-card {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 480px) {
+    .profile-avatar-large {
+        width: 80px;
+        height: 80px;
+        font-size: 32px;
+    }
+    
+    .stat-value {
+        font-size: 20px;
+    }
+    
+    .settings-form {
+        padding: 20px;
+    }
+    
+    .financial-card {
+        padding: 16px;
+    }
+    
+    .financial-value {
+        font-size: 20px;
+    }
+}
+
+/* Utility Classes */
+.glow-text {
+    color: #facc15;
+    text-shadow: 0 0 10px rgba(250, 204, 21, 0.3);
+}
+
+.gradient-border {
+    border-image: linear-gradient(135deg, #facc15, #ffcc00) 1;
+}
+
+.glass-effect {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(10px);
 }
