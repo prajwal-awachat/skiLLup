@@ -1106,12 +1106,23 @@
                                 <span>${session.creditsPerSession || 0} credits</span>
                             </div>
 
-                            ${session.roomId || session.joinCode ? `
-                                <div class="session-code">
-                                    <span class="code-label">Session ID:</span>
-                                    <span class="code-value">${escapeHtml(session.roomId || '')}</span>
-                                </div>
-                            ` : ''}
+                           ${session.roomId || session.joinCode ? `
+    <div class="session-code-box">
+        ${session.roomId ? `
+            <div class="code-row">
+                <span class="code-label">Session ID:</span>
+                <span class="code-value">${escapeHtml(session.roomId)}</span>
+            </div>
+        ` : ''}
+
+        ${session.joinCode ? `
+            <div class="code-row">
+                <span class="code-label">Join Code:</span>
+                <span class="code-value">${escapeHtml(session.joinCode)}</span>
+            </div>
+        ` : ''}
+    </div>
+` : ''}
                         </div>
 
                         <div class="session-actions">
