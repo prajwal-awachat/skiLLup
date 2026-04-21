@@ -80,8 +80,12 @@
                 <!-- Profile Overview Card -->
                 <div class="profile-overview-card">
                     <div class="profile-avatar-section">
-                        <div class="profile-avatar-large" id="profileAvatar">
-                            <%= user ? user.name.charAt(0).toUpperCase() : 'U' %>
+                       <div class="profile-avatar-large" id="profileAvatar">
+                                 <% if (user && user.avatar) { %>
+                               <img src="<%= user.avatar %>" alt="Profile Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+                             <% } else { %>
+                              <%= user ? user.name.charAt(0).toUpperCase() : 'U' %>
+                             <% } %>
                         </div>
                         <button class="change-avatar-btn" id="changeAvatarBtn">
                             <i class="fas fa-camera"></i> Change Photo
@@ -266,7 +270,7 @@
                     <% if (user && user.level >= 3) { %>
                         <div class="redeem-section">
                             <h3><i class="fas fa-exchange-alt"></i> Redeem Credits</h3>
-                            <p class="redeem-info">You have <strong id="redeemableAmount">0</strong> redeemable credits. 10 credits = ₹1</p>
+                            <p class="redeem-info">You have <strong id="redeemableAmount">0</strong> redeemable credits. 1 credit = ₹10</p>
                             <div class="redeem-form">
                                 <input type="number" id="redeemAmount" placeholder="Enter credits to redeem" min="10" step="10">
                                 <button id="redeemBtn" class="redeem-btn">
@@ -355,8 +359,14 @@
                 const data = await response.json();
                 if (data.success) {
                     document.getElementById('creditAmount').textContent = data.data.credits.toLocaleString();
-                    return data.data;
-                }
+
+                    currentUser.credits = data.data.credits;
+                       currentUser.totalCreditsEarned = data.data.totalCreditsEarned;
+                     currentUser.totalCreditsSpent = data.data.totalCreditsSpent;
+                     currentUser.redeemableCredits = data.data.redeemableCredits;
+                     currentUser.moneyEarned = data.data.moneyEarned;
+                     return data.data;
+                 }
             } catch (error) {
                 console.error('Error fetching credits:', error);
             }
@@ -638,10 +648,16 @@
                 });
                 
                 const data = await response.json();
-                if (data.success) {
-                    showToast('Avatar updated successfully', 'success');
-                    setTimeout(() => location.reload(), 1500);
-                } else {
+               if (data.success) {
+                      showToast('Avatar updated successfully', 'success');
+
+                       const profileAvatar = document.getElementById('profileAvatar');
+                          if (profileAvatar && data.data && data.data.avatar) {
+                          profileAvatar.innerHTML = `<img src="${data.data.avatar}" alt="Profile Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+                        }
+
+                         setTimeout(() => location.reload(), 1000);
+                 } else {
                     showToast(data.message || 'Failed to update avatar', 'error');
                 }
             } catch (error) {
@@ -720,7 +736,10 @@
             document.getElementById('redeemableCredits').textContent = currentUser.redeemableCredits.toLocaleString();
             document.getElementById('moneyEarned').textContent = `₹${currentUser.moneyEarned.toLocaleString()}`;
             document.getElementById('balance').textContent = `₹${(currentUser.balance || 0).toLocaleString()}`;
-            document.getElementById('redeemableAmount').textContent = currentUser.redeemableCredits;
+            const redeemableAmountEl = document.getElementById('redeemableAmount');
+           if (redeemableAmountEl) {
+              redeemableAmountEl.textContent = currentUser.redeemableCredits;
+            }
         }
 
         // Escape HTML

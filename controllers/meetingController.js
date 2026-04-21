@@ -170,16 +170,15 @@ exports.endMeetingEarlyByStudent = async (req, res) => {
         student.totalCreditsSpent = Math.max(0, (student.totalCreditsSpent || 0) - session.creditsPerSession);
         await student.save();
 
-        await SessionRequest.findOneAndUpdate(
-            { session: session._id },
-            {
-                $set: {
-                    status: 'completed',
-                    teacherMessage: 'Session ended early by student',
-                    updatedAt: new Date()
-                }
-            }
-        );
+       await SessionRequest.findOneAndUpdate(
+    { session: session._id },
+    {
+        $set: {
+            teacherMessage: 'Session ended early by student',
+            updatedAt: new Date()
+        }
+    }
+);
 
         const io = req.app.get('io');
         if (io && roomIdToEmit) {

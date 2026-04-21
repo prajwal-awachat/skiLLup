@@ -7,19 +7,20 @@ const {
     addTeacherSkill,
     updateTeacherSkill,
     removeTeacherSkill,
-    
+
     // Profile Management
     getTeacherProfile,
     updateTeacherProfile,
-    
+
     // Trending Topics
     getTrendingTopics,
-    
+
     // Session Requests
     getIncomingRequests,
     acceptSessionRequest,
+    suggestAlternateSlotByTeacher,
     rejectSessionRequest,
-    
+
     // Session Management
     getUpcomingSessions,
     getOngoingSessions,
@@ -27,23 +28,21 @@ const {
     startSession,
     getSessionDetails,
     completeSession,
-    
-    // Chat Access Check
-    canChatWithStudent, 
+
+    // Chat
+    canChatWithStudent,
     teacherGetConversation,
     teacherSendMessage,
-    
+    deleteMessage,
+
     // Credits & Earnings
     getCreditsAndEarnings,
-    
-    
+
     // Level Features
     getLevelFeatures,
-    updateCreditRate,
-    deleteMessage
+    updateCreditRate
 } = require('../controllers/teacherController');
 
-// All routes require authentication
 router.use(protect);
 
 // Skill Management
@@ -62,6 +61,7 @@ router.get('/trending-topics', getTrendingTopics);
 // Session Requests
 router.get('/requests/incoming', getIncomingRequests);
 router.post('/requests/:requestId/accept', acceptSessionRequest);
+router.post('/requests/:requestId/suggest', suggestAlternateSlotByTeacher);
 router.post('/requests/:requestId/reject', rejectSessionRequest);
 
 // Session Management
@@ -72,7 +72,7 @@ router.post('/sessions/:sessionId/start', startSession);
 router.get('/sessions/:sessionId', getSessionDetails);
 router.post('/sessions/:sessionId/complete', completeSession);
 
-// Chat Routes
+// Chat
 router.get('/chat/check/:studentId', canChatWithStudent);
 router.get('/chat/conversation/:studentId', teacherGetConversation);
 router.post('/chat/message', teacherSendMessage);
@@ -80,8 +80,6 @@ router.delete('/chat/message/:messageId', deleteMessage);
 
 // Credits & Earnings
 router.get('/credits-earnings', getCreditsAndEarnings);
-
-
 
 // Level Features
 router.get('/level/features', getLevelFeatures);
