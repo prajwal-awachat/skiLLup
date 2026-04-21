@@ -2,6 +2,7 @@
 const GroupSession = require('../models/GroupSession');
 const User = require('../models/User');
 const Skill = require('../models/Skill');
+const UserSkill = require('../models/UserSkill');
 
 // Create group session (Teacher only, Level 5+)
 exports.createGroupSession = async (req, res) => {
@@ -36,14 +37,19 @@ exports.createGroupSession = async (req, res) => {
             });
         }
         
-        // Check if teacher teaches this skill
-        const teachesSkill = req.user.teachingSkills.includes(skillId);
-        if (!teachesSkill) {
-            return res.status(403).json({
-                success: false,
-                message: 'You are not authorized to teach this skill'
-            });
-        }
+       // Check if teacher teaches this skill
+const teachesSkill = await UserSkill.findOne({
+    user: req.user._id,
+    skill: skillId,
+    type: 'teach'
+});
+
+if (!teachesSkill) {
+    return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to teach this skill'
+    });
+}
         
         // Validate max students
         if (maxStudents < 2 || maxStudents > 50) {
@@ -253,8 +259,9 @@ exports.startGroupSession = async (req, res) => {
         
         // Notify all enrolled students
         const io = req.app.get('io');
-        groupSession.enrolledStudents.forEach(enrolled => {
-            io.to(`user_${enrolled.student._id}`).emit('group_session_started', {
+       groupSession.enrolledStudents.forEach(enrolled => {
+    const studentId = enrolled.student._id || enrolled.student;
+    io.to(`user_${studentId}`).emit('group_session_started', {
                 sessionId: groupSession._id,
                 sessionTitle: groupSession.title,
                 roomId: groupSession.roomId,
@@ -347,7 +354,8 @@ await groupSession.save();
         // Notify students
         const io = req.app.get('io');
         groupSession.enrolledStudents.forEach(enrolled => {
-            io.to(`user_${enrolled.student}`).emit('group_session_completed', {
+           const studentId = enrolled.student._id || enrolled.student;
+                io.to(`user_${studentId}`).emit('group_session_completed', {
                 sessionId: groupSession._id,
                 sessionTitle: groupSession.title
             });

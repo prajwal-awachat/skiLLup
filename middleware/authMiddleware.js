@@ -189,3 +189,5 @@ exports.optionalAuth = async (req, res, next) => {
     next();
 };
 
+exports.adminOnly = exports.isAdmin;
+

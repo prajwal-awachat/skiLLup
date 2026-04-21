@@ -23,7 +23,8 @@ const sessionSchema = new mongoose.Schema({
     },
     description: {
         type: String,
-        maxlength: 1000
+        maxlength: 1000,
+        default: ''
     },
     status: {
         type: String,
@@ -37,8 +38,7 @@ const sessionSchema = new mongoose.Schema({
     },
     maxStudents: {
         type: Number,
-        default: 1,
-        description: 'For group sessions, max participants'
+        default: 1
     },
     enrolledStudents: [{
         type: mongoose.Schema.Types.ObjectId,
@@ -50,9 +50,20 @@ const sessionSchema = new mongoose.Schema({
     },
     duration: {
         type: Number,
-        required: true,
-        description: 'Duration in minutes'
+        required: true
     },
+
+    scheduledStart: {
+        type: Date,
+        required: true,
+        index: true
+    },
+    scheduledEnd: {
+        type: Date,
+        required: true,
+        index: true
+    },
+
     scheduledDate: {
         type: Date,
         required: true
@@ -61,6 +72,13 @@ const sessionSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+
+    sourceRequest: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'SessionRequest',
+        default: null
+    },
+
     meetingLink: {
         type: String,
         default: ''
@@ -112,61 +130,55 @@ const sessionSchema = new mongoose.Schema({
         default: 0
     },
     sessionValidity: {
-    type: String,
-       enum: ['invalid', 'partial', 'valid'],
+        type: String,
+        enum: ['invalid', 'partial', 'valid'],
         default: 'invalid'
-     },
-    createdAt: {
-        type: Date,
-        default: Date.now
     },
-    updatedAt: {
-    type: Date,
-    default: Date.now
-},
-endedBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
-},
-endedByRole: {
-    type: String,
-    enum: ['teacher', 'student', 'system']
-},
-endedReason: {
-    type: String,
-    maxlength: 500,
-    default: ''
-},
-reminder20Sent: {
-    type: Boolean,
-    default: false
-},
-reminder35Sent: {
-    type: Boolean,
-    default: false
-},
-reminder45Sent: {
-    type: Boolean,
-    default: false
-},
-reminder55Sent: {
-    type: Boolean,
-    default: false
-},
-autoEnded: {
-    type: Boolean,
-    default: false
-},ratingGiven: {
-    type: Boolean,
-    default: false
-},
-ratingEligible: {
-    type: Boolean,
-    default: false
-}
+    endedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    endedByRole: {
+        type: String,
+        enum: ['teacher', 'student', 'system']
+    },
+    endedReason: {
+        type: String,
+        maxlength: 500,
+        default: ''
+    },
+    reminder20Sent: {
+        type: Boolean,
+        default: false
+    },
+    reminder35Sent: {
+        type: Boolean,
+        default: false
+    },
+    reminder45Sent: {
+        type: Boolean,
+        default: false
+    },
+    reminder55Sent: {
+        type: Boolean,
+        default: false
+    },
+    autoEnded: {
+        type: Boolean,
+        default: false
+    },
+    ratingGiven: {
+        type: Boolean,
+        default: false
+    },
+    ratingEligible: {
+        type: Boolean,
+        default: false
+    }
+}, {
+    timestamps: true
 });
 
-// Generate unique room ID and join code
 sessionSchema.pre('save', async function(next) {
     if (this.isNew && !this.roomId) {
         this.roomId = `room_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -175,20 +187,18 @@ sessionSchema.pre('save', async function(next) {
     next();
 });
 
-// Check if session is full
 sessionSchema.methods.isFull = function() {
-    if (this.sessionType === 'one-on-one') {
-        return !!this.student;
+    if (this.sessionType === 'group') {
+        return this.enrolledStudents.length >= this.maxStudents;
     }
-    return this.enrolledStudents.length >= this.maxStudents;
+    return false;
 };
 
-// Add student to session
 sessionSchema.methods.addStudent = async function(studentId) {
     if (this.isFull()) {
         throw new Error('Session is full');
     }
-    
+
     if (!this.enrolledStudents.includes(studentId)) {
         this.enrolledStudents.push(studentId);
         await this.save();
@@ -199,13 +209,14 @@ sessionSchema.methods.closeSession = async function() {
     this.status = 'completed';
     this.isCompleted = true;
     this.updatedAt = new Date();
-
-    // Remove room data completely
     this.roomId = undefined;
     this.joinCode = undefined;
     this.meetingLink = '';
-
     await this.save();
     return this;
 };
+
+sessionSchema.index({ teacher: 1, scheduledStart: 1, scheduledEnd: 1, status: 1 });
+sessionSchema.index({ student: 1, scheduledStart: 1, scheduledEnd: 1, status: 1 });
+
 module.exports = mongoose.model('Session', sessionSchema);
