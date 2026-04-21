@@ -5,6 +5,13 @@ const SessionRequest = require('../models/SessionRequest');
 const Session = require('../models/Session');
 const Transaction = require('../models/Transaction');
 const { Message, Conversation } = require('../models/Message');
+const {
+    calculateEndTime,
+    validateProposedSlot,
+    expireRequestIfNeeded,
+    finalizeSessionRequest,
+    isSameCalendarDay
+} = require('../utils/schedulingHelper');
 
 // ==================== SKILL MANAGEMENT ====================
 
@@ -12,9 +19,9 @@ exports.getTeacherSkills = async (req, res) => {
     try {
         const userSkills = await UserSkill.find({
             user: req.user._id,
-            isTeaching: true
+            type: 'teach'
         }).populate('skill');
-        
+
         res.json({
             success: true,
             data: userSkills
@@ -31,77 +38,58 @@ exports.getTeacherSkills = async (req, res) => {
 exports.addTeacherSkill = async (req, res) => {
     try {
         const { skillName, proficiencyLevel, yearsOfExperience, hourlyRate } = req.body;
-        
-        // Check if skill name is provided
+
         if (!skillName || skillName.trim() === '') {
             return res.status(400).json({
                 success: false,
                 message: 'Skill name is required'
             });
         }
-        
-        // Find or create skill (case insensitive)
-        let skill = await Skill.findOne({ 
-            name: { $regex: new RegExp(`^${skillName.trim()}$`, 'i') } 
+
+        let skill = await Skill.findOne({
+            name: { $regex: new RegExp(`^${skillName.trim()}$`, 'i') }
         });
-        
+
         if (!skill) {
-            // Create new skill if doesn't exist
             skill = await Skill.create({
                 name: skillName.trim(),
                 category: 'Other',
-                description: `Teaching ${skillName}`,
+                description: `Teaching ${skillName.trim()}`,
                 isActive: true,
                 totalTeachers: 0,
-                totalStudents: 0,
+                totalLearners: 0,
                 popularity: 0
             });
         }
-        
-        const skillId = skill._id;
-        
-        // Check if already teaching this skill
+
         const existingSkill = await UserSkill.findOne({
             user: req.user._id,
-            skill: skillId,
-            isTeaching: true
+            skill: skill._id,
+            type: 'teach'
         });
-        
+
         if (existingSkill) {
             return res.status(400).json({
                 success: false,
                 message: 'You are already teaching this skill'
             });
         }
-        
-        // Create user skill
+
         const userSkill = await UserSkill.create({
             user: req.user._id,
-            skill: skillId,
+            skill: skill._id,
+            type: 'teach',
             proficiencyLevel: proficiencyLevel || 'intermediate',
             yearsOfExperience: yearsOfExperience || 0,
             hourlyRate: hourlyRate || req.user.getCreditRate(),
-            isTeaching: true,
             isAvailable: true
         });
-        
-        // Add to user's teachingSkills array (with safety check)
-        if (req.user.teachingSkills) {
-            if (!req.user.teachingSkills.includes(skillId)) {
-                req.user.teachingSkills.push(skillId);
-                await req.user.save();
-            }
-        } else {
-            req.user.teachingSkills = [skillId];
-            await req.user.save();
-        }
-        
-        // Update skill total teachers count
+
         skill.totalTeachers = (skill.totalTeachers || 0) + 1;
         await skill.save();
-        
+
         const populatedSkill = await UserSkill.findById(userSkill._id).populate('skill');
-        
+
         res.json({
             success: true,
             data: populatedSkill,
@@ -121,11 +109,11 @@ exports.updateTeacherSkill = async (req, res) => {
         const { skillId } = req.params;
         const { proficiencyLevel, yearsOfExperience, hourlyRate, isAvailable } = req.body;
         
-        const userSkill = await UserSkill.findOne({
-            user: req.user._id,
-            skill: skillId,
-            isTeaching: true
-        });
+       const userSkill = await UserSkill.findOne({
+    user: req.user._id,
+    skill: skillId,
+    type: 'teach'
+});
         
         if (!userSkill) {
             return res.status(404).json({
@@ -168,31 +156,24 @@ exports.updateTeacherSkill = async (req, res) => {
 exports.removeTeacherSkill = async (req, res) => {
     try {
         const { skillId } = req.params;
-        
+
         const userSkill = await UserSkill.findOneAndDelete({
             user: req.user._id,
             skill: skillId,
-            isTeaching: true
+            type: 'teach'
         });
-        
+
         if (!userSkill) {
             return res.status(404).json({
                 success: false,
                 message: 'Skill not found'
             });
         }
-        
-        // Remove from user's teachingSkills array
-        req.user.teachingSkills = req.user.teachingSkills.filter(
-            id => id.toString() !== skillId
-        );
-        await req.user.save();
-        
-        // Update skill total teachers count
+
         await Skill.findByIdAndUpdate(skillId, {
             $inc: { totalTeachers: -1 }
         });
-        
+
         res.json({
             success: true,
             message: 'Skill removed successfully'
@@ -210,14 +191,13 @@ exports.removeTeacherSkill = async (req, res) => {
 
 exports.getTeacherProfile = async (req, res) => {
     try {
-        const user = await User.findById(req.user._id)
-            .select('-password')
-            .populate('teachingSkills');
+       const user = await User.findById(req.user._id)
+    .select('-password');
 
-        const teachingSkills = await UserSkill.find({
-            user: req.user._id,
-            isTeaching: true
-        }).populate('skill');
+       const teachingSkills = await UserSkill.find({
+    user: req.user._id,
+    type: 'teach'
+}).populate('skill');
 
        const completedSessions = await Session.find({
     teacher: req.user._id,
@@ -275,14 +255,13 @@ exports.updateTeacherProfile = async (req, res) => {
     try {
         const { bio, name, avatar, customCreditRate } = req.body;
         
-        if (bio) req.user.bio = bio;
-        if (name) req.user.name = name;
-        if (avatar) req.user.avatar = avatar;
-        
-        // Update credit rate for level 4+
-        if (customCreditRate && req.user.level >= 4) {
-            req.user.customCreditRate = customCreditRate;
-        }
+       if (bio !== undefined) req.user.bio = bio;
+if (name !== undefined) req.user.name = name;
+if (avatar !== undefined) req.user.avatar = avatar;
+
+if (customCreditRate !== undefined && req.user.level >= 4) {
+    req.user.customCreditRate = customCreditRate;
+}
         
         await req.user.save();
         
@@ -344,28 +323,40 @@ exports.getIncomingRequests = async (req, res) => {
     try {
         const { status } = req.query;
         const query = { teacher: req.user._id };
-        
+
         if (status && status !== 'all') {
             query.status = status;
         }
-        
+
         const requests = await SessionRequest.find(query)
-           .populate('student', 'name email avatar rating')
-             .populate('skill', 'name category')
-            .populate('session', 'status')
-              .sort({ createdAt: -1 });
-        
+            .populate('student', 'name email avatar rating')
+            .populate('skill', 'name category')
+            .populate('session', 'status scheduledStart scheduledEnd')
+            .sort({ createdAt: -1 });
+
+        for (const request of requests) {
+            await expireRequestIfNeeded(request);
+        }
+
+        const refreshedRequests = await SessionRequest.find(query)
+            .populate('student', 'name email avatar rating')
+            .populate('skill', 'name category')
+            .populate('session', 'status scheduledStart scheduledEnd')
+            .sort({ createdAt: -1 });
+
         const counts = {
             pending: await SessionRequest.countDocuments({ teacher: req.user._id, status: 'pending' }),
-            accepted: await SessionRequest.countDocuments({ teacher: req.user._id, status: 'accepted' }),
+            negotiating: await SessionRequest.countDocuments({ teacher: req.user._id, status: 'negotiating' }),
+            confirmed: await SessionRequest.countDocuments({ teacher: req.user._id, status: 'confirmed' }),
             rejected: await SessionRequest.countDocuments({ teacher: req.user._id, status: 'rejected' }),
-            total: requests.length
+            expired: await SessionRequest.countDocuments({ teacher: req.user._id, status: 'expired' }),
+            total: refreshedRequests.length
         };
-        
+
         res.json({
             success: true,
             data: {
-                requests,
+                requests: refreshedRequests,
                 counts
             }
         });
@@ -381,108 +372,45 @@ exports.getIncomingRequests = async (req, res) => {
 exports.acceptSessionRequest = async (req, res) => {
     try {
         const { requestId } = req.params;
-        const { scheduledDate, scheduledTime } = req.body; // Remove meetingLink
-        
+
         const sessionRequest = await SessionRequest.findById(requestId);
-        
+
         if (!sessionRequest) {
             return res.status(404).json({
                 success: false,
                 message: 'Request not found'
             });
         }
-        
+
         if (sessionRequest.teacher.toString() !== req.user._id.toString()) {
             return res.status(403).json({
                 success: false,
                 message: 'Not authorized'
             });
         }
-        
-        if (sessionRequest.status !== 'pending') {
+
+        if (!['pending', 'negotiating'].includes(sessionRequest.status)) {
             return res.status(400).json({
                 success: false,
-                message: 'Request already processed'
+                message: 'Request is not open for acceptance'
             });
         }
-        
-        // Get credit rate based on teacher level
-        let creditsPerSession = sessionRequest.proposedCredits;
-        
-        if (req.user.level === 1) {
-            creditsPerSession = 1;
-        } else if (req.user.level === 2 || req.user.level === 3) {
-            creditsPerSession = req.user.getCreditRate();
-        } else if (req.user.level >= 4) {
-            creditsPerSession = req.user.customCreditRate || creditsPerSession;
-        }
-        
-        // Check if student has enough credits
-        const student = await User.findById(sessionRequest.student);
-        if (student.credits < creditsPerSession) {
-            return res.status(400).json({
-                success: false,
-                message: 'Student does not have enough credits'
-            });
-        }
-        
-        // Use provided date/time or fall back to student's preferred values
-        const finalDate = scheduledDate || sessionRequest.preferredDate;
-        const finalTime = scheduledTime || sessionRequest.preferredTime;
-        
-        // Create session (without meetingLink - it will be generated when session starts)
-      const session = await Session.create({
-    teacher: req.user._id,
-    student: sessionRequest.student,
-    skill: sessionRequest.skill,
-    title: sessionRequest.title,
-    description: sessionRequest.description,
-    creditsPerSession: creditsPerSession,
-    duration: sessionRequest.duration,
-    scheduledDate: finalDate,
-    scheduledTime: finalTime,
-    meetingLink: '',
-    status: 'confirmed'
-});
-        
-        // Deduct credits from student
-        await student.deductCredits(creditsPerSession, session._id);
-        
-        // Update session request
-        sessionRequest.status = 'accepted';
-           sessionRequest.teacherMessage = 'Session accepted';
-          sessionRequest.session = session._id;
-          await sessionRequest.save();
-        
-        // Create conversation for chat
-        let conversation = await Conversation.findOne({
-            participants: { $all: [req.user._id, sessionRequest.student] }
-        });
-        
-        if (!conversation) {
-            conversation = await Conversation.create({
-                participants: [req.user._id, sessionRequest.student],
-                lastMessageAt: new Date()
-            });
-        }
-        
-        // Notify via socket
+
+        const session = await finalizeSessionRequest(sessionRequest);
+
         const io = req.app.get('io');
-        io.to(`user_${sessionRequest.student}`).emit('session_accepted', {
-            sessionId: session._id,
-            requestId: sessionRequest._id,
-            teacherName: req.user.name,
-            scheduledDate: session.scheduledDate,
-            scheduledTime: session.scheduledTime
-        });
-        
+        if (io) {
+            io.to(`user_${sessionRequest.student}`).emit('session_confirmed', {
+                sessionId: session._id,
+                requestId: sessionRequest._id,
+                teacherName: req.user.name
+            });
+        }
+
         res.json({
             success: true,
-            data: {
-                session,
-                conversationId: conversation._id
-            },
-            message: 'Session accepted successfully'
+            data: { session },
+            message: 'Session confirmed successfully'
         });
     } catch (error) {
         console.error('Accept session request error:', error);
@@ -493,46 +421,174 @@ exports.acceptSessionRequest = async (req, res) => {
     }
 };
 
-exports.rejectSessionRequest = async (req, res) => {
+exports.suggestAlternateSlotByTeacher = async (req, res) => {
     try {
         const { requestId } = req.params;
-        const { reason } = req.body;
-        
+        const { proposedDate, proposedStartTime, duration, message } = req.body;
+
         const sessionRequest = await SessionRequest.findById(requestId);
-        
+
         if (!sessionRequest) {
             return res.status(404).json({
                 success: false,
                 message: 'Request not found'
             });
         }
-        
+
         if (sessionRequest.teacher.toString() !== req.user._id.toString()) {
             return res.status(403).json({
                 success: false,
                 message: 'Not authorized'
             });
         }
-        
-        if (sessionRequest.status !== 'pending') {
+
+        if (!['pending', 'negotiating'].includes(sessionRequest.status)) {
             return res.status(400).json({
                 success: false,
-                message: 'Request already processed'
+                message: 'Request is not open for negotiation'
             });
         }
-        
+
+        const expiryCheck = await expireRequestIfNeeded(sessionRequest);
+        if (expiryCheck.expired) {
+            return res.status(400).json({
+                success: false,
+                message: 'This request has expired'
+            });
+        }
+
+        const durationMinutes = 60;
+        const proposedEndTime = calculateEndTime(proposedStartTime, durationMinutes);
+
+        if (!proposedEndTime) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid proposed time'
+            });
+        }
+
+       const sameDay = isSameCalendarDay(sessionRequest.currentProposedDate, proposedDate);
+const nextCycleCount = sameDay ? sessionRequest.cycleCountForDay + 1 : 0;
+const lockedForDay = sameDay && nextCycleCount >= 2;
+
+const draftRequestForValidation = {
+    negotiationLockedForDay: lockedForDay,
+    allowedSuggestionMode: lockedForDay ? 'availability_only' : 'flexible'
+};
+
+const validation = await validateProposedSlot({
+    teacherId: sessionRequest.teacher,
+    studentId: sessionRequest.student,
+    date: proposedDate,
+    startTime: proposedStartTime,
+    endTime: proposedEndTime,
+    duration: durationMinutes,
+    excludeRequestId: sessionRequest._id,
+    request: draftRequestForValidation
+});
+
+        if (!validation.ok) {
+            return res.status(400).json({
+                success: false,
+                message: validation.message
+            });
+        }
+
+        sessionRequest.currentProposedDate = new Date(proposedDate);
+        sessionRequest.currentStartTime = proposedStartTime;
+        sessionRequest.currentEndTime = proposedEndTime;
+        sessionRequest.duration = durationMinutes;
+        sessionRequest.status = 'negotiating';
+        sessionRequest.proposedBy = req.user._id;
+        sessionRequest.lastActionBy = req.user._id;
+        sessionRequest.teacherMessage = message || '';
+        sessionRequest.lockExpiresAt = sessionRequest.expiresAt;
+
+        sessionRequest.slotHistory.push({
+            proposedBy: req.user._id,
+            date: new Date(proposedDate),
+            startTime: proposedStartTime,
+            endTime: proposedEndTime,
+            duration: durationMinutes,
+            message: message || '',
+            isWithinAvailability: validation.withinBothAvailability
+        });
+
+        if (!sameDay) {
+    sessionRequest.cycleCountForDay = 0;
+    sessionRequest.negotiationLockedForDay = false;
+}
+sessionRequest.cycleCountForDay = nextCycleCount;
+sessionRequest.negotiationLockedForDay = lockedForDay;
+sessionRequest.allowedSuggestionMode = lockedForDay ? 'availability_only' : 'flexible';
+
+        await sessionRequest.save();
+
+        const io = req.app.get('io');
+        if (io) {
+            io.to(`user_${sessionRequest.student}`).emit('session_request_updated', {
+                requestId: sessionRequest._id,
+                updatedBy: 'teacher'
+            });
+        }
+
+        res.json({
+            success: true,
+            message: 'Alternate slot suggested successfully',
+            data: sessionRequest
+        });
+    } catch (error) {
+        console.error('Suggest alternate slot by teacher error:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to suggest alternate slot'
+        });
+    }
+};
+
+exports.rejectSessionRequest = async (req, res) => {
+    try {
+        const { requestId } = req.params;
+        const { reason } = req.body;
+
+        const sessionRequest = await SessionRequest.findById(requestId);
+
+        if (!sessionRequest) {
+            return res.status(404).json({
+                success: false,
+                message: 'Request not found'
+            });
+        }
+
+        if (sessionRequest.teacher.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized'
+            });
+        }
+
+        if (!['pending', 'negotiating'].includes(sessionRequest.status)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Request already closed'
+            });
+        }
+
         sessionRequest.status = 'rejected';
         sessionRequest.teacherMessage = reason || 'Request rejected';
+        sessionRequest.lastActionBy = req.user._id;
+        sessionRequest.lockExpiresAt = null;
         await sessionRequest.save();
-        
-        // Notify student via socket
+
         const io = req.app.get('io');
-        io.to(`user_${sessionRequest.student}`).emit('session_rejected', {
-            requestId: sessionRequest._id,
-            teacherName: req.user.name,
-            reason: sessionRequest.teacherMessage
-        });
-        
+        if (io) {
+            io.to(`user_${sessionRequest.student}`).emit('session_rejected', {
+                requestId: sessionRequest._id,
+                teacherName: req.user.name,
+                reason: sessionRequest.teacherMessage
+            });
+        }
+
         res.json({
             success: true,
             message: 'Request rejected'
@@ -550,17 +606,16 @@ exports.rejectSessionRequest = async (req, res) => {
 
 exports.getUpcomingSessions = async (req, res) => {
     try {
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
+        const now = new Date();
 
         const sessions = await Session.find({
             teacher: req.user._id,
-            scheduledDate: { $gte: todayStart },
+            scheduledStart: { $gte: now },
             status: { $in: ['confirmed', 'ongoing'] }
         })
             .populate('student', 'name email avatar')
             .populate('skill', 'name')
-            .sort({ scheduledDate: 1, scheduledTime: 1 });
+            .sort({ scheduledStart: 1 });
 
         res.json({
             success: true,
@@ -823,16 +878,15 @@ exports.completeSession = async (req, res) => {
 
         await session.save();
 
-        await SessionRequest.findOneAndUpdate(
-            { session: session._id },
-            {
-                $set: {
-                    status: 'completed',
-                    updatedAt: new Date(),
-                    teacherMessage: 'Session completed'
-                }
-            }
-        );
+     await SessionRequest.findOneAndUpdate(
+    { session: session._id },
+    {
+        $set: {
+            updatedAt: new Date(),
+            teacherMessage: 'Session completed'
+        }
+    }
+);
 
         const io = req.app.get('io');
         if (io) {
@@ -876,11 +930,11 @@ exports.canChatWithStudent = async (req, res) => {
             });
         }
 
-        const acceptedRequest = await SessionRequest.findOne({
-            teacher: req.user._id,
-            student: studentId,
-            status: 'accepted'
-        });
+       const acceptedRequest = await SessionRequest.findOne({
+    teacher: req.user._id,
+    student: studentId,
+    status: 'confirmed'
+});
 
         const activeSession = await Session.findOne({
             teacher: req.user._id,
@@ -891,7 +945,7 @@ exports.canChatWithStudent = async (req, res) => {
         const canChat = !!(acceptedRequest || activeSession);
 
         let message = 'No active session found';
-        if (acceptedRequest) message = 'Chat access granted (accepted request)';
+        if (acceptedRequest) message = 'Chat access granted (confirmed request)';
         else if (activeSession) message = 'Chat access granted (active session)';
 
         res.json({
@@ -900,7 +954,7 @@ exports.canChatWithStudent = async (req, res) => {
                 canChat,
                 message: canChat
                     ? message
-                    : 'Chat is available only after acceptance and before session completion'
+                    : 'Chat is available only after request confirmation and before session completion'
             }
         });
     } catch (error) {
@@ -927,11 +981,11 @@ exports.teacherGetConversation = async (req, res) => {
             });
         }
 
-        const acceptedRequest = await SessionRequest.findOne({
-            teacher: req.user._id,
-            student: studentId,
-            status: 'accepted'
-        });
+       const acceptedRequest = await SessionRequest.findOne({
+    teacher: req.user._id,
+    student: studentId,
+    status: 'confirmed'
+});
 
         const activeSession = await Session.findOne({
             teacher: req.user._id,
@@ -942,7 +996,7 @@ exports.teacherGetConversation = async (req, res) => {
         if (!acceptedRequest && !activeSession) {
             return res.status(403).json({
                 success: false,
-                message: 'Chat is available only after acceptance and before session completion'
+                message: 'Chat is available only after request confirmation and before session completion'
             });
         }
 
@@ -1013,11 +1067,11 @@ exports.teacherSendMessage = async (req, res) => {
         }
         
         // Verify chat access
-        const acceptedRequest = await SessionRequest.findOne({
-            teacher: req.user._id,
-            student: receiverId,
-            status: 'accepted'
-        });
+       const acceptedRequest = await SessionRequest.findOne({
+    teacher: req.user._id,
+    student: receiverId,
+    status: 'confirmed'
+});
         
         const activeSession = await Session.findOne({
             teacher: req.user._id,
@@ -1028,7 +1082,7 @@ exports.teacherSendMessage = async (req, res) => {
        if (!acceptedRequest && !activeSession) {
     return res.status(403).json({
         success: false,
-        message: 'Chat is available only after acceptance and before session completion'
+        message: 'Chat is available only after request confirmation and before session completion'
     });
 }
         
@@ -1101,10 +1155,9 @@ exports.getCreditsAndEarnings = async (req, res) => {
             status: 'completed'
         });
         
-        const totalCreditsEarned = completedSessions.reduce(
-            (sum, session) => sum + session.creditsPerSession, 0
-        );
-        
+       const totalCreditsEarned = completedSessions.reduce(
+    (sum, session) => sum + (session.sessionValidity === 'valid' ? session.creditsPerSession : 0), 0
+);
         // Get transaction history
         const transactions = await Transaction.find({
             user: req.user._id
@@ -1220,9 +1273,9 @@ exports.updateCreditRate = async (req, res) => {
         
         // Update all teaching skills hourly rate
         await UserSkill.updateMany(
-            { user: req.user._id, isTeaching: true },
-            { hourlyRate: creditRate }
-        );
+    { user: req.user._id, type: 'teach' },
+    { hourlyRate: creditRate }
+);
         
         res.json({
             success: true,
