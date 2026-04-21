@@ -20,25 +20,48 @@ const {
 exports.searchTeachers = async (req, res, next) => {
     try {
         const { q, page = 1, limit = 20 } = req.query;
-        const searchTerm = q || '';
+        const searchTerm = (q || '').trim();
 
         let teacherIds = [];
 
-        if (searchTerm.trim() !== '') {
+        if (searchTerm !== '') {
+            // 1) Search matching skills
             const matchingSkills = await Skill.find({
                 name: { $regex: searchTerm, $options: 'i' }
             }).select('_id');
 
             const skillIds = matchingSkills.map(s => s._id);
 
-            const userSkills = await UserSkill.find({
+            const userSkillsBySkill = await UserSkill.find({
                 type: 'teach',
                 skill: { $in: skillIds }
-            });
+            }).select('user');
 
-            teacherIds = [...new Set(userSkills.map(us => us.user.toString()))];
+            const teacherIdsFromSkills = userSkillsBySkill.map(us => us.user.toString());
+
+            // 2) Search matching teacher names
+            const matchingUsers = await User.find({
+                name: { $regex: searchTerm, $options: 'i' },
+                isActive: true
+            }).select('_id');
+
+            const teacherUserIds = matchingUsers.map(u => u._id);
+
+            const userSkillsByName = await UserSkill.find({
+                type: 'teach',
+                user: { $in: teacherUserIds }
+            }).select('user');
+
+            const teacherIdsFromNames = userSkillsByName.map(us => us.user.toString());
+
+            // 3) Merge both
+            teacherIds = [...new Set([...teacherIdsFromSkills, ...teacherIdsFromNames])];
         } else {
-            const userSkills = await UserSkill.find({ type: 'teach' });
+            const userSkills = await UserSkill.find({
+                type: 'teach',
+                isAvailable: true
+            }).select('user');
+
             teacherIds = [...new Set(userSkills.map(us => us.user.toString()))];
         }
 
@@ -48,16 +71,16 @@ exports.searchTeachers = async (req, res, next) => {
             _id: { $in: teacherIds, $ne: req.user.id },
             isActive: true
         })
-        .select('name email avatar bio rating totalReviews studentsCount level customCreditRate')
-        .skip(skip)
-        .limit(parseInt(limit))
-        .sort({ rating: -1, totalReviews: -1 });
+            .select('name email avatar bio rating totalReviews studentsCount level customCreditRate')
+            .skip(skip)
+            .limit(parseInt(limit))
+            .sort({ rating: -1, totalReviews: -1 });
 
-       const existingRequests = await SessionRequest.find({
-    student: req.user.id,
-    teacher: { $in: teachers.map(t => t._id) },
-    status: { $in: ['pending', 'negotiating', 'confirmed', 'rejected'] }
-});
+        const existingRequests = await SessionRequest.find({
+            student: req.user.id,
+            teacher: { $in: teachers.map(t => t._id) },
+            status: { $in: ['pending', 'negotiating', 'confirmed', 'rejected'] }
+        });
 
         const requestMap = {};
         existingRequests.forEach(r => {
@@ -68,7 +91,8 @@ exports.searchTeachers = async (req, res, next) => {
             teachers.map(async (teacher) => {
                 const skills = await UserSkill.find({
                     user: teacher._id,
-                    type: 'teach'
+                    type: 'teach',
+                    isAvailable: true
                 }).populate('skill');
 
                 const teacherObj = teacher.toObject();
@@ -667,7 +691,7 @@ exports.checkChatAccess = async (req, res, next) => {
         }
 const acceptedRequest = await SessionRequest.findOne({
     student: req.user.id,
-    teacher: receiverId,
+    teacher: teacherId,
     status: { $in: ['confirmed'] }
 });
 
@@ -781,9 +805,9 @@ exports.sendMessage = async (req, res, next) => {
         }
         
         // Verify chat access
-     const acceptedRequest = await SessionRequest.findOne({
+    const acceptedRequest = await SessionRequest.findOne({
     student: req.user.id,
-    teacher: teacherId,
+    teacher: receiverId,
     status: { $in: ['confirmed'] }
 });
 
@@ -913,18 +937,16 @@ exports.getUpcomingSessions = async (req, res, next) => {
                 { student: req.user.id },
                 { enrolledStudents: req.user.id }
             ],
-            status: { $in: ['confirmed', 'ongoing'] },
-            scheduledDate: { $gte: new Date() }
+            status: { $in: ['confirmed', 'ongoing'] }
         })
-        .populate('teacher', 'name email avatar rating')
-        .populate('skill', 'name category')
-        .sort({ scheduledDate: 1 });
-        
+            .populate('teacher', 'name email avatar rating')
+            .populate('skill', 'name category')
+            .sort({ scheduledStart: 1 });
+
         res.status(200).json({
             success: true,
             data: sessions
         });
-        
     } catch (error) {
         next(error);
     }

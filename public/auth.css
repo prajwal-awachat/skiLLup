@@ -1,3 +1,5 @@
+/* auth.css - Authentication pages with Premium Dark/Luxury Glassmorphism Theme */
+
 * {
     margin: 0;
     padding: 0;
@@ -6,12 +8,37 @@
 
 body {
     font-family: 'Inter', sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #0a0f1c 0%, #05070d 100%);
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 20px;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Animated background effect */
+body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 20% 50%, rgba(250, 204, 21, 0.05) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+body::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 80% 80%, rgba(250, 204, 21, 0.03) 0%, transparent 60%);
+    pointer-events: none;
 }
 
 .auth-container {
@@ -19,6 +46,8 @@ body {
     max-width: 500px;
     margin: 0 auto;
     animation: fadeIn 0.5s ease-in-out;
+    position: relative;
+    z-index: 1;
 }
 
 @keyframes fadeIn {
@@ -33,11 +62,13 @@ body {
 }
 
 .auth-card {
-    background: white;
-    border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(10px);
+    border-radius: 28px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
     padding: 40px;
-    transition: transform 0.3s ease;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(250, 204, 21, 0.15);
 }
 
 .register-card {
@@ -46,6 +77,8 @@ body {
 
 .auth-card:hover {
     transform: translateY(-5px);
+    border-color: rgba(250, 204, 21, 0.3);
+    box-shadow: 0 25px 50px rgba(250, 204, 21, 0.1);
 }
 
 .auth-header {
@@ -63,35 +96,45 @@ body {
 
 .logo i {
     font-size: 32px;
-    color: #667eea;
+    color: #facc15;
 }
 
 .logo h1 {
     font-size: 24px;
-    color: #333;
-    font-weight: 700;
+    background: linear-gradient(135deg, #ffffff 0%, #facc15 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    font-weight: 800;
+    letter-spacing: -0.02em;
 }
 
 .auth-header h2 {
     font-size: 28px;
-    color: #333;
+    background: linear-gradient(135deg, #ffffff 0%, #facc15 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
     margin-bottom: 10px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
 }
 
 .auth-header p {
-    color: #666;
+    color: #94a3b8;
     font-size: 14px;
 }
 
 .alert {
     padding: 12px 16px;
-    border-radius: 10px;
+    border-radius: 16px;
     margin-bottom: 20px;
     display: flex;
     align-items: center;
     gap: 10px;
     font-size: 14px;
     animation: slideIn 0.3s ease;
+    backdrop-filter: blur(5px);
 }
 
 @keyframes slideIn {
@@ -106,15 +149,16 @@ body {
 }
 
 .alert-error {
-    background-color: #fee;
-    color: #c33;
-    border-left: 4px solid #c33;
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border-left: 4px solid #ef4444;
+    backdrop-filter: blur(5px);
 }
 
 .alert-success {
-    background-color: #efe;
-    color: #3c3;
-    border-left: 4px solid #3c3;
+    background: rgba(20, 184, 166, 0.15);
+    color: #14b8a6;
+    border-left: 4px solid #14b8a6;
 }
 
 .alert i {
@@ -142,29 +186,36 @@ body {
 .form-group label {
     font-size: 14px;
     font-weight: 600;
-    color: #333;
+    color: #e2e8f0;
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
 .form-group label i {
-    color: #667eea;
+    color: #facc15;
+    width: 18px;
 }
 
 .form-group input {
     padding: 12px 16px;
-    border: 2px solid #e0e0e0;
-    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(250, 204, 21, 0.2);
+    border-radius: 14px;
     font-size: 14px;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     font-family: 'Inter', sans-serif;
+    color: #ffffff;
+}
+
+.form-group input::placeholder {
+    color: #64748b;
 }
 
 .form-group input:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #facc15;
+    box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.1);
 }
 
 .password-input-wrapper {
@@ -184,12 +235,13 @@ body {
     background: none;
     border: none;
     cursor: pointer;
-    color: #999;
-    transition: color 0.3s ease;
+    color: #64748b;
+    transition: all 0.2s ease;
+    font-size: 16px;
 }
 
 .toggle-password:hover {
-    color: #667eea;
+    color: #facc15;
 }
 
 .password-requirements {
@@ -197,25 +249,28 @@ body {
 }
 
 .password-requirements small {
-    color: #999;
+    color: #64748b;
     font-size: 12px;
 }
 
 .file-input {
     padding: 10px;
-    border: 2px dashed #e0e0e0;
-    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px dashed rgba(250, 204, 21, 0.3);
+    border-radius: 14px;
     cursor: pointer;
+    color: #94a3b8;
+    transition: all 0.2s ease;
 }
 
 .file-input:hover {
-    border-color: #667eea;
-    background-color: #f8f9ff;
+    border-color: #facc15;
+    background: rgba(250, 204, 21, 0.05);
 }
 
 .file-hint {
     font-size: 12px;
-    color: #999;
+    color: #64748b;
     margin-top: 5px;
 }
 
@@ -232,34 +287,35 @@ body {
     gap: 8px;
     cursor: pointer;
     font-size: 14px;
-    color: #666;
+    color: #94a3b8;
 }
 
 .checkbox-label input[type="checkbox"] {
     width: auto;
     cursor: pointer;
+    accent-color: #facc15;
 }
 
 .forgot-link {
     font-size: 14px;
-    color: #667eea;
+    color: #facc15;
     text-decoration: none;
-    transition: color 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .forgot-link:hover {
-    color: #764ba2;
+    color: #ffcc00;
     text-decoration: underline;
 }
 
 .btn-auth {
     padding: 14px;
     border: none;
-    border-radius: 10px;
+    border-radius: 40px;
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -268,70 +324,114 @@ body {
 }
 
 .btn-login {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: linear-gradient(135deg, #facc15, #ffcc00);
+    color: #0a0f1c;
 }
 
 .btn-login:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 5px 20px rgba(250, 204, 21, 0.4);
 }
 
 .btn-register {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-    color: white;
+    background: linear-gradient(135deg, #facc15, #ffcc00);
+    color: #0a0f1c;
 }
 
 .btn-register:hover {
     transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(245, 87, 108, 0.4);
+    box-shadow: 0 5px 20px rgba(250, 204, 21, 0.4);
 }
 
 .auth-footer {
     text-align: center;
     margin-top: 30px;
     padding-top: 20px;
-    border-top: 1px solid #e0e0e0;
+    border-top: 1px solid rgba(250, 204, 21, 0.15);
 }
 
 .auth-footer p {
     font-size: 14px;
-    color: #666;
+    color: #94a3b8;
 }
 
 .auth-footer a {
-    color: #667eea;
+    color: #facc15;
     text-decoration: none;
     font-weight: 600;
+    transition: all 0.2s ease;
 }
 
 .auth-footer a:hover {
+    color: #ffcc00;
     text-decoration: underline;
 }
 
 .demo-credentials {
     margin-top: 20px;
     padding: 15px;
-    background-color: #f8f9ff;
-    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 16px;
     font-size: 12px;
     text-align: center;
+    border: 1px solid rgba(250, 204, 21, 0.1);
 }
 
 .demo-credentials p {
     margin: 5px 0;
-    color: #666;
+    color: #94a3b8;
 }
 
 .demo-credentials p:first-child {
     font-weight: 600;
-    color: #333;
+    color: #facc15;
+}
+
+.demo-credentials strong {
+    color: #ffffff;
 }
 
 .error-message {
-    color: #c33;
+    color: #f87171;
     font-size: 12px;
     margin-top: 5px;
+}
+
+/* Custom input number spinners removal */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type=number] {
+    -moz-appearance: textfield;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(250, 204, 21, 0.3);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(250, 204, 21, 0.5);
+}
+
+/* Focus visible outline for accessibility */
+:focus-visible {
+    outline: 2px solid #facc15;
+    outline-offset: 2px;
 }
 
 /* Responsive Design */
@@ -364,4 +464,72 @@ body {
     .auth-card {
         padding: 20px;
     }
+    
+    .auth-container {
+        max-width: 100%;
+    }
+    
+    .btn-auth {
+        padding: 12px;
+        font-size: 14px;
+    }
+    
+    .logo i {
+        font-size: 28px;
+    }
+    
+    .logo h1 {
+        font-size: 18px;
+    }
+    
+    .auth-header h2 {
+        font-size: 20px;
+    }
+}
+
+/* Utility Classes */
+.glow-text {
+    color: #facc15;
+    text-shadow: 0 0 10px rgba(250, 204, 21, 0.3);
+}
+
+.gradient-border {
+    border-image: linear-gradient(135deg, #facc15, #ffcc00) 1;
+}
+
+.glass-effect {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(10px);
+}
+
+/* Loading state for buttons */
+.btn-auth:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Input autofill styles */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: #ffffff;
+    transition: background-color 5000s ease-in-out 0s;
+    background-color: transparent !important;
+}
+
+/* Placeholder styling */
+::placeholder {
+    color: #64748b;
+    opacity: 1;
+}
+
+:-ms-input-placeholder {
+    color: #64748b;
+}
+
+::-ms-input-placeholder {
+    color: #64748b;
 }

@@ -30,8 +30,8 @@
                     <% if (typeof user !== 'undefined' && user) { %>
                         <a href="/learn" class="btn btn-light">Dashboard</a>
                     <% } else { %>
-                        <a href="/login" class="btn btn-light">Login</a>
-                        <a href="/register" class="btn btn-primary">Get Started</a>
+                        <a href="/auth/login" class="btn btn-light">Login</a>
+                        <a href="/auth/register" class="btn btn-primary">Get Started</a>
                     <% } %>
                 </div>
 
@@ -49,8 +49,8 @@
                 <% if (typeof user !== 'undefined' && user) { %>
                     <a href="/learn" class="mobile-cta">Go to Dashboard</a>
                 <% } else { %>
-                    <a href="/login" class="mobile-cta secondary">Login</a>
-                    <a href="/register" class="mobile-cta">Get Started</a>
+                    <a href="/auth/login" class="mobile-cta secondary">Login</a>
+                    <a href="/auth/register" class="mobile-cta">Get Started</a>
                 <% } %>
             </div>
         </header>
@@ -76,7 +76,7 @@
                             <a href="/learn" class="btn btn-primary btn-lg">Start Learning</a>
                             <a href="/teach" class="btn btn-outline btn-lg">Start Teaching</a>
                         <% } else { %>
-                            <a href="/register" class="btn btn-primary btn-lg">Join Now</a>
+                            <a href="/auth/register" class="btn btn-primary btn-lg">Join Now</a>
                             <a href="#features" class="btn btn-outline btn-lg">Explore Features</a>
                         <% } %>
                     </div>
@@ -316,8 +316,8 @@
                             <a href="/learn" class="btn btn-primary btn-lg">Go to Learn</a>
                             <a href="/teach" class="btn btn-outline btn-lg">Go to Teach</a>
                         <% } else { %>
-                            <a href="/register" class="btn btn-primary btn-lg">Create Account</a>
-                            <a href="/login" class="btn btn-outline btn-lg">Sign In</a>
+                            <a href="/auth/register" class="btn btn-primary btn-lg">Create Account</a>
+                            <a href="/auth/login" class="btn btn-outline btn-lg">Sign In</a>
                         <% } %>
                     </div>
                 </div>
@@ -375,18 +375,25 @@
     </div>
 
     <script>
-        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-        const mobileMenu = document.getElementById('mobileMenu');
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
 
-        mobileMenuBtn?.addEventListener('click', () => {
-            mobileMenu.classList.toggle('show');
-        });
+    mobileMenuBtn?.addEventListener('click', () => {
+        mobileMenu.classList.toggle('show');
+    });
 
-        document.querySelectorAll('.mobile-menu a').forEach(link => {
-            link.addEventListener('click', () => {
-                mobileMenu.classList.remove('show');
-            });
+    document.querySelectorAll('.mobile-menu a').forEach(link => {
+        link.addEventListener('click', () => {
+            mobileMenu.classList.remove('show');
         });
-    </script>
+    });
+
+    // 🔥 ADD THIS
+    const isLoggedIn = <%= user ? 'true' : 'false' %>;
+
+    if (isLoggedIn && window.location.pathname === '/') {
+        window.location.href = '/learn';
+    }
+</script>
 </body>
 </html>

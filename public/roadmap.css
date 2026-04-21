@@ -1,4 +1,4 @@
-/* roadmap.css - Complete styling for Skill Roadmap Generator with Sidebar */
+/* roadmap.css - Complete styling for Skill Roadmap Generator with Premium Dark/Luxury Theme */
 
 * {
     margin: 0;
@@ -8,8 +8,8 @@
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%);
-    color: #0f172a;
+    background: linear-gradient(135deg, #0a0f1c 0%, #05070d 100%);
+    color: #e2e8f0;
     line-height: 1.5;
     overflow-x: hidden;
 }
@@ -20,10 +20,10 @@ body {
     min-height: 100vh;
 }
 
-/* ==================== SIDEBAR STYLES (matching learn.ejs) ==================== */
+/* ==================== SIDEBAR STYLES - Glassmorphism ==================== */
 .sidebar {
     width: 280px;
-    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    background: rgba(15, 23, 42, 0.6);
     backdrop-filter: blur(10px);
     padding: 1.5rem;
     display: flex;
@@ -31,8 +31,9 @@ body {
     position: sticky;
     top: 0;
     height: 100vh;
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: 1px solid rgba(250, 204, 21, 0.15);
     z-index: 100;
+    transition: all 0.3s ease;
 }
 
 .logo {
@@ -40,21 +41,23 @@ body {
     align-items: center;
     gap: 12px;
     padding: 0.5rem 0 2rem 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(250, 204, 21, 0.15);
     margin-bottom: 1.5rem;
 }
 
 .logo-icon {
     font-size: 2rem;
+    color: #facc15;
 }
 
 .logo-text {
     font-size: 1.5rem;
     font-weight: 800;
-    background: linear-gradient(135deg, #a5f3fc, #c084fc);
+    background: linear-gradient(135deg, #ffffff 0%, #facc15 100%);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
+    letter-spacing: -0.02em;
 }
 
 .nav-menu {
@@ -74,6 +77,20 @@ body {
     text-decoration: none;
     transition: all 0.2s ease;
     font-weight: 500;
+    position: relative;
+    overflow: hidden;
+}
+
+.nav-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 3px;
+    background: linear-gradient(135deg, #facc15, #ffcc00);
+    transform: scaleY(0);
+    transition: transform 0.2s ease;
 }
 
 .nav-item i, .nav-icon {
@@ -82,21 +99,28 @@ body {
 }
 
 .nav-item:hover {
-    background: rgba(255, 255, 255, 0.08);
-    color: #e2e8f0;
+    background: rgba(250, 204, 21, 0.1);
+    color: #facc15;
     transform: translateX(4px);
 }
 
+.nav-item:hover::before {
+    transform: scaleY(1);
+}
+
 .nav-item.active {
-    background: linear-gradient(135deg, #4f46e5, #6366f1);
-    color: white;
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    background: linear-gradient(135deg, rgba(250, 204, 21, 0.15), rgba(255, 204, 0, 0.05));
+    color: #facc15;
+}
+
+.nav-item.active::before {
+    transform: scaleY(1);
 }
 
 .user-profile {
     margin-top: auto;
     padding-top: 1.5rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid rgba(250, 204, 21, 0.15);
     display: flex;
     align-items: center;
     gap: 12px;
@@ -105,14 +129,21 @@ body {
 .avatar {
     width: 44px;
     height: 44px;
-    background: linear-gradient(135deg, #4f46e5, #818cf8);
+    background: linear-gradient(135deg, #facc15, #ffcc00);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
     font-size: 1.1rem;
-    color: white;
+    color: #0a0f1c;
+    box-shadow: 0 0 20px rgba(250, 204, 21, 0.3);
+    transition: all 0.3s ease;
+}
+
+.avatar:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 30px rgba(250, 204, 21, 0.5);
 }
 
 .user-info {
@@ -123,7 +154,7 @@ body {
 
 .user-name {
     font-weight: 600;
-    color: #f1f5f9;
+    color: #ffffff;
     font-size: 0.9rem;
 }
 
@@ -153,33 +184,40 @@ body {
 .header-section h1 {
     font-size: 2rem;
     font-weight: 800;
-    background: linear-gradient(135deg, #1e293b, #4f46e5);
+    background: linear-gradient(135deg, #ffffff 0%, #facc15 100%);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
     margin-bottom: 0.25rem;
+    letter-spacing: -0.02em;
 }
 
 .header-subtitle {
-    color: #64748b;
+    color: #94a3b8;
     font-size: 0.9rem;
 }
 
-/* Credits Card */
+/* Credits Card - Glassmorphism */
 .credits-card {
-    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(10px);
     border-radius: 20px;
     padding: 0.75rem 1.5rem;
     display: flex;
     align-items: center;
     gap: 1rem;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    border: 1px solid rgba(251, 191, 36, 0.3);
+    border: 1px solid rgba(250, 204, 21, 0.15);
+    transition: all 0.3s ease;
+}
+
+.credits-card:hover {
+    border-color: rgba(250, 204, 21, 0.3);
+    transform: translateY(-2px);
 }
 
 .credits-icon {
     font-size: 1.8rem;
-    color: #d97706;
+    color: #facc15;
 }
 
 .credits-info {
@@ -189,7 +227,7 @@ body {
 
 .credits-label {
     font-size: 0.7rem;
-    color: #92400e;
+    color: #94a3b8;
     text-transform: uppercase;
     font-weight: 600;
 }
@@ -197,16 +235,16 @@ body {
 .credits-amount {
     font-size: 1.5rem;
     font-weight: 800;
-    color: #b45309;
+    color: #facc15;
 }
 
 .add-credits-btn {
-    background: #f59e0b;
+    background: linear-gradient(135deg, #facc15, #ffcc00);
     border: none;
     padding: 0.5rem 1rem;
     border-radius: 40px;
-    color: white;
-    font-weight: 600;
+    color: #0a0f1c;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
@@ -216,8 +254,8 @@ body {
 }
 
 .add-credits-btn:hover {
-    background: #d97706;
     transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(250, 204, 21, 0.3);
 }
 
 /* Generate Section */
@@ -227,24 +265,24 @@ body {
 }
 
 .btn-generate {
-    background: linear-gradient(135deg, #4f46e5, #6366f1);
-    color: white;
+    background: linear-gradient(135deg, #facc15, #ffcc00);
+    color: #0a0f1c;
     border: none;
     padding: 1rem 2rem;
     border-radius: 60px;
     font-size: 1rem;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.25s ease;
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+    box-shadow: 0 4px 12px rgba(250, 204, 21, 0.3);
 }
 
 .btn-generate:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(79, 70, 229, 0.4);
+    box-shadow: 0 8px 20px rgba(250, 204, 21, 0.4);
 }
 
 /* Roadmaps Grid - Multi-column layout */
@@ -255,13 +293,13 @@ body {
     margin-top: 1rem;
 }
 
-/* Individual Roadmap Card */
+/* Individual Roadmap Card - Glassmorphism */
 .roadmap-card {
-    background: white;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(10px);
     border-radius: 28px;
     padding: 1.5rem;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-    border: 1px solid #eef2ff;
+    border: 1px solid rgba(250, 204, 21, 0.15);
     transition: all 0.3s ease;
     height: fit-content;
     display: flex;
@@ -271,14 +309,15 @@ body {
 
 .roadmap-card:hover {
     transform: translateY(-6px);
-    box-shadow: 0 20px 32px -12px rgba(0, 0, 0, 0.12);
+    border-color: rgba(250, 204, 21, 0.3);
+    box-shadow: 0 20px 32px -12px rgba(250, 204, 21, 0.15);
 }
 
 /* Roadmap Header Section */
 .roadmap-header-section {
     margin-bottom: 1.25rem;
     padding-bottom: 1rem;
-    border-bottom: 2px solid #f1f5f9;
+    border-bottom: 1px solid rgba(250, 204, 21, 0.15);
 }
 
 .roadmap-title-section {
@@ -291,8 +330,9 @@ body {
 .roadmap-title {
     font-size: 1.25rem;
     font-weight: 700;
-    color: #0f172a;
+    color: #ffffff;
     margin: 0;
+    letter-spacing: -0.02em;
 }
 
 .btn-delete-roadmap {
@@ -308,7 +348,7 @@ body {
 
 .btn-delete-roadmap:hover {
     color: #ef4444;
-    background: #fef2f2;
+    background: rgba(239, 68, 68, 0.1);
     transform: scale(1.05);
 }
 
@@ -322,7 +362,7 @@ body {
 
 .level-label {
     font-size: 0.75rem;
-    color: #64748b;
+    color: #94a3b8;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -331,12 +371,12 @@ body {
 .level-value {
     font-size: 1.5rem;
     font-weight: 800;
-    color: #4f46e5;
+    color: #facc15;
 }
 
 .level-total {
     font-size: 0.85rem;
-    color: #94a3b8;
+    color: #64748b;
     font-weight: 500;
 }
 
@@ -346,14 +386,14 @@ body {
 }
 
 .progress-bar {
-    background: #e2e8f0;
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 60px;
     height: 8px;
     overflow: hidden;
 }
 
 .progress-fill {
-    background: linear-gradient(90deg, #4f46e5, #818cf8);
+    background: linear-gradient(90deg, #facc15, #ffcc00);
     height: 100%;
     border-radius: 60px;
     transition: width 0.3s ease;
@@ -365,22 +405,23 @@ body {
     align-items: center;
     gap: 1rem;
     padding: 1rem;
-    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+    background: rgba(0, 0, 0, 0.2);
     border-radius: 20px;
     margin-bottom: 1.25rem;
+    border: 1px solid rgba(250, 204, 21, 0.1);
 }
 
 .skill-icon {
     width: 56px;
     height: 56px;
-    background: white;
+    background: rgba(250, 204, 21, 0.1);
     border-radius: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.8rem;
-    color: #4f46e5;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    color: #facc15;
+    border: 1px solid rgba(250, 204, 21, 0.2);
 }
 
 .skill-details {
@@ -391,7 +432,7 @@ body {
     font-size: 1.1rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
-    color: #0f172a;
+    color: #ffffff;
 }
 
 .skill-meta {
@@ -402,7 +443,7 @@ body {
 
 .meta-item {
     font-size: 0.75rem;
-    color: #64748b;
+    color: #94a3b8;
     display: flex;
     align-items: center;
     gap: 4px;
@@ -410,7 +451,7 @@ body {
 
 .meta-item i {
     font-size: 0.7rem;
-    color: #4f46e5;
+    color: #facc15;
 }
 
 /* Tabs */
@@ -418,7 +459,7 @@ body {
     display: flex;
     gap: 0.5rem;
     margin-bottom: 1rem;
-    border-bottom: 2px solid #e2e8f0;
+    border-bottom: 1px solid rgba(250, 204, 21, 0.15);
 }
 
 .tab-btn {
@@ -427,7 +468,7 @@ body {
     padding: 0.75rem 1.25rem;
     font-size: 0.9rem;
     font-weight: 600;
-    color: #64748b;
+    color: #94a3b8;
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
@@ -441,21 +482,21 @@ body {
 }
 
 .tab-btn .tab-count {
-    background: #e2e8f0;
+    background: rgba(255, 255, 255, 0.1);
     padding: 0.1rem 0.5rem;
     border-radius: 60px;
     font-size: 0.7rem;
-    color: #475569;
+    color: #94a3b8;
 }
 
 .tab-btn.active {
-    color: #4f46e5;
-    border-bottom: 3px solid #4f46e5;
+    color: #facc15;
+    border-bottom: 3px solid #facc15;
 }
 
 .tab-btn.active .tab-count {
-    background: #4f46e5;
-    color: white;
+    background: #facc15;
+    color: #0a0f1c;
 }
 
 /* Tab Content */
@@ -476,17 +517,17 @@ body {
 }
 
 .tab-content::-webkit-scrollbar-track {
-    background: #e2e8f0;
+    background: rgba(255, 255, 255, 0.05);
     border-radius: 10px;
 }
 
 .tab-content::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
+    background: rgba(250, 204, 21, 0.3);
     border-radius: 10px;
 }
 
 .tab-content::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8;
+    background: rgba(250, 204, 21, 0.5);
 }
 
 /* Skills List */
@@ -498,7 +539,7 @@ body {
 
 .skill-item {
     padding: 0.5rem 0;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid rgba(250, 204, 21, 0.1);
 }
 
 .skill-item:last-child {
@@ -515,27 +556,28 @@ body {
     gap: 10px;
     cursor: pointer;
     font-size: 0.9rem;
-    color: #334155;
+    color: #cbd5e1;
     transition: all 0.2s ease;
 }
 
 .skill-item label i {
     font-size: 1.1rem;
-    color: #cbd5e1;
+    color: #64748b;
     transition: all 0.2s ease;
 }
 
 .skill-item input:checked + label {
-    color: #10b981;
+    color: #14b8a6;
     text-decoration: line-through;
 }
 
 .skill-item input:checked + label i {
-    color: #10b981;
+    color: #14b8a6;
 }
 
 .skill-item:hover label {
     transform: translateX(4px);
+    color: #facc15;
 }
 
 /* Courses List */
@@ -547,7 +589,7 @@ body {
 
 .course-item {
     padding: 0.5rem 0;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid rgba(250, 204, 21, 0.1);
 }
 
 .course-item:last-child {
@@ -564,27 +606,28 @@ body {
     gap: 10px;
     cursor: pointer;
     font-size: 0.9rem;
-    color: #334155;
+    color: #cbd5e1;
     transition: all 0.2s ease;
 }
 
 .course-item label i {
     font-size: 1rem;
-    color: #cbd5e1;
+    color: #64748b;
     transition: all 0.2s ease;
 }
 
 .course-item input:checked + label {
-    color: #10b981;
+    color: #14b8a6;
     text-decoration: line-through;
 }
 
 .course-item input:checked + label i {
-    color: #10b981;
+    color: #14b8a6;
 }
 
 .course-item:hover label {
     transform: translateX(4px);
+    color: #facc15;
 }
 
 /* Empty State */
@@ -592,21 +635,27 @@ body {
     grid-column: 1 / -1;
     text-align: center;
     padding: 4rem;
-    background: white;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(10px);
     border-radius: 32px;
-    color: #64748b;
+    border: 1px solid rgba(250, 204, 21, 0.15);
 }
 
 .empty-state i {
     font-size: 4rem;
     margin-bottom: 1rem;
-    color: #cbd5e1;
+    color: #facc15;
+    opacity: 0.5;
 }
 
 .empty-state h3 {
     font-size: 1.5rem;
     margin-bottom: 0.5rem;
-    color: #334155;
+    color: #ffffff;
+}
+
+.empty-state p {
+    color: #94a3b8;
 }
 
 /* Toast Message */
@@ -614,7 +663,8 @@ body {
     position: fixed;
     bottom: 30px;
     right: 30px;
-    background: #10b981;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(10px);
     color: white;
     padding: 12px 24px;
     border-radius: 60px;
@@ -623,10 +673,11 @@ body {
     opacity: 0;
     transform: translateX(100%);
     transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     display: flex;
     align-items: center;
     gap: 8px;
+    border: 1px solid rgba(250, 204, 21, 0.2);
 }
 
 .toast-message.show {
@@ -635,11 +686,13 @@ body {
 }
 
 .toast-message.error {
-    background: #ef4444;
+    background: rgba(239, 68, 68, 0.95);
+    border-color: rgba(239, 68, 68, 0.3);
 }
 
 .toast-message.success {
-    background: #10b981;
+    background: rgba(20, 184, 166, 0.95);
+    border-color: rgba(20, 184, 166, 0.3);
 }
 
 /* Animations */
@@ -652,6 +705,26 @@ body {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* Custom Scrollbar for Body */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(250, 204, 21, 0.3);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(250, 204, 21, 0.5);
 }
 
 /* Responsive Design */
@@ -775,4 +848,19 @@ body {
         padding: 0.75rem 1.5rem;
         font-size: 0.9rem;
     }
+}
+
+/* Utility Classes */
+.glow-text {
+    color: #facc15;
+    text-shadow: 0 0 10px rgba(250, 204, 21, 0.3);
+}
+
+.gradient-border {
+    border-image: linear-gradient(135deg, #facc15, #ffcc00) 1;
+}
+
+.glass-effect {
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(10px);
 }
