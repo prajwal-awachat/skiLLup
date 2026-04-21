@@ -8,6 +8,9 @@ const {
     getStudentSessionRequests,
     getSessionRequestStatus,
     cancelSessionRequest,
+    suggestAlternateSlotByStudent,
+acceptNegotiatedRequestByStudent,
+rejectNegotiatedRequestByStudent,
     checkChatAccess,
     getConversation,
     sendMessage,
@@ -37,6 +40,9 @@ router.post('/session-request', createSessionRequest);
 router.get('/session-requests', getStudentSessionRequests);
 router.get('/session-requests/:requestId/status', getSessionRequestStatus);
 router.put('/session-requests/:requestId/cancel', cancelSessionRequest);
+router.post('/session-requests/:requestId/suggest', suggestAlternateSlotByStudent);
+router.post('/session-requests/:requestId/accept', acceptNegotiatedRequestByStudent);
+router.post('/session-requests/:requestId/reject', rejectNegotiatedRequestByStudent);
 
 // Sessions
 router.get('/upcoming-sessions', getUpcomingSessions);

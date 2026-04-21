@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Learn Dashboard - Peer Learning Platform</title>
+    <title>Learn Dashboard - skiLLup</title>
     <link rel="stylesheet" href="/learn.css">
     <link rel="stylesheet" href="/chat.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Socket.io Client -->
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
@@ -19,6 +18,7 @@
                 <span class="logo-icon">📚</span>
                 <span class="logo-text">skillUp</span>
             </div>
+
             <nav class="nav-menu">
                 <a href="/learn" class="nav-item active">
                     <span class="nav-icon">🎓</span>
@@ -45,8 +45,11 @@
                     <span>Settings</span>
                 </a>
             </nav>
+
             <div class="user-profile">
-                <div class="avatar"><%= user ? user.name.charAt(0).toUpperCase() + (user.name.split(' ')[1] ? user.name.split(' ')[1].charAt(0).toUpperCase() : '') : 'U' %></div>
+                <div class="avatar">
+                    <%= user ? user.name.charAt(0).toUpperCase() + (user.name.split(' ')[1] ? user.name.split(' ')[1].charAt(0).toUpperCase() : '') : 'U' %>
+                </div>
                 <div class="user-info">
                     <span class="user-name"><%= user ? user.name : 'User' %></span>
                     <span class="user-email"><%= user ? user.email : 'user@example.com' %></span>
@@ -54,16 +57,14 @@
             </div>
         </aside>
 
-        <!-- Main Content -->
+        <!-- Main -->
         <main class="main-content">
-            <!-- Header with Credits Card -->
             <div class="top-bar">
                 <div class="header-section">
                     <h1>Learn Dashboard</h1>
-                    <p class="header-subtitle">Find teachers and join live sessions</p>
+                    <p class="header-subtitle">Find teachers, send requests, and manage your upcoming learning sessions</p>
                 </div>
-                
-                <!-- Credits Card -->
+
                 <div class="credits-card">
                     <div class="credits-icon">
                         <i class="fas fa-coins"></i>
@@ -78,57 +79,106 @@
                 </div>
             </div>
 
-            <!-- Search Section -->
+            <!-- Quick Stats -->
+            <section class="learn-overview">
+                <div class="overview-card">
+                    <div class="overview-icon pending">
+                        <i class="fas fa-hourglass-half"></i>
+                    </div>
+                    <div class="overview-content">
+                        <span class="overview-label">Pending Requests</span>
+                        <span class="overview-value" id="pendingOverviewCount">0</span>
+                    </div>
+                </div>
+
+                <div class="overview-card">
+                    <div class="overview-icon upcoming">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="overview-content">
+                        <span class="overview-label">Upcoming Sessions</span>
+                        <span class="overview-value" id="upcomingOverviewCount">0</span>
+                    </div>
+                </div>
+
+                <div class="overview-card">
+                    <div class="overview-icon rejected">
+                        <i class="fas fa-ban"></i>
+                    </div>
+                    <div class="overview-content">
+                        <span class="overview-label">Rejected Requests</span>
+                        <span class="overview-value" id="rejectedOverviewCount">0</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Search -->
             <section class="search-section">
                 <div class="search-bar">
                     <i class="fas fa-search search-icon"></i>
-                    <input type="text" id="searchInput" placeholder="Search for teachers by name or skill..." class="search-input">
-                    <button class="filter-btn" id="filterBtn">
+                    <input
+                        type="text"
+                        id="searchInput"
+                        placeholder="Search teachers by name or skill..."
+                        class="search-input"
+                    >
+                    <button class="filter-btn" type="button">
                         <i class="fas fa-sliders-h"></i>
                     </button>
                 </div>
             </section>
 
-            <!-- Main Two-Column Layout -->
+            <!-- Main Grid -->
             <div class="content-grid">
-                <!-- Left Column: Teacher List -->
-                <div class="teachers-column">
+                <!-- Left: Teachers -->
+                <section class="teachers-column">
                     <div class="section-header">
                         <h2><i class="fas fa-chalkboard-user"></i> Available Teachers</h2>
                         <span class="result-count" id="resultCount">Loading...</span>
                     </div>
-                    
+
                     <div class="teachers-scroll-container" id="teachersContainer">
                         <div class="teachers-list" id="teachersList">
                             <div class="loading-spinner">Loading teachers...</div>
                         </div>
                     </div>
-                </div>
+                </section>
 
-                <!-- Right Column: Session Requests -->
-                <div class="sessions-column">
-                    <!-- Accepted Sessions Section -->
-                    <div class="sessions-section accepted-section">
+                <!-- Right: Workflow -->
+                <aside class="sessions-column">
+                    <!-- Pending -->
+                    <div class="sessions-section pending-section">
                         <div class="section-header">
-                            <h3><i class="fas fa-check-circle" style="color: #10b981;"></i> Accepted Sessions</h3>
-                            <span class="badge accepted-badge" id="acceptedCount">0</span>
+                            <h3><i class="fas fa-hourglass-half"></i> Pending Requests</h3>
+                            <span class="badge pending-badge" id="pendingCount">0</span>
                         </div>
-                        <div class="sessions-list" id="acceptedSessionsList">
+                        <div class="sessions-list" id="pendingSessionsList">
                             <div class="loading-sessions">Loading...</div>
                         </div>
                     </div>
 
-                    <!-- Rejected Sessions Section -->
+                    <!-- Upcoming -->
+                    <div class="sessions-section upcoming-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-calendar-check"></i> Upcoming Sessions</h3>
+                            <span class="badge accepted-badge" id="upcomingCount">0</span>
+                        </div>
+                        <div class="sessions-list" id="upcomingSessionsList">
+                            <div class="loading-sessions">Loading...</div>
+                        </div>
+                    </div>
+
+                    <!-- Rejected -->
                     <div class="sessions-section rejected-section">
                         <div class="section-header">
-                            <h3><i class="fas fa-times-circle" style="color: #ef4444;"></i> Rejected Sessions</h3>
+                            <h3><i class="fas fa-times-circle"></i> Rejected Requests</h3>
                             <span class="badge rejected-badge" id="rejectedCount">0</span>
                         </div>
                         <div class="sessions-list" id="rejectedSessionsList">
                             <div class="loading-sessions">Loading...</div>
                         </div>
                     </div>
-                </div>
+                </aside>
             </div>
         </main>
     </div>
@@ -137,132 +187,168 @@
     <div class="modal" id="requestModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><i class="fas fa-calendar-plus"></i> Request Session with <span id="requestTeacherName"></span></h3>
+                <h3>
+                    <i class="fas fa-calendar-plus"></i>
+                    Request Session with <span id="requestTeacherName"></span>
+                </h3>
                 <button class="close-modal" id="closeRequestModalBtn">&times;</button>
             </div>
+
             <form id="sessionRequestForm">
                 <input type="hidden" id="requestTeacherId">
+
                 <div class="form-group">
                     <label>Skill to Learn *</label>
-                    <input type="text" id="requestSkillName" placeholder="e.g., JavaScript, React, Python, Communication Skills" required>
+                    <input type="text" id="requestSkillName" placeholder="e.g. JavaScript, React, Python" required>
                 </div>
+
                 <div class="form-group">
                     <label>Session Title *</label>
-                    <input type="text" id="requestTitle" placeholder="e.g., React Hooks Deep Dive" required>
+                    <input type="text" id="requestTitle" placeholder="e.g. React Hooks Basics" required>
                 </div>
+
                 <div class="form-group">
                     <label>Description</label>
-                    <textarea id="requestDescription" rows="3" placeholder="What would you like to learn?"></textarea>
+                    <textarea id="requestDescription" rows="3" placeholder="What exactly do you want to learn?"></textarea>
                 </div>
+
                 <div class="form-row">
                     <div class="form-group">
                         <label>Preferred Date *</label>
                         <input type="date" id="requestDate" required>
                     </div>
+
                     <div class="form-group">
                         <label>Preferred Time *</label>
                         <input type="time" id="requestTime" required>
                     </div>
                 </div>
+
                 <button type="submit" class="submit-request-btn">Send Request</button>
             </form>
         </div>
     </div>
 
-    <!-- Chat Modal Partial -->
+    <!-- Chat modal -->
     <%- include('partials/chat-modal') %>
 
     <script>
-        // Get user data from server
         const currentUser = {
             id: '<%= user ? user._id : "" %>',
             name: '<%= user ? user.name : "" %>',
             email: '<%= user ? user.email : "" %>'
         };
 
-        // Escape HTML function
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-        
-        // Socket.io connection
         let socket = null;
-        
-        // Global state
         let currentPage = 1;
         let isLoading = false;
         let hasMore = true;
         let currentSearchTerm = '';
         let currentChatTeacher = null;
         let currentConversationId = null;
-        let skillsList = [];
-        
-        // Helper function to show toast
-        function showToast(message, type = "info") {
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showToast(message, type = 'info') {
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
             toast.innerHTML = `
                 <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>
-                <span>${message}</span>
+                <span>${escapeHtml(message)}</span>
             `;
             document.body.appendChild(toast);
+
             setTimeout(() => {
                 toast.classList.add('show');
                 setTimeout(() => {
                     toast.classList.remove('show');
                     setTimeout(() => toast.remove(), 300);
-                }, 3000);
+                }, 2800);
             }, 100);
         }
-        
-        // API Calls
+
+        function getRandomColor(str = '') {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            const hue = Math.abs(hash % 360);
+            return `hsl(${hue}, 70%, 60%)`;
+        }
+
+        function getInitials(name = 'U') {
+            return name
+                .split(' ')
+                .map(n => n[0])
+                .join('')
+                .toUpperCase()
+                .substring(0, 2);
+        }
+
+        function formatDate(dateValue) {
+            if (!dateValue) return 'Date not available';
+            const date = new Date(dateValue);
+            return date.toLocaleDateString('en-US', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            });
+        }
+
+        function formatDateTime(dateValue) {
+            if (!dateValue) return 'Not scheduled';
+            const date = new Date(dateValue);
+            return date.toLocaleString('en-US', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
         async function fetchCredits() {
             try {
                 const response = await fetch('/api/learn/credits');
                 const data = await response.json();
+
                 if (data.success) {
-                    document.getElementById('creditAmount').textContent = data.data.credits.toLocaleString();
-                    return data.data;
+                    document.getElementById('creditAmount').textContent = (data.data.credits || 0).toLocaleString();
                 }
             } catch (error) {
                 console.error('Error fetching credits:', error);
             }
-            return null;
         }
-        
-        async function fetchSkills() {
-            try {
-                const response = await fetch('/api/learn/skills');
-                const data = await response.json();
-                if (data.success) {
-                    skillsList = data.data;
-                }
-            } catch (error) {
-                console.error('Error fetching skills:', error);
-            }
-        }
-        
+
         async function fetchTeachers(searchTerm = '', page = 1, append = false) {
             if (isLoading) return;
             isLoading = true;
-            
+
             try {
                 const url = `/api/learn/teachers/search?q=${encodeURIComponent(searchTerm)}&page=${page}&limit=10`;
                 const response = await fetch(url);
                 const data = await response.json();
-                
-                if (data.success) {
-                    if (append) {
-                        appendTeachers(data.data);
-                    } else {
-                        renderTeachers(data.data);
-                    }
-                    hasMore = data.data.length === 10;
-                    document.getElementById('resultCount').textContent = `${data.pagination.total} teacher${data.pagination.total !== 1 ? 's' : ''} found`;
+
+                if (!data.success) {
+                    throw new Error(data.message || 'Failed to load teachers');
                 }
+
+                const teachers = data.data || [];
+
+                if (append) {
+                    appendTeachers(teachers);
+                } else {
+                    renderTeachers(teachers);
+                }
+
+                hasMore = teachers.length === 10;
+                const count = teachers.length;
+                document.getElementById('resultCount').textContent = `${count} teacher${count !== 1 ? 's' : ''} shown`;
             } catch (error) {
                 console.error('Error fetching teachers:', error);
                 showToast('Failed to load teachers', 'error');
@@ -270,474 +356,771 @@
                 isLoading = false;
             }
         }
-        
+
         function renderTeachers(teachers) {
-    const container = document.getElementById('teachersList');
-    
-    if (teachers.length === 0) {
-        container.innerHTML = `
-            <div class="no-results">
-                <i class="fas fa-search"></i>
-                <p>No teachers found matching your search.</p>
-                <small>Try searching by name or skill</small>
-            </div>
-        `;
-        return;
-    }
-    
-    container.innerHTML = teachers.map(teacher => {
-        const initials = teacher.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
-        const avatarColor = `linear-gradient(135deg, ${getRandomColor(teacher._id)}, ${getRandomColor(teacher._id + '2')})`;
-        const teachingSkills = teacher.teachingSkills?.map(s => s.name).join(', ') || 'Teaching';
-        const requestStatus = teacher.requestStatus;
-        
-        let actionButton = '';
-        let teacherDataForButton = {
-            _id: teacher._id,
-            name: teacher.name,
-            email: teacher.email
-        };
-        const teacherDataJson = JSON.stringify(teacherDataForButton).replace(/'/g, "&#39;");
-        
-        if (requestStatus === 'pending') {
-            actionButton = `<button class="pending-btn" disabled>
-                                <i class="fas fa-clock"></i> Request Pending
-                            </button>`;
-        } else if (requestStatus === 'rejected') {
-            actionButton = `<button class="request-btn" data-teacher='${teacherDataJson}'>
-                                <i class="fas fa-calendar-plus"></i> Request Again
-                            </button>`;
-        } else {
-            actionButton = `<button class="request-btn" data-teacher='${teacherDataJson}'>
-                                <i class="fas fa-calendar-plus"></i> Request Session
-                            </button>`;
-        }
-        
-        return `
-            <div class="teacher-card" data-teacher-id="${teacher._id}">
-                <div class="teacher-avatar" style="background: ${avatarColor}">
-                    ${initials}
-                </div>
-                <div class="teacher-info">
-                    <div class="teacher-name">${escapeHtml(teacher.name)}</div>
-                    <div class="teacher-skill">${escapeHtml(teachingSkills)}</div>
-                    <div class="teacher-bio">${escapeHtml(teacher.bio?.substring(0, 80) || 'No bio available')}${teacher.bio?.length > 80 ? '...' : ''}</div>
-                    <div class="teacher-rating">
-                        <i class="fas fa-star" style="color: #fbbf24; font-size: 12px;"></i>
-                        <span class="rating-value">${teacher.rating || 0}</span>
-                        <span class="rating-max">/ 5.0</span>
-                        <span class="rating-count">(${teacher.totalReviews || 0} reviews)</span>
-                    </div>
-                </div>
-                <div class="teacher-actions">
-                    ${actionButton}
-                </div>
-            </div>
-        `;
-    }).join('');
-    
-    // Fix the event listener - make sure to parse correctly
-    document.querySelectorAll('.request-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            try {
-                const teacherData = JSON.parse(btn.getAttribute('data-teacher'));
-                console.log('Teacher data from button:', teacherData); // Debug log
-                if (teacherData && teacherData._id) {
-                    openRequestModal(teacherData);
-                } else {
-                    showToast('Invalid teacher data', 'error');
-                }
-            } catch (error) {
-                console.error('Error parsing teacher data:', error);
-                showToast('Failed to process request', 'error');
-            }
-        });
-    });
-}
-        
-        function appendTeachers(newTeachers) {
-    const container = document.getElementById('teachersList');
-    newTeachers.forEach(teacher => {
-        const initials = teacher.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
-        const avatarColor = `linear-gradient(135deg, ${getRandomColor(teacher._id)}, ${getRandomColor(teacher._id + '2')})`;
-        const teachingSkills = teacher.teachingSkills?.map(s => s.name).join(', ') || 'Teaching';
-        const requestStatus = teacher.requestStatus;
-        
-        let actionButton = '';
-        let teacherDataForButton = {
-            _id: teacher._id,
-            name: teacher.name,
-            email: teacher.email
-        };
-        const teacherDataJson = JSON.stringify(teacherDataForButton).replace(/'/g, "&#39;");
-        
-        if (requestStatus === 'pending') {
-            actionButton = `<button class="pending-btn" disabled>
-                                <i class="fas fa-clock"></i> Request Pending
-                            </button>`;
-        } else if (requestStatus === 'rejected') {
-            actionButton = `<button class="request-btn" data-teacher='${teacherDataJson}'>
-                                <i class="fas fa-calendar-plus"></i> Request Again
-                            </button>`;
-        } else {
-            actionButton = `<button class="request-btn" data-teacher='${teacherDataJson}'>
-                                <i class="fas fa-calendar-plus"></i> Request Session
-                            </button>`;
-        }
-        
-        const cardHtml = `
-            <div class="teacher-card" data-teacher-id="${teacher._id}">
-                <div class="teacher-avatar" style="background: ${avatarColor}">
-                    ${initials}
-                </div>
-                <div class="teacher-info">
-                    <div class="teacher-name">${escapeHtml(teacher.name)}</div>
-                    <div class="teacher-skill">${escapeHtml(teachingSkills)}</div>
-                    <div class="teacher-bio">${escapeHtml(teacher.bio?.substring(0, 80) || 'No bio available')}${teacher.bio?.length > 80 ? '...' : ''}</div>
-                    <div class="teacher-rating">
-                        <i class="fas fa-star" style="color: #fbbf24; font-size: 12px;"></i>
-                        <span class="rating-value">${teacher.rating || 0}</span>
-                        <span class="rating-max">/ 5.0</span>
-                        <span class="rating-count">(${teacher.totalReviews || 0} reviews)</span>
-                    </div>
-                </div>
-                <div class="teacher-actions">
-                    ${actionButton}
-                </div>
-            </div>
-        `;
-        container.insertAdjacentHTML('beforeend', cardHtml);
-    });
-    
-    document.querySelectorAll('.request-btn').forEach(btn => {
-        btn.removeEventListener('click', () => {});
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            try {
-                const teacherData = JSON.parse(btn.getAttribute('data-teacher'));
-                if (teacherData && teacherData._id) {
-                    openRequestModal(teacherData);
-                } else {
-                    showToast('Invalid teacher data', 'error');
-                }
-            } catch (error) {
-                console.error('Error parsing teacher data:', error);
-                showToast('Failed to process request', 'error');
-            }
-        });
-    });
-}
-        
-        function getRandomColor(str) {
-            let hash = 0;
-            for (let i = 0; i < str.length; i++) {
-                hash = str.charCodeAt(i) + ((hash << 5) - hash);
-            }
-            const hue = hash % 360;
-            return `hsl(${hue}, 70%, 60%)`;
-        }
-        
-        async function fetchSessionRequests() {
-            try {
-                const response = await fetch('/api/learn/session-requests');
-                const data = await response.json();
-                if (data.success) {
-                    renderAcceptedSessions(data.data.accepted);
-                    renderRejectedSessions(data.data.rejected);
-                    document.getElementById('acceptedCount').textContent = data.data.counts.accepted;
-                    document.getElementById('rejectedCount').textContent = data.data.counts.rejected;
-                }
-            } catch (error) {
-                console.error('Error fetching session requests:', error);
-            }
-        }
-        
-        function renderAcceptedSessions(acceptedSessions) {
-    const container = document.getElementById('acceptedSessionsList');
-    
-    if (!acceptedSessions || acceptedSessions.length === 0) {
-        container.innerHTML = `
-            <div class="empty-sessions">
-                <i class="fas fa-calendar-check"></i>
-                <p>No accepted sessions yet</p>
-                <small>Request a session from a teacher above</small>
-            </div>
-        `;
-        return;
-    }
-    
-    // Filter out completed sessions
-    const uniqueSessions = [];
-    const seenSessionIds = new Set();
-    
-    acceptedSessions.forEach(session => {
-        // Skip completed sessions
-        if (session.session && session.session.status === 'completed') {
-            return;
-        }
-        
-        const sessionId = session.session?._id || session._id;
-        if (sessionId && seenSessionIds.has(sessionId.toString())) {
-            return;
-        }
-        if (sessionId) {
-            seenSessionIds.add(sessionId.toString());
-        }
-        
-        uniqueSessions.push(session);
-    });
-    
-    if (uniqueSessions.length === 0) {
-        container.innerHTML = `
-            <div class="empty-sessions">
-                <i class="fas fa-calendar-check"></i>
-                <p>No active accepted sessions</p>
-                <small>Your completed sessions will appear in history</small>
-            </div>
-        `;
-        return;
-    }
-    
-    container.innerHTML = uniqueSessions.map(session => {
-        const teacher = session.teacher;
-        const teacherInitials = teacher.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
-        const sessionDate = new Date(session.preferredDate);
-        const formattedDate = sessionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        
-        const isOngoing = session.session && session.session.status === 'ongoing';
-        const isConfirmed = session.session && session.session.status === 'confirmed';
-        const sessionId = session.session ? session.session._id : null;
-        
-        // Check if roomId and joinCode exist
-        const hasRoomId = session.session && session.session.roomId && session.session.roomId !== null;
-        const hasJoinCode = session.session && session.session.joinCode && session.session.joinCode !== null;
-        
-        return `
-            <div class="session-card-item accepted" data-session-id="${sessionId || ''}">
-                <div class="session-card-header">
-                    <div class="session-teacher">
-                        <div class="session-avatar small" style="background: ${getRandomColor(teacher._id)}">${teacherInitials}</div>
-                        <div class="session-info">
-                            <h4>${escapeHtml(teacher.name)}</h4>
-                            <span class="session-skill-tag">${session.skill?.name || 'Skill'}</span>
-                        </div>
-                    </div>
-                    <div class="session-status accepted">
-                        <i class="fas fa-check-circle"></i> ${session.session ? (session.session.status === 'ongoing' ? 'ONGOING' : 'CONFIRMED') : 'ACCEPTED'}
-                    </div>
-                </div>
-                <div class="session-details">
-                    <div class="session-detail-item">
-                        <i class="fas fa-calendar-alt"></i>
-                        <span>${formattedDate} at ${session.preferredTime}</span>
-                    </div>
-                    <div class="session-detail-item">
-                        <i class="fas fa-clock"></i>
-                        <span>${session.duration} minutes</span>
-                    </div>
-                    <div class="session-detail-item">
-                        <i class="fas fa-coins"></i>
-                        <span>${session.proposedCredits} credits</span>
-                    </div>
-                    
-                    ${session.session ? `
-                        ${isOngoing ? `
-                            <div class="session-join-section">
-                                ${hasRoomId && hasJoinCode ? `
-                                    <div class="session-code-box" style="margin-bottom: 12px;">
-                                        <div class="code-row">
-                                            <span class="code-label">Session ID:</span>
-                                            <span class="code-value">${session.session.roomId}</span>
-                                            <button class="copy-code-btn" data-code="${session.session.roomId}">
-                                                <i class="fas fa-copy"></i>
-                                            </button>
-                                        </div>
-                                        <div class="code-row">
-                                            <span class="code-label">Join Code:</span>
-                                            <span class="code-value code-password">${session.session.joinCode}</span>
-                                            <button class="copy-code-btn" data-code="${session.session.joinCode}">
-                                                <i class="fas fa-copy"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                ` : ''}
-                                <button class="join-session-btn-main" data-session-id="${sessionId}" data-session-title="${escapeHtml(session.session.title)}">
-                                    <i class="fas fa-video"></i> Join Session Now
-                                </button>
-                            </div>
-                        ` : isConfirmed ? `
-                            <div class="session-waiting">
-                                <i class="fas fa-hourglass-half"></i>
-                                <span>Waiting for teacher to start the session...</span>
-                            </div>
-                            ${hasRoomId || hasJoinCode ? `
-                                <div class="session-code-box">
-                                    ${hasRoomId ? `
-                                    <div class="code-row">
-                                        <span class="code-label">Session ID:</span>
-                                        <span class="code-value">${session.session.roomId}</span>
-                                        <button class="copy-code-btn" data-code="${session.session.roomId}">
-                                            <i class="fas fa-copy"></i>
-                                        </button>
-                                    </div>
-                                    ` : '<div class="code-row"><span class="code-label">Session ID:</span><span class="code-value">Not yet generated</span></div>'}
-                                    ${hasJoinCode ? `
-                                    <div class="code-row">
-                                        <span class="code-label">Join Code:</span>
-                                        <span class="code-value code-password">${session.session.joinCode}</span>
-                                        <button class="copy-code-btn" data-code="${session.session.joinCode}">
-                                            <i class="fas fa-copy"></i>
-                                        </button>
-                                    </div>
-                                    ` : ''}
-                                </div>
-                            ` : `
-                                <div class="session-info-message">
-                                    <i class="fas fa-info-circle"></i>
-                                    <span>Session details will appear when teacher starts the session</span>
-                                </div>
-                            `}
-                        ` : ''}
-                        
-                        <div class="session-actions">
-                           <button class="chat-session-btn" data-teacher='${JSON.stringify({_id: teacher._id, name: teacher.name, email: teacher.email || ""})}'>
-    <i class="fas fa-comment-dots"></i> Chat
-</button>
-                        </div>
-                    ` : `
-                        <div class="session-pending-message">
-                            <i class="fas fa-hourglass-half"></i>
-                            <span>Waiting for teacher to confirm session details</span>
-                        </div>
-                    `}
-                </div>
-            </div>
-        `;
-    }).join('');
-    
-    // Attach event listeners
-    document.querySelectorAll('.copy-code-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const code = btn.dataset.code;
-            if (code && code !== 'Not available' && code !== 'Not yet generated') {
-                navigator.clipboard.writeText(code);
-                showToast("Copied to clipboard!", "success");
-            } else {
-                showToast("No code available to copy", "error");
-            }
-        });
-    });
-    
-    document.querySelectorAll('.chat-session-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const teacherData = JSON.parse(btn.dataset.teacher);
-            openChat(teacherData);
-        });
-    });
-    
-    document.querySelectorAll('.join-session-btn-main').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const sessionId = btn.dataset.sessionId;
-            const sessionTitle = btn.dataset.sessionTitle;
-            openJoinSessionModal(sessionId, sessionTitle);
-        });
-    });
-}
-        function renderRejectedSessions(rejectedSessions) {
-            const container = document.getElementById('rejectedSessionsList');
-            
-            if (!rejectedSessions || rejectedSessions.length === 0) {
+            const container = document.getElementById('teachersList');
+
+            if (!teachers || teachers.length === 0) {
                 container.innerHTML = `
-                    <div class="empty-sessions">
-                        <i class="fas fa-ban"></i>
-                        <p>No rejected sessions</p>
-                        <small>All your requests are in good standing</small>
+                    <div class="no-results">
+                        <i class="fas fa-search"></i>
+                        <p>No teachers found</p>
+                        <small>Try another name or skill</small>
                     </div>
                 `;
                 return;
             }
-            
-            container.innerHTML = rejectedSessions.map(session => {
-                const teacher = session.teacher;
-                const teacherInitials = teacher.name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
-                const sessionDate = new Date(session.preferredDate);
-                const formattedDate = sessionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                
+
+            container.innerHTML = teachers.map(teacher => {
+                const initials = getInitials(teacher.name);
+                const avatarColor = `linear-gradient(135deg, ${getRandomColor(teacher._id)}, ${getRandomColor(teacher._id + '2')})`;
+                const teachingSkills = teacher.teachingSkills?.map(s => s.skill?.name || s.name).filter(Boolean).join(', ') || 'Teaching';
+                const requestStatus = teacher.requestStatus;
+
+                const teacherData = JSON.stringify({
+                    _id: teacher._id,
+                    name: teacher.name,
+                    email: teacher.email || ''
+                }).replace(/'/g, '&#39;');
+
+                let actionButton = '';
+
+                if (requestStatus === 'pending' || requestStatus === 'negotiating') {
+                    actionButton = `
+                        <button class="pending-btn" disabled>
+                            <i class="fas fa-clock"></i> Request Pending
+                        </button>
+                    `;
+                } else if (requestStatus === 'rejected') {
+                    actionButton = `
+                        <button class="request-btn" data-teacher='${teacherData}'>
+                            <i class="fas fa-calendar-plus"></i> Request Again
+                        </button>
+                    `;
+                } else {
+                    actionButton = `
+                        <button class="request-btn" data-teacher='${teacherData}'>
+                            <i class="fas fa-calendar-plus"></i> Request Session
+                        </button>
+                    `;
+                }
+
                 return `
-                    <div class="session-card-item rejected" data-request-id="${session._id}">
-                        <div class="session-card-header">
-                            <div class="session-teacher">
-                                <div class="session-avatar small" style="background: #fee2e2;">${teacherInitials}</div>
-                                <div class="session-info">
-                                    <h4>${escapeHtml(teacher.name)}</h4>
-                                    <span class="session-skill-tag">${session.skill?.name || 'Skill'}</span>
-                                </div>
+                    <div class="teacher-card" data-teacher-id="${teacher._id}">
+                        <div class="teacher-avatar" style="background: ${avatarColor}">
+                            ${initials}
+                        </div>
+
+                        <div class="teacher-info">
+                            <div class="teacher-name">${escapeHtml(teacher.name)}</div>
+                            <div class="teacher-skill">${escapeHtml(teachingSkills)}</div>
+                            <div class="teacher-bio">
+                                ${escapeHtml(teacher.bio?.substring(0, 100) || 'No bio added yet')}
+                                ${teacher.bio?.length > 100 ? '...' : ''}
                             </div>
-                            <div class="session-status rejected">
-                                <i class="fas fa-times-circle"></i> Rejected
+
+                            <div class="teacher-rating">
+                                <i class="fas fa-star" style="color: #fbbf24; font-size: 12px;"></i>
+                                <span class="rating-value">${teacher.rating || 0}</span>
+                                <span class="rating-max">/ 5.0</span>
+                                <span class="rating-count">(${teacher.totalReviews || 0} reviews)</span>
                             </div>
                         </div>
+
+                        <div class="teacher-actions">
+                            ${actionButton}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            bindTeacherButtons();
+        }
+
+        function appendTeachers(teachers) {
+            const container = document.getElementById('teachersList');
+
+            teachers.forEach(teacher => {
+                const initials = getInitials(teacher.name);
+                const avatarColor = `linear-gradient(135deg, ${getRandomColor(teacher._id)}, ${getRandomColor(teacher._id + '2')})`;
+                const teachingSkills = teacher.teachingSkills?.map(s => s.skill?.name || s.name).filter(Boolean).join(', ') || 'Teaching';
+                const requestStatus = teacher.requestStatus;
+
+                const teacherData = JSON.stringify({
+                    _id: teacher._id,
+                    name: teacher.name,
+                    email: teacher.email || ''
+                }).replace(/'/g, '&#39;');
+
+                let actionButton = '';
+
+                if (requestStatus === 'pending' || requestStatus === 'negotiating') {
+                    actionButton = `
+                        <button class="pending-btn" disabled>
+                            <i class="fas fa-clock"></i> Request Pending
+                        </button>
+                    `;
+                } else if (requestStatus === 'rejected') {
+                    actionButton = `
+                        <button class="request-btn" data-teacher='${teacherData}'>
+                            <i class="fas fa-calendar-plus"></i> Request Again
+                        </button>
+                    `;
+                } else {
+                    actionButton = `
+                        <button class="request-btn" data-teacher='${teacherData}'>
+                            <i class="fas fa-calendar-plus"></i> Request Session
+                        </button>
+                    `;
+                }
+
+                const html = `
+                    <div class="teacher-card" data-teacher-id="${teacher._id}">
+                        <div class="teacher-avatar" style="background: ${avatarColor}">
+                            ${initials}
+                        </div>
+
+                        <div class="teacher-info">
+                            <div class="teacher-name">${escapeHtml(teacher.name)}</div>
+                            <div class="teacher-skill">${escapeHtml(teachingSkills)}</div>
+                            <div class="teacher-bio">
+                                ${escapeHtml(teacher.bio?.substring(0, 100) || 'No bio added yet')}
+                                ${teacher.bio?.length > 100 ? '...' : ''}
+                            </div>
+                            <div class="teacher-rating">
+                                <i class="fas fa-star" style="color: #fbbf24; font-size: 12px;"></i>
+                                <span class="rating-value">${teacher.rating || 0}</span>
+                                <span class="rating-max">/ 5.0</span>
+                                <span class="rating-count">(${teacher.totalReviews || 0} reviews)</span>
+                            </div>
+                        </div>
+
+                        <div class="teacher-actions">
+                            ${actionButton}
+                        </div>
+                    </div>
+                `;
+
+                container.insertAdjacentHTML('beforeend', html);
+            });
+
+            bindTeacherButtons();
+        }
+
+        function bindTeacherButtons() {
+            document.querySelectorAll('.request-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    try {
+                        const teacherData = JSON.parse(btn.getAttribute('data-teacher'));
+                        openRequestModal(teacherData);
+                    } catch (error) {
+                        console.error('Error parsing teacher data:', error);
+                        showToast('Failed to open request form', 'error');
+                    }
+                };
+            });
+        }
+
+        async function fetchSessionRequests() {
+            try {
+                const response = await fetch('/api/learn/session-requests');
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.message || 'Failed to fetch requests');
+                }
+
+                const pending = data.data.pending || [];
+                const rejected = data.data.rejected || [];
+
+                renderPendingRequests(pending);
+                renderRejectedRequests(rejected);
+
+                document.getElementById('pendingCount').textContent = pending.length;
+                document.getElementById('rejectedCount').textContent = rejected.length;
+                document.getElementById('pendingOverviewCount').textContent = pending.length;
+                document.getElementById('rejectedOverviewCount').textContent = rejected.length;
+            } catch (error) {
+                console.error('Error fetching session requests:', error);
+                showToast('Failed to load requests', 'error');
+            }
+        }
+
+        async function fetchUpcomingSessions() {
+            try {
+                const response = await fetch('/api/learn/upcoming-sessions');
+                const data = await response.json();
+
+                if (!data.success) {
+                    throw new Error(data.message || 'Failed to fetch upcoming sessions');
+                }
+
+                const sessions = data.data || [];
+                renderUpcomingSessions(sessions);
+
+                document.getElementById('upcomingCount').textContent = sessions.length;
+                document.getElementById('upcomingOverviewCount').textContent = sessions.length;
+            } catch (error) {
+                console.error('Error fetching upcoming sessions:', error);
+                document.getElementById('upcomingSessionsList').innerHTML = `
+                    <div class="empty-sessions">
+                        <i class="fas fa-calendar-times"></i>
+                        <p>Could not load upcoming sessions</p>
+                        <small>Please refresh and try again</small>
+                    </div>
+                `;
+            }
+        }
+
+      function renderPendingRequests(pendingRequests) {
+    const container = document.getElementById('pendingSessionsList');
+
+    if (!pendingRequests || pendingRequests.length === 0) {
+        container.innerHTML = `
+            <div class="empty-sessions">
+                <i class="fas fa-hourglass-half"></i>
+                <p>No pending requests</p>
+                <small>Your new requests will appear here</small>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = pendingRequests.map(request => {
+        const teacher = request.teacher || {};
+        const initials = getInitials(teacher.name || 'T');
+        const statusText = request.status === 'negotiating' ? 'Negotiating' : 'Pending';
+        const messageText = request.teacherMessage || request.studentMessage || '';
+        const isStudentTurnWaiting = String(request.proposedBy) === String(currentUser.id);
+
+        let actionHtml = '';
+
+        if (request.status === 'pending') {
+            actionHtml = `
+                <div class="session-actions">
+                    <span class="waiting-note"><i class="fas fa-hourglass-half"></i> Waiting for teacher response</span>
+                    <button class="cancel-request-btn" data-request-id="${request._id}">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            `;
+        } else if (request.status === 'negotiating' && isStudentTurnWaiting) {
+            actionHtml = `
+                <div class="session-actions">
+                    <span class="waiting-note"><i class="fas fa-hourglass-half"></i> Waiting for teacher response</span>
+                    <button class="cancel-request-btn" data-request-id="${request._id}">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            `;
+        } else if (request.status === 'negotiating' && !isStudentTurnWaiting) {
+            actionHtml = `
+                <div class="session-actions student-negotiation-actions">
+                    <button class="accept-request-btn" data-request-id="${request._id}">
+                        <i class="fas fa-check-circle"></i> Accept
+                    </button>
+                    <button class="suggest-request-btn" data-request-id="${request._id}" data-duration="${request.duration || 60}">
+                        <i class="fas fa-calendar-alt"></i> Suggest Slot
+                    </button>
+                    <button class="cancel-request-btn" data-request-id="${request._id}">
+                        <i class="fas fa-times"></i> Reject
+                    </button>
+                </div>
+            `;
+        }
+
+        return `
+            <div class="session-card-item pending" data-request-id="${request._id}">
+                <div class="session-card-header">
+                    <div class="session-teacher">
+                        <div class="session-avatar small" style="background: ${getRandomColor(teacher._id || teacher.name || 'T')}">
+                            ${initials}
+                        </div>
+                        <div class="session-info">
+                            <h4>${escapeHtml(teacher.name || 'Teacher')}</h4>
+                            <span class="session-skill-tag">${escapeHtml(request.skill?.name || 'Skill')}</span>
+                        </div>
+                    </div>
+
+                    <div class="session-status pending">
+                        <i class="fas fa-hourglass-half"></i> ${statusText}
+                    </div>
+                </div>
+
+                <div class="session-details">
+                    <div class="session-detail-item">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>${formatDate(request.currentProposedDate)} at ${escapeHtml(request.currentStartTime || '--')}</span>
+                    </div>
+
+                    <div class="session-detail-item">
+                        <i class="fas fa-clock"></i>
+                        <span>${request.duration || 60} minutes</span>
+                    </div>
+
+                    <div class="session-detail-item">
+                        <i class="fas fa-coins"></i>
+                        <span>${request.proposedCredits || 0} credits</span>
+                    </div>
+
+                    ${messageText ? `
+                        <div class="request-note">
+                            <i class="fas fa-comment-alt"></i>
+                            <span>${escapeHtml(messageText)}</span>
+                        </div>
+                    ` : ''}
+
+                    ${actionHtml}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    document.querySelectorAll('.cancel-request-btn').forEach(btn => {
+        btn.onclick = async () => {
+            const requestId = btn.dataset.requestId;
+            await cancelSessionRequest(requestId);
+        };
+    });
+
+    document.querySelectorAll('.accept-request-btn').forEach(btn => {
+        btn.onclick = async () => {
+            await acceptNegotiatedRequest(btn.dataset.requestId);
+        };
+    });
+
+    document.querySelectorAll('.suggest-request-btn').forEach(btn => {
+        btn.onclick = () => {
+            openStudentSuggestModal(btn.dataset.requestId, btn.dataset.duration);
+        };
+    });
+}
+
+        function renderUpcomingSessions(sessions) {
+            const container = document.getElementById('upcomingSessionsList');
+
+            if (!sessions || sessions.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-sessions">
+                        <i class="fas fa-calendar-check"></i>
+                        <p>No upcoming sessions</p>
+                        <small>Accepted sessions will appear here</small>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = sessions.map(session => {
+                const teacher = session.teacher || {};
+                const initials = getInitials(teacher.name || 'T');
+                const teacherData = JSON.stringify({
+                    _id: teacher._id,
+                    name: teacher.name,
+                    email: teacher.email || ''
+                }).replace(/'/g, '&#39;');
+
+                const hasRoomId = !!session.roomId;
+                const hasJoinCode = !!session.joinCode;
+                const isOngoing = session.status === 'ongoing';
+                const isConfirmed = session.status === 'confirmed';
+
+                return `
+                    <div class="session-card-item accepted" data-session-id="${session._id}">
+                        <div class="session-card-header">
+                            <div class="session-teacher">
+                                <div class="session-avatar small" style="background: ${getRandomColor(teacher._id || teacher.name || 'T')}">
+                                    ${initials}
+                                </div>
+                                <div class="session-info">
+                                    <h4>${escapeHtml(teacher.name || 'Teacher')}</h4>
+                                    <span class="session-skill-tag">${escapeHtml(session.skill?.name || session.title || 'Session')}</span>
+                                </div>
+                            </div>
+
+                            <div class="session-status accepted">
+                                <i class="fas fa-check-circle"></i> ${isOngoing ? 'ONGOING' : 'UPCOMING'}
+                            </div>
+                        </div>
+
                         <div class="session-details">
                             <div class="session-detail-item">
                                 <i class="fas fa-calendar-alt"></i>
-                                <span>${formattedDate} at ${session.preferredTime}</span>
+                                <span>${formatDateTime(session.scheduledDate)}</span>
                             </div>
-                            ${session.teacherMessage ? `
-                                <div class="rejection-reason">
-                                    <i class="fas fa-info-circle"></i>
-                                    <span>Reason: ${escapeHtml(session.teacherMessage)}</span>
+
+                            ${session.duration ? `
+                                <div class="session-detail-item">
+                                    <i class="fas fa-clock"></i>
+                                    <span>${session.duration} minutes</span>
                                 </div>
                             ` : ''}
+
+                            ${hasRoomId || hasJoinCode ? `
+                                <div class="session-code-box">
+                                    ${hasRoomId ? `
+                                        <div class="code-row">
+                                            <span class="code-label">Session ID</span>
+                                            <span class="code-value">${escapeHtml(session.roomId)}</span>
+                                            <button class="copy-code-btn" data-code="${escapeHtml(session.roomId)}">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                    ` : ''}
+
+                                    ${hasJoinCode ? `
+                                        <div class="code-row">
+                                            <span class="code-label">Join Code</span>
+                                            <span class="code-value code-password">${escapeHtml(session.joinCode)}</span>
+                                            <button class="copy-code-btn" data-code="${escapeHtml(session.joinCode)}">
+                                                <i class="fas fa-copy"></i>
+                                            </button>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            ` : ''}
+
+                            ${isOngoing ? `
+                                <div class="session-join-section">
+                                    <button class="join-session-btn-main" data-session-id="${session._id}" data-session-title="${escapeHtml(session.title || 'Session')}">
+                                        <i class="fas fa-video"></i> Join Session Now
+                                    </button>
+                                </div>
+                            ` : isConfirmed ? `
+                                <div class="session-waiting">
+                                    <i class="fas fa-hourglass-half"></i>
+                                    <span>Session is scheduled. Join will open when teacher starts.</span>
+                                </div>
+                            ` : ''}
+
                             <div class="session-actions">
-                                <button class="delete-rejected-btn" data-request-id="${session._id}">
-                                    <i class="fas fa-trash-alt"></i> Remove from list
+                                <button class="chat-session-btn" data-teacher='${teacherData}'>
+                                    <i class="fas fa-comment-dots"></i> Chat
                                 </button>
                             </div>
                         </div>
                     </div>
                 `;
             }).join('');
-            
-            document.querySelectorAll('.delete-rejected-btn').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    e.stopPropagation();
-                    const requestId = btn.dataset.requestId;
-                    if (confirm('Remove this rejected request from your list?')) {
-                        await deleteRejectedRequest(requestId);
-                    }
-                });
+
+            document.querySelectorAll('.copy-code-btn').forEach(btn => {
+                btn.onclick = async () => {
+                    const code = btn.dataset.code;
+                    if (!code) return;
+                    await navigator.clipboard.writeText(code);
+                    showToast('Copied to clipboard', 'success');
+                };
+            });
+
+            document.querySelectorAll('.chat-session-btn').forEach(btn => {
+                btn.onclick = () => {
+                    const teacher = JSON.parse(btn.getAttribute('data-teacher'));
+                    openChat(teacher);
+                };
+            });
+
+            document.querySelectorAll('.join-session-btn-main').forEach(btn => {
+                btn.onclick = () => {
+                    openJoinSessionModal(btn.dataset.sessionId, btn.dataset.sessionTitle);
+                };
             });
         }
-        
+
+        function renderRejectedRequests(rejectedRequests) {
+            const container = document.getElementById('rejectedSessionsList');
+
+            if (!rejectedRequests || rejectedRequests.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-sessions">
+                        <i class="fas fa-ban"></i>
+                        <p>No rejected requests</p>
+                        <small>Rejected items will appear here</small>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = rejectedRequests.map(request => {
+                const teacher = request.teacher || {};
+                const initials = getInitials(teacher.name || 'T');
+
+                return `
+                    <div class="session-card-item rejected" data-request-id="${request._id}">
+                        <div class="session-card-header">
+                            <div class="session-teacher">
+                                <div class="session-avatar small" style="background: #fee2e2; color: #ef4444;">
+                                    ${initials}
+                                </div>
+                                <div class="session-info">
+                                    <h4>${escapeHtml(teacher.name || 'Teacher')}</h4>
+                                    <span class="session-skill-tag">${escapeHtml(request.skill?.name || 'Skill')}</span>
+                                </div>
+                            </div>
+
+                            <div class="session-status rejected">
+                                <i class="fas fa-times-circle"></i> Rejected
+                            </div>
+                        </div>
+
+                        <div class="session-details">
+                            <div class="session-detail-item">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>${formatDate(request.currentProposedDate || request.preferredDate)} at ${escapeHtml(request.currentStartTime || request.preferredTime || '--')}</span>
+                            </div>
+
+                            ${request.teacherMessage ? `
+                                <div class="rejection-reason">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>${escapeHtml(request.teacherMessage)}</span>
+                                </div>
+                            ` : ''}
+
+                            <div class="session-actions">
+                                <button class="delete-rejected-btn" data-request-id="${request._id}">
+                                    <i class="fas fa-trash-alt"></i> Remove
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.querySelectorAll('.delete-rejected-btn').forEach(btn => {
+                btn.onclick = async () => {
+                    const requestId = btn.dataset.requestId;
+                    await deleteRejectedRequest(requestId);
+                };
+            });
+        }
+
+        async function cancelSessionRequest(requestId) {
+            const confirmed = confirm('Cancel this request?');
+            if (!confirmed) return;
+
+            try {
+                const response = await fetch(`/api/learn/session-requests/${requestId}/cancel`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Request cancelled', 'success');
+                    await refreshRightPanel();
+                    await fetchTeachers(currentSearchTerm, 1, false);
+                } else {
+                    showToast(data.message || 'Failed to cancel request', 'error');
+                }
+            } catch (error) {
+                console.error('Cancel request error:', error);
+                showToast('Failed to cancel request', 'error');
+            }
+        }
+
+        function openStudentSuggestModal(requestId, duration) {
+    let modal = document.getElementById('studentSuggestModal');
+
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'studentSuggestModal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3><i class="fas fa-calendar-alt"></i> Suggest New Slot</h3>
+                    <button class="close-modal" id="closeStudentSuggestModalBtn">&times;</button>
+                </div>
+
+                <form id="studentSuggestForm" class="modal-form">
+                    <input type="hidden" id="studentSuggestRequestId">
+
+                    <div class="form-group">
+                        <label>Proposed Date *</label>
+                        <input type="date" id="studentSuggestDate" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Proposed Start Time *</label>
+                        <input type="time" id="studentSuggestTime" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Message</label>
+                        <textarea id="studentSuggestMessage" rows="3" placeholder="Explain your counter offer"></textarea>
+                    </div>
+
+                    <button type="submit" class="submit-request-btn">Send Counter Offer</button>
+                </form>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        document.getElementById('closeStudentSuggestModalBtn').onclick = () => modal.classList.remove('show');
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.classList.remove('show');
+        });
+
+        document.getElementById('studentSuggestForm').addEventListener('submit', submitStudentCounterOffer);
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    document.getElementById('studentSuggestRequestId').value = requestId;
+    document.getElementById('studentSuggestDate').min = today.toISOString().split('T')[0];
+
+    modal.classList.add('show');
+}
+
+async function submitStudentCounterOffer(e) {
+    e.preventDefault();
+
+    const requestId = document.getElementById('studentSuggestRequestId').value;
+
+    const payload = {
+        proposedDate: document.getElementById('studentSuggestDate').value,
+        proposedStartTime: document.getElementById('studentSuggestTime').value,
+        duration: 60,
+        message: document.getElementById('studentSuggestMessage').value.trim()
+    };
+
+    try {
+        const response = await fetch(`/api/learn/session-requests/${requestId}/suggest`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Counter offer sent', 'success');
+            document.getElementById('studentSuggestModal').classList.remove('show');
+            document.getElementById('studentSuggestForm').reset();
+            await refreshRightPanel();
+            await fetchTeachers(currentSearchTerm, 1, false);
+        } else {
+            showToast(data.message || 'Failed to send counter offer', 'error');
+        }
+    } catch (error) {
+        console.error(error);
+        showToast('Failed to send counter offer', 'error');
+    }
+}
+
+async function acceptNegotiatedRequest(requestId) {
+    try {
+        const response = await fetch(`/api/learn/session-requests/${requestId}/accept`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Session confirmed successfully', 'success');
+            await refreshRightPanel();
+            await fetchTeachers(currentSearchTerm, 1, false);
+        } else {
+            showToast(data.message || 'Failed to confirm request', 'error');
+        }
+    } catch (error) {
+        console.error(error);
+        showToast('Failed to confirm request', 'error');
+    }
+}
+
         async function deleteRejectedRequest(requestId) {
+            const confirmed = confirm('Remove this rejected request from list?');
+            if (!confirmed) return;
+
             try {
                 const response = await fetch(`/api/learn/session-requests/${requestId}/delete`, {
                     method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' }
                 });
-                
+
                 const data = await response.json();
-                
+
                 if (data.success) {
-                    showToast('Request removed from list', 'success');
-                    const element = document.querySelector(`.session-card-item.rejected[data-request-id="${requestId}"]`);
-                    if (element) {
-                        element.remove();
-                    }
-                    const remainingRejected = document.querySelectorAll('.session-card-item.rejected').length;
-                    document.getElementById('rejectedCount').textContent = remainingRejected;
+                    showToast('Removed from list', 'success');
+                    await refreshRightPanel();
+                    await fetchTeachers(currentSearchTerm, 1, false);
                 } else {
-                    showToast(data.message || 'Failed to remove', 'error');
+                    showToast(data.message || 'Failed to remove request', 'error');
                 }
             } catch (error) {
-                console.error('Error deleting rejected request:', error);
+                console.error('Delete rejected request error:', error);
                 showToast('Failed to remove request', 'error');
             }
         }
-        
+
+        function openRequestModal(teacher) {
+            if (!teacher || !teacher._id) {
+                showToast('Invalid teacher selected', 'error');
+                return;
+            }
+
+            currentChatTeacher = teacher;
+
+            document.getElementById('requestTeacherId').value = teacher._id;
+            document.getElementById('requestTeacherName').textContent = teacher.name || 'Teacher';
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            document.getElementById('requestDate').min = today.toISOString().split('T')[0];
+
+            document.getElementById('requestModal').classList.add('show');
+        }
+
+        async function submitSessionRequest(e) {
+            e.preventDefault();
+
+            const requestData = {
+                teacherId: document.getElementById('requestTeacherId').value,
+                skillName: document.getElementById('requestSkillName').value.trim(),
+                title: document.getElementById('requestTitle').value.trim(),
+                description: document.getElementById('requestDescription').value.trim(),
+                preferredDate: document.getElementById('requestDate').value,
+                preferredTime: document.getElementById('requestTime').value,
+                duration: 60,
+                proposedCredits: 0
+            };
+
+            if (!requestData.teacherId || !requestData.skillName || !requestData.title || !requestData.preferredDate || !requestData.preferredTime) {
+                showToast('Please fill all required fields', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/learn/session-request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showToast('Session request sent successfully', 'success');
+                    document.getElementById('requestModal').classList.remove('show');
+                    document.getElementById('sessionRequestForm').reset();
+
+                    await refreshRightPanel();
+                    await fetchTeachers(currentSearchTerm, 1, false);
+                } else {
+                    showToast(data.message || 'Failed to send request', 'error');
+                }
+            } catch (error) {
+                console.error('Send request error:', error);
+                showToast('Failed to send request', 'error');
+            }
+        }
+
         function openJoinSessionModal(sessionId, sessionTitle) {
             let modal = document.getElementById('joinSessionModal');
+
             if (!modal) {
                 modal = document.createElement('div');
                 modal.id = 'joinSessionModal';
@@ -745,317 +1128,182 @@
                 modal.innerHTML = `
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h3><i class="fas fa-video"></i> Join Session: ${escapeHtml(sessionTitle)}</h3>
+                            <h3><i class="fas fa-video"></i> Join Session: <span id="joinSessionTitleText"></span></h3>
                             <button class="close-modal" id="closeJoinModalBtn">&times;</button>
                         </div>
-                        <div class="modal-body">
+
+                        <div class="modal-body join-modal-body">
                             <p class="join-instruction">Enter the session credentials provided by your teacher:</p>
+
                             <div class="form-group">
                                 <label><i class="fas fa-key"></i> Session ID *</label>
-                                <input type="text" id="joinRoomId" placeholder="Enter the Session ID" required>
-                                <small>The teacher shared this ID with you</small>
+                                <input type="text" id="joinRoomId" placeholder="Enter Session ID">
                             </div>
+
                             <div class="form-group">
                                 <label><i class="fas fa-lock"></i> Join Code *</label>
-                                <input type="text" id="joinCode" placeholder="Enter the 6-digit join code" required maxlength="6">
-                                <small>6-digit code from your teacher</small>
+                                <input type="text" id="joinCode" placeholder="Enter Join Code" maxlength="6">
                             </div>
+
                             <div class="info-note">
                                 <i class="fas fa-info-circle"></i>
-                                <strong>Need both credentials!</strong> You must enter BOTH the Session ID and Join Code to join the session.
+                                You need both Session ID and Join Code to join.
                             </div>
+
                             <div class="session-warning-note">
-                           ⚠️ Session must be at least <strong>35 minutes</strong> to be valid
+                                ⚠️ Session must be at least <strong>35 minutes</strong> to be valid
                             </div>
-                        </div>
-                        <div class="modal-actions">
-                            <button class="cancel-join-btn" id="cancelJoinBtn">Cancel</button>
-                            <button class="submit-join-btn" id="submitJoinBtn">
-                                <i class="fas fa-video"></i> Verify & Join
-                            </button>
+
+                            <div class="modal-actions">
+                                <button class="cancel-join-btn" id="cancelJoinBtn">Cancel</button>
+                                <button class="submit-join-btn" id="submitJoinBtn">
+                                    <i class="fas fa-video"></i> Verify & Join
+                                </button>
+                            </div>
                         </div>
                     </div>
-                     
                 `;
+
                 document.body.appendChild(modal);
-                
-                const closeBtn = document.getElementById('closeJoinModalBtn');
-                const cancelBtn = document.getElementById('cancelJoinBtn');
-                
-                if (closeBtn) {
-                    closeBtn.addEventListener('click', () => {
-                        modal.classList.remove('show');
-                    });
-                }
-                if (cancelBtn) {
-                    cancelBtn.addEventListener('click', () => {
-                        modal.classList.remove('show');
-                    });
-                }
-                
+
+                document.getElementById('closeJoinModalBtn').onclick = () => modal.classList.remove('show');
+                document.getElementById('cancelJoinBtn').onclick = () => modal.classList.remove('show');
+
                 modal.addEventListener('click', (e) => {
                     if (e.target === modal) modal.classList.remove('show');
                 });
             }
-            
-            const modalTitle = modal.querySelector('h3');
-            if (modalTitle) {
-                modalTitle.innerHTML = `<i class="fas fa-video"></i> Join Session: ${escapeHtml(sessionTitle)}`;
-            }
-            
+
+            document.getElementById('joinSessionTitleText').textContent = sessionTitle || 'Session';
             document.getElementById('joinRoomId').value = '';
             document.getElementById('joinCode').value = '';
-            
             modal.classList.add('show');
-            
+
             const submitBtn = document.getElementById('submitJoinBtn');
-            const handleJoin = async () => {
+
+            submitBtn.onclick = async () => {
                 const roomId = document.getElementById('joinRoomId').value.trim();
                 const joinCode = document.getElementById('joinCode').value.trim();
-                
+
                 if (!roomId || !joinCode) {
                     showToast('Please enter both Session ID and Join Code', 'error');
                     return;
                 }
-                
-                if (joinCode.length !== 6) {
-                    showToast('Join Code must be 6 characters', 'error');
-                    return;
-                }
-                
+
                 submitBtn.disabled = true;
                 submitBtn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Validating...';
-                
+
                 try {
                     const response = await fetch(`/meeting/api/validate/${sessionId}?roomId=${encodeURIComponent(roomId)}&joinCode=${encodeURIComponent(joinCode)}`);
                     const data = await response.json();
-                    
+
                     if (data.success) {
                         modal.classList.remove('show');
-                        showToast('Credentials verified! Joining session...', 'success');
+                        showToast('Joining session...', 'success');
                         window.location.href = `/meeting/join/${sessionId}`;
                     } else {
-                        showToast(data.message || 'Invalid session credentials. Please check and try again.', 'error');
+                        showToast(data.message || 'Invalid session credentials', 'error');
                     }
                 } catch (error) {
-                    console.error('Error validating session:', error);
-                    showToast('Failed to validate session. Please try again.', 'error');
+                    console.error('Join validation error:', error);
+                    showToast('Failed to validate session', 'error');
                 } finally {
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '<i class="fas fa-video"></i> Verify & Join';
                 }
             };
-            
-            submitBtn.onclick = handleJoin;
-            
-            const roomIdInput = document.getElementById('joinRoomId');
-            const codeInput = document.getElementById('joinCode');
-            
-            roomIdInput.onkeypress = (e) => {
-                if (e.key === 'Enter') handleJoin();
-            };
-            codeInput.onkeypress = (e) => {
-                if (e.key === 'Enter') handleJoin();
-            };
         }
-        
-        function openRequestModal(teacher) {
 
-              if (!teacher || !teacher._id) {
-        showToast('Invalid teacher data', 'error');
-        console.error('Teacher data missing _id:', teacher);
-        return;
-    }
-     
-            currentChatTeacher = teacher;
-            document.getElementById('requestTeacherId').value = teacher._id;
-            document.getElementById('requestTeacherName').textContent = teacher.name;
-            
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            document.getElementById('requestDate').min = today.toISOString().split('T')[0];
-            
-            document.getElementById('requestModal').classList.add('show');
-        }
-        
-        document.getElementById('sessionRequestForm')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const requestData = {
-                teacherId: document.getElementById('requestTeacherId').value,
-                skillName: document.getElementById('requestSkillName').value,
-                title: document.getElementById('requestTitle').value,
-                description: document.getElementById('requestDescription').value,
-                preferredDate: document.getElementById('requestDate').value,
-                preferredTime: document.getElementById('requestTime').value,
-                duration: 60,
-                proposedCredits: 0
-            };
-            
-            if (!requestData.skillName || !requestData.title || !requestData.preferredDate || !requestData.preferredTime) {
-                showToast('Please fill all required fields', 'error');
+        async function openChat(teacher) {
+            if (!teacher || !teacher._id) {
+                showToast('Invalid teacher data', 'error');
                 return;
             }
-            
+
+            currentChatTeacher = teacher;
+
             try {
-                const response = await fetch('/api/learn/session-request', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(requestData)
-                });
-                
+                const checkResponse = await fetch(`/api/learn/chat/check/${teacher._id}`);
+                const checkData = await checkResponse.json();
+
+                if (!checkData.success || !checkData.data.canChat) {
+                    showToast(checkData.data?.message || 'Chat not available right now', 'error');
+                    return;
+                }
+
+                const response = await fetch(`/api/learn/chat/conversation/${teacher._id}`);
                 const data = await response.json();
-                
-                if (data.success) {
-                    showToast('Session request sent successfully!', 'success');
-                    document.getElementById('requestModal').classList.remove('show');
-                    document.getElementById('sessionRequestForm').reset();
-                    fetchSessionRequests();
-                    fetchTeachers(currentSearchTerm, 1, false);
-                } else {
-                    showToast(data.message || 'Failed to send request', 'error');
+
+                if (!data.success) {
+                    throw new Error(data.message || 'Failed to load chat');
+                }
+
+                currentConversationId = data.data.conversation._id;
+                renderChatMessages(data.data.messages || [], teacher.name);
+
+                document.getElementById('chatUserName').textContent = teacher.name || 'Teacher';
+                document.getElementById('chatModal').classList.add('show');
+
+                if (socket) {
+                    socket.emit('join_conversation', currentConversationId);
                 }
             } catch (error) {
-                console.error('Error sending request:', error);
-                showToast('Failed to send request', 'error');
+                console.error('Open chat error:', error);
+                showToast('Failed to load chat', 'error');
             }
-        });
-        
-      // Chat Functions - FIXED
-async function openChat(teacher) {
-    console.log('Opening chat for teacher:', teacher);
-    
-    // Make sure teacher has _id
-    if (!teacher || !teacher._id) {
-        showToast('Invalid teacher data', 'error');
-        console.error('Teacher data missing _id:', teacher);
-        return;
-    }
-    
-    currentChatTeacher = teacher;
-    
-    // Check if chat is allowed
-    try {
-        const checkResponse = await fetch(`/api/learn/chat/check/${teacher._id}`);
-        const checkData = await checkResponse.json();
-        
-        if (!checkData.success || !checkData.data.canChat) {
-            showToast(checkData.data?.message || 'You can only chat with teachers who have accepted your session request', 'error');
-            return;
         }
-    } catch (error) {
-        console.error('Error checking chat access:', error);
-        showToast('Cannot access chat at this time', 'error');
-        return;
-    }
-    
-    // Get or create conversation
-    try {
-        const response = await fetch(`/api/learn/chat/conversation/${teacher._id}`);
-        const data = await response.json();
-        
-        if (data.success) {
-            currentConversationId = data.data.conversation._id;
-            renderChatMessages(data.data.messages, teacher.name);
-            
-            const modal = document.getElementById('chatModal');
-            const userNameSpan = document.getElementById('chatUserName');
-            if (userNameSpan) {
-                userNameSpan.textContent = teacher.name;
-            }
-            modal.classList.add('show');
-            
-            if (socket) {
-                socket.emit('join_conversation', currentConversationId);
-            }
-        } else {
-            showToast(data.message || 'Failed to load conversation', 'error');
-        }
-    } catch (error) {
-        console.error('Error opening chat:', error);
-        showToast('Failed to load chat', 'error');
-    }
-}
-        
+
         function renderChatMessages(messages, otherUserName) {
             const container = document.getElementById('chatMessages');
-            
+
             if (!messages || messages.length === 0) {
-                container.innerHTML = `<div class="chat-message system">
-                    <div class="message-bubble"><i class="fas fa-comment"></i> Start chatting with ${escapeHtml(otherUserName || 'the user')}!</div>
-                </div>`;
+                container.innerHTML = `
+                    <div class="chat-message system">
+                        <div class="message-bubble">
+                            <i class="fas fa-comment"></i> Start chatting with ${escapeHtml(otherUserName || 'teacher')}
+                        </div>
+                    </div>
+                `;
                 return;
             }
-            
+
             container.innerHTML = messages.map(msg => {
                 const isCurrentUser = msg.sender && msg.sender._id === currentUser.id;
                 const senderName = msg.sender ? escapeHtml(msg.sender.name) : 'Unknown';
                 const content = escapeHtml(msg.content);
                 const time = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                const messageId = msg._id;
-                
                 const messageClass = isCurrentUser ? 'sent' : 'received';
-                
-                const deleteButton = isCurrentUser ? `
-                    <div class="message-actions">
-                        <button class="delete-message-btn" onclick="deleteMessage('${messageId}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                ` : '';
-                
+
                 return `
-                    <div class="chat-message ${messageClass}" data-message-id="${messageId}">
+                    <div class="chat-message ${messageClass}" data-message-id="${msg._id}">
                         <div class="message-bubble">
                             ${!isCurrentUser ? `<div class="message-sender">${senderName}</div>` : ''}
                             <div class="message-content">${content}</div>
                             <div class="message-time">${time}</div>
-                            ${deleteButton}
+                            ${isCurrentUser ? `
+                                <div class="message-actions">
+                                    <button class="delete-message-btn" onclick="deleteMessage('${msg._id}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            ` : ''}
                         </div>
                     </div>
                 `;
             }).join('');
-            
+
             container.scrollTop = container.scrollHeight;
         }
-        
-        async function deleteMessage(messageId) {
-            if (!confirm('Are you sure you want to delete this message?')) {
-                return;
-            }
-            
-            try {
-                const response = await fetch(`/api/learn/chat/message/${messageId}`, {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    const messageElement = document.querySelector(`.chat-message[data-message-id="${messageId}"]`);
-                    if (messageElement) {
-                        messageElement.remove();
-                        showToast('Message deleted successfully', 'success');
-                    }
-                } else {
-                    showToast(data.message || 'Failed to delete message', 'error');
-                }
-            } catch (error) {
-                console.error('Error deleting message:', error);
-                showToast('Failed to delete message', 'error');
-            }
-        }
-        
+
         async function sendChatMessage() {
             const input = document.getElementById('chatInput');
             const message = input.value.trim();
-            
-            if (!message || !currentChatTeacher) return;
-            
+
+            if (!message || !currentChatTeacher?._id) return;
+
             const sendBtn = document.getElementById('sendMessageBtn');
             if (sendBtn) sendBtn.disabled = true;
-            
+
             try {
                 const response = await fetch('/api/learn/chat/message', {
                     method: 'POST',
@@ -1066,42 +1314,77 @@ async function openChat(teacher) {
                         type: 'text'
                     })
                 });
-                
+
                 const data = await response.json();
-                
-                if (data.success) {
-                    const container = document.getElementById('chatMessages');
-                    const messageDiv = document.createElement('div');
-                    messageDiv.className = 'chat-message sent';
-                    messageDiv.setAttribute('data-message-id', data.data._id);
-                    messageDiv.innerHTML = `
-                        <div class="message-bubble">
-                            <div class="message-content">${escapeHtml(message)}</div>
-                            <div class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                            <div class="message-actions">
-                                <button class="delete-message-btn" onclick="deleteMessage('${data.data._id}')">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                    `;
-                    container.appendChild(messageDiv);
-                    container.scrollTop = container.scrollHeight;
-                    input.value = '';
-                } else {
-                    showToast(data.message || 'Failed to send message', 'error');
+
+                if (!data.success) {
+                    throw new Error(data.message || 'Failed to send message');
                 }
+
+                input.value = '';
+
+                const container = document.getElementById('chatMessages');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'chat-message sent';
+                messageDiv.setAttribute('data-message-id', data.data._id);
+                messageDiv.innerHTML = `
+                    <div class="message-bubble">
+                        <div class="message-content">${escapeHtml(message)}</div>
+                        <div class="message-time">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        <div class="message-actions">
+                            <button class="delete-message-btn" onclick="deleteMessage('${data.data._id}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                container.appendChild(messageDiv);
+                container.scrollTop = container.scrollHeight;
             } catch (error) {
-                console.error('Error sending message:', error);
+                console.error('Send message error:', error);
                 showToast('Failed to send message', 'error');
             } finally {
                 if (sendBtn) sendBtn.disabled = false;
                 input.focus();
             }
         }
-        
+
+        async function deleteMessage(messageId) {
+            const confirmed = confirm('Delete this message?');
+            if (!confirmed) return;
+
+            try {
+                const response = await fetch(`/api/learn/chat/message/${messageId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const el = document.querySelector(`.chat-message[data-message-id="${messageId}"]`);
+                    if (el) el.remove();
+                    showToast('Message deleted', 'success');
+                } else {
+                    showToast(data.message || 'Failed to delete message', 'error');
+                }
+            } catch (error) {
+                console.error('Delete message error:', error);
+                showToast('Failed to delete message', 'error');
+            }
+        }
+
+        async function refreshRightPanel() {
+            await Promise.all([
+                fetchSessionRequests(),
+                fetchUpcomingSessions()
+            ]);
+        }
+
         function setupInfiniteScroll() {
             const container = document.getElementById('teachersContainer');
+
             container.addEventListener('scroll', () => {
                 if (container.scrollTop + container.clientHeight >= container.scrollHeight - 100) {
                     if (hasMore && !isLoading) {
@@ -1111,125 +1394,134 @@ async function openChat(teacher) {
                 }
             });
         }
-        
+
         function setupSearch() {
             const searchInput = document.getElementById('searchInput');
             let debounceTimer;
-            
+
             searchInput.addEventListener('input', (e) => {
                 clearTimeout(debounceTimer);
                 debounceTimer = setTimeout(() => {
-                    currentSearchTerm = e.target.value;
+                    currentSearchTerm = e.target.value.trim();
                     currentPage = 1;
                     fetchTeachers(currentSearchTerm, 1, false);
                 }, 300);
             });
         }
-        
-        function initSocket() {
+
+        function setupSocket() {
             socket = io();
-            
+
             socket.on('connect', () => {
                 console.log('Socket connected');
-                socket.emit('register_user', currentUser.id);
-            });
-            
-            socket.on('new_message', (data) => {
-                if (currentConversationId === data.conversationId) {
-                    const container = document.getElementById('chatMessages');
-                    const message = data.message;
-                    const isCurrentUser = message.sender && message.sender._id === currentUser.id;
-                    
-                    if (document.querySelector(`.chat-message[data-message-id="${message._id}"]`)) {
-                        return;
-                    }
-                    
-                    const messageDiv = document.createElement('div');
-                    messageDiv.className = `chat-message ${isCurrentUser ? 'sent' : 'received'}`;
-                    messageDiv.setAttribute('data-message-id', message._id);
-                    
-                    const deleteButton = isCurrentUser ? `
-                        <div class="message-actions">
-                            <button class="delete-message-btn" onclick="deleteMessage('${message._id}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    ` : '';
-                    
-                    messageDiv.innerHTML = `
-                        <div class="message-bubble">
-                            ${!isCurrentUser ? `<div class="message-sender">${escapeHtml(message.sender.name)}</div>` : ''}
-                            <div class="message-content">${escapeHtml(message.content)}</div>
-                            <div class="message-time">${new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-                            ${deleteButton}
-                        </div>
-                    `;
-                    container.appendChild(messageDiv);
-                    container.scrollTop = container.scrollHeight;
+                if (currentUser.id) {
+                    socket.emit('register_user', currentUser.id);
                 }
             });
-            
-            socket.on('session_started', (data) => {
-                console.log('Session started:', data);
-                showToast(`Session "${data.sessionTitle}" has started! You can now join.`, 'success');
-                fetchSessionRequests();
+
+            socket.on('new_message', (data) => {
+                if (currentConversationId !== data.conversationId) return;
+
+                const message = data.message;
+                if (document.querySelector(`.chat-message[data-message-id="${message._id}"]`)) return;
+
+                const container = document.getElementById('chatMessages');
+                const isCurrentUser = message.sender && message.sender._id === currentUser.id;
+
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `chat-message ${isCurrentUser ? 'sent' : 'received'}`;
+                messageDiv.setAttribute('data-message-id', message._id);
+                messageDiv.innerHTML = `
+                    <div class="message-bubble">
+                        ${!isCurrentUser ? `<div class="message-sender">${escapeHtml(message.sender.name)}</div>` : ''}
+                        <div class="message-content">${escapeHtml(message.content)}</div>
+                        <div class="message-time">${new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        ${isCurrentUser ? `
+                            <div class="message-actions">
+                                <button class="delete-message-btn" onclick="deleteMessage('${message._id}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+
+                container.appendChild(messageDiv);
+                container.scrollTop = container.scrollHeight;
+            });
+
+            socket.on('session_started', async () => {
+                showToast('Your session has started. You can join now.', 'success');
+                await refreshRightPanel();
+            });
+
+            socket.on('session_request_updated', async () => {
+                await refreshRightPanel();
+                await fetchTeachers(currentSearchTerm, 1, false);
+            });
+
+            socket.on('session_confirmed', async () => {
+                await refreshRightPanel();
+                await fetchTeachers(currentSearchTerm, 1, false);
+            });
+
+            socket.on('session_rejected', async () => {
+                await refreshRightPanel();
+                await fetchTeachers(currentSearchTerm, 1, false);
             });
         }
-        
-        async function init() {
-            if (currentUser.name) {
-                console.log('Logged in as:', currentUser.name);
-            }
-            
-            initSocket();
-            
-            await fetchCredits();
-            await fetchSkills();
-            await fetchTeachers('', 1, false);
-            await fetchSessionRequests();
-            
-            setupSearch();
-            setupInfiniteScroll();
-            
-            document.getElementById('addCreditsBtn')?.addEventListener('click', () => {
-                window.location.href = '/store';
-            });
-            
+
+        function setupModalClosing() {
             document.getElementById('closeRequestModalBtn')?.addEventListener('click', () => {
                 document.getElementById('requestModal').classList.remove('show');
-                document.getElementById('sessionRequestForm')?.reset();
+                document.getElementById('sessionRequestForm').reset();
             });
-            
-            document.getElementById('sendMessageBtn')?.addEventListener('click', sendChatMessage);
-            document.getElementById('chatInput')?.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') sendChatMessage();
-            });
-            
-            document.getElementById('closeChatModalBtn')?.addEventListener('click', () => {
-                document.getElementById('chatModal').classList.remove('show');
-                if (socket && currentConversationId) {
-                    socket.emit('leave_conversation', currentConversationId);
-                    currentConversationId = null;
-                }
-            });
-            
-            document.getElementById('chatModal')?.addEventListener('click', (e) => {
-                if (e.target === document.getElementById('chatModal')) {
-                    document.getElementById('chatModal').classList.remove('show');
-                    if (socket && currentConversationId) {
-                        socket.emit('leave_conversation', currentConversationId);
-                        currentConversationId = null;
-                    }
-                }
-            });
-            
+
             document.getElementById('requestModal')?.addEventListener('click', (e) => {
                 if (e.target === document.getElementById('requestModal')) {
                     document.getElementById('requestModal').classList.remove('show');
                 }
             });
+
+            document.getElementById('closeChatModalBtn')?.addEventListener('click', closeChatModal);
+            document.getElementById('chatModal')?.addEventListener('click', (e) => {
+                if (e.target === document.getElementById('chatModal')) {
+                    closeChatModal();
+                }
+            });
         }
-        
+
+        function closeChatModal() {
+            document.getElementById('chatModal').classList.remove('show');
+
+            if (socket && currentConversationId) {
+                socket.emit('leave_conversation', currentConversationId);
+            }
+
+            currentConversationId = null;
+        }
+
+        async function init() {
+            setupSocket();
+            setupSearch();
+            setupInfiniteScroll();
+            setupModalClosing();
+
+            document.getElementById('sessionRequestForm')?.addEventListener('submit', submitSessionRequest);
+            document.getElementById('sendMessageBtn')?.addEventListener('click', sendChatMessage);
+            document.getElementById('chatInput')?.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendChatMessage();
+            });
+
+            document.getElementById('addCreditsBtn')?.addEventListener('click', () => {
+                window.location.href = '/store';
+            });
+
+            await fetchCredits();
+            await fetchTeachers('', 1, false);
+            await refreshRightPanel();
+        }
+
         document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>

@@ -3,281 +3,390 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Learner Dashboard | skiLLup</title>
+    <title>skiLLup - Learn. Teach. Grow.</title>
+
     <link rel="stylesheet" href="/index.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-    <div class="dashboard-container">
-        <!-- Sidebar Navigation -->
-        <aside class="sidebar">
-            <div class="profile-section">
-                <div class="avatar">
-                    <i class="fas fa-user-circle"></i>
-                </div>
-                <% if (user) { %>
-                    <h2 class="user-name"><%= user.name %></h2>
-                    <span class="user-role"><%= user.role === 'admin' ? 'Administrator' : 'Learner' %></span>
-                <% } else { %>
-                    <h2 class="user-name">Guest User</h2>
-                    <span class="user-role">Visitor</span>
-                <% } %>
-            </div>
-            
-            <nav class="nav-menu">
-                <a href="/" class="nav-item active">
-                    <i class="fas fa-graduation-cap"></i>
-                    <span>Learn</span>
+    <div class="page-wrapper">
+        <!-- Navbar -->
+        <header class="navbar">
+            <div class="container nav-inner">
+                <a href="/" class="logo">
+                    <div class="logo-icon">S</div>
+                    <span>skiLLup</span>
                 </a>
-                <a href="/skills" class="nav-item">
-                    <i class="fas fa-chalkboard-user"></i>
-                    <span>Teach</span>
-                </a>
-                <a href="/roadmap" class="nav-item">
-                    <i class="fas fa-map"></i>
-                    <span>Roadmap</span>
-                </a>
-                <a href="/history" class="nav-item">
-                    <i class="fas fa-history"></i>
-                    <span>History</span>
-                </a>
-                <a href="/store" class="nav-item">
-                    <i class="fas fa-store"></i>
-                    <span>Store</span>
-                </a>
-                <% if (user && user.role === 'admin') { %>
-                <a href="/admin" class="nav-item">
-                    <i class="fas fa-shield-alt"></i>
-                    <span>Admin Panel</span>
-                </a>
-                <% } %>
-            </nav>
-            
-            <div class="sidebar-footer">
-                <a href="/settings" class="nav-item">
-                    <i class="fas fa-cog"></i>
-                    <span>Settings</span>
-                </a>
-                <% if (user) { %>
-                    <a href="/auth/logout" class="nav-item logout">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span>Logout</span>
-                    </a>
-                <% } else { %>
-                    <div class="auth-buttons-sidebar">
-                        <a href="/auth/login" class="btn-login-sidebar">Login</a>
-                        <a href="/auth/register" class="btn-register-sidebar">Register</a>
-                    </div>
-                <% } %>
-            </div>
-        </aside>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Top Bar with Auth Buttons for Mobile/Desktop -->
-            <div class="top-bar">
-                <div class="search-section">
-                    <div class="search-bar">
-                        <i class="fas fa-search"></i>
-                        <input type="text" placeholder="Search skills, teachers, or resources..." class="search-input">
-                    </div>
+                <nav class="nav-links">
+                    <a href="#features">Features</a>
+                    <a href="#roles">How it Works</a>
+                    <a href="#roadmap">Roadmaps</a>
+                    <a href="#faq">FAQ</a>
+                </nav>
+
+                <div class="nav-actions">
+                    <% if (typeof user !== 'undefined' && user) { %>
+                        <a href="/learn" class="btn btn-light">Dashboard</a>
+                    <% } else { %>
+                        <a href="/login" class="btn btn-light">Login</a>
+                        <a href="/register" class="btn btn-primary">Get Started</a>
+                    <% } %>
                 </div>
-                
-                <% if (!user) { %>
-                <div class="auth-buttons-top">
-                    <a href="/auth/login" class="btn-login-top">Login</a>
-                    <a href="/auth/register" class="btn-register-top">Register</a>
-                </div>
-                <% } %>
+
+                <button class="mobile-menu-btn" id="mobileMenuBtn">
+                    <i class="fas fa-bars"></i>
+                </button>
             </div>
 
-            <!-- Stats Row: Active Session + Credits -->
-            <div class="stats-row">
-                <!-- Active Session Card -->
-                <div class="active-session-card">
-                    <div class="card-header">
-                        <i class="fas fa-video"></i>
-                        <h3>Active Session</h3>
+            <div class="mobile-menu" id="mobileMenu">
+                <a href="#features">Features</a>
+                <a href="#roles">How it Works</a>
+                <a href="#roadmap">Roadmaps</a>
+                <a href="#faq">FAQ</a>
+
+                <% if (typeof user !== 'undefined' && user) { %>
+                    <a href="/learn" class="mobile-cta">Go to Dashboard</a>
+                <% } else { %>
+                    <a href="/login" class="mobile-cta secondary">Login</a>
+                    <a href="/register" class="mobile-cta">Get Started</a>
+                <% } %>
+            </div>
+        </header>
+
+        <!-- Hero -->
+        <section class="hero">
+            <div class="container hero-grid">
+                <div class="hero-content">
+                    <div class="badge">
+                        <i class="fas fa-bolt"></i>
+                        <span>Skill exchange made simple</span>
                     </div>
-                    <div class="session-info">
-                        <p class="session-title">Python Fundamentals - Session 3</p>
-                        <div class="join-code">
-                            <span>Join Code:</span>
-                            <code>PT3X4K</code>
-                            <button class="copy-btn" onclick="copyJoinCode()">
-                                <i class="fas fa-copy"></i>
-                            </button>
+
+                    <h1>Learn from peers.<br>Teach what you know.<br><span>Grow together.</span></h1>
+
+                    <p class="hero-subtext">
+                        skiLLup connects students and teachers through skill-based sessions, live meetings,
+                        credits, chat, progress roadmaps, and session history — all in one place.
+                    </p>
+
+                    <div class="hero-actions">
+                        <% if (typeof user !== 'undefined' && user) { %>
+                            <a href="/learn" class="btn btn-primary btn-lg">Start Learning</a>
+                            <a href="/teach" class="btn btn-outline btn-lg">Start Teaching</a>
+                        <% } else { %>
+                            <a href="/register" class="btn btn-primary btn-lg">Join Now</a>
+                            <a href="#features" class="btn btn-outline btn-lg">Explore Features</a>
+                        <% } %>
+                    </div>
+
+                    <div class="hero-stats">
+                        <div class="stat-card">
+                            <h3>7</h3>
+                            <p>Core Modules</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Live</h3>
+                            <p>Session System</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>Real-time</h3>
+                            <p>Teacher Chat</p>
                         </div>
                     </div>
-                    <button class="btn-join-session">Join Session <i class="fas fa-arrow-right"></i></button>
                 </div>
 
-                <!-- Credits Card -->
-                <div class="credits-card">
-                    <div class="card-header">
-                        <i class="fas fa-coins"></i>
-                        <h3>My Credits</h3>
-                    </div>
-                    <div class="credits-amount">
-                        <span class="credits-number"><%= user ? user.credits || 120 : 0 %></span>
-                        <span class="credits-label">credits</span>
-                    </div>
-                    <div class="credits-usage">
-                        <div class="usage-bar">
-                            <div class="usage-fill" style="width: 37.5%"></div>
+                <div class="hero-visual">
+                    <div class="dashboard-card main-card">
+                        <div class="card-top">
+                            <span class="dot purple"></span>
+                            <span class="dot blue"></span>
+                            <span class="dot green"></span>
                         </div>
-                        <p class="usage-text">45 used this month</p>
-                    </div>
-                    <button class="btn-buy-credits">Buy More Credits <i class="fas fa-plus-circle"></i></button>
-                </div>
-            </div>
 
-            <!-- Teacher Search Section -->
-            <div class="teacher-search-section">
-                <div class="teacher-search-bar">
-                    <i class="fas fa-user-graduate"></i>
-                    <input type="text" placeholder="Search teacher by name or skill..." id="teacherSearchInput" class="teacher-search-input">
-                </div>
-            </div>
+                        <div class="mock-header">
+                            <div>
+                                <h3>Your Learning Hub</h3>
+                                <p>Manage sessions, credits, roadmaps and progress</p>
+                            </div>
+                            <div class="mock-badge">Pro Growth</div>
+                        </div>
 
-            <!-- Teachers Grid -->
-            <div class="teachers-grid" id="teachersGrid">
-                <!-- Teacher cards will be populated dynamically -->
-            </div>
-        </main>
-    </div>
+                        <div class="mock-grid">
+                            <div class="mini-panel">
+                                <i class="fas fa-graduation-cap"></i>
+                                <span>Learn</span>
+                            </div>
+                            <div class="mini-panel">
+                                <i class="fas fa-chalkboard-teacher"></i>
+                                <span>Teach</span>
+                            </div>
+                            <div class="mini-panel">
+                                <i class="fas fa-store"></i>
+                                <span>Store</span>
+                            </div>
+                            <div class="mini-panel">
+                                <i class="fas fa-video"></i>
+                                <span>Meeting</span>
+                            </div>
+                        </div>
 
-    <script>
-        // Teacher data
-        const teachers = [
-            {
-                name: "Alex Chen",
-                skills: ["Python", "Data Science", "Machine Learning"],
-                rating: 49,
-                students: 24,
-                creditsPerSession: 20,
-                avatar: "AC"
-            },
-            {
-                name: "David Park",
-                skills: ["JavaScript", "React", "Node.js"],
-                rating: 47,
-                students: 31,
-                creditsPerSession: 22,
-                avatar: "DP"
-            },
-            {
-                name: "Raj Patel",
-                skills: ["Agile", "DevOps", "Docker"],
-                rating: 46,
-                students: 22,
-                creditsPerSession: 28,
-                avatar: "RP"
-            },
-            {
-                name: "Maria Garcia",
-                skills: ["UI Design", "Figma", "Prototyping"],
-                rating: 48,
-                students: 18,
-                creditsPerSession: 25,
-                avatar: "MG"
-            },
-            {
-                name: "Emma Wilson",
-                skills: ["Spanish", "French", "Language"],
-                rating: 5,
-                students: 15,
-                creditsPerSession: 18,
-                avatar: "EW"
-            },
-            {
-                name: "Sophie Laurent",
-                skills: ["Programming", "Algorithm", "Composition"],
-                rating: 43,
-                students: 19,
-                creditsPerSession: 20,
-                avatar: "SL"
-            }
-        ];
-
-        // Render teachers
-        function renderTeachers(filterText = "") {
-            const grid = document.getElementById("teachersGrid");
-            const filteredTeachers = teachers.filter(teacher => 
-                teacher.name.toLowerCase().includes(filterText.toLowerCase()) ||
-                teacher.skills.some(skill => skill.toLowerCase().includes(filterText.toLowerCase()))
-            );
-            
-            grid.innerHTML = filteredTeachers.map(teacher => `
-                <div class="teacher-card">
-                    <div class="teacher-header">
-                        <div class="teacher-avatar">${teacher.avatar}</div>
-                        <div class="teacher-info">
-                            <h4 class="teacher-name">${teacher.name}</h4>
-                            <div class="teacher-skills">
-                                ${teacher.skills.map(skill => `<span class="skill-tag">${skill}</span>`).join('')}
+                        <div class="session-preview">
+                            <div class="session-line">
+                                <span>Upcoming Session</span>
+                                <strong>JavaScript Basics</strong>
+                            </div>
+                            <div class="session-line">
+                                <span>Teacher</span>
+                                <strong>Frontend Mentor</strong>
+                            </div>
+                            <div class="session-line">
+                                <span>Status</span>
+                                <strong class="live-text">Accepted</strong>
                             </div>
                         </div>
                     </div>
-                    <div class="teacher-stats">
-                        <div class="stat">
-                            <i class="fas fa-key"></i>
-                            <span>${teacher.rating}</span>
-                        </div>
-                        <div class="stat">
-                            <i class="fas fa-users"></i>
-                            <span>${teacher.students} students</span>
-                        </div>
-                        <div class="stat">
-                            <i class="fas fa-coins"></i>
-                            <span>${teacher.creditsPerSession} credits/session</span>
+
+                    <div class="floating-card floating-one">
+                        <i class="fas fa-comments"></i>
+                        <div>
+                            <strong>Real-time Chat</strong>
+                            <p>Talk with accepted teachers instantly</p>
                         </div>
                     </div>
-                    <button class="btn-request-session" onclick="requestSession('${teacher.name}')">
-                        Request Session <i class="fas fa-calendar-plus"></i>
-                    </button>
-                </div>
-            `).join('');
-        }
 
-        // Search functionality
-        document.addEventListener("DOMContentLoaded", () => {
-            renderTeachers();
-            
-            const searchInput = document.getElementById("teacherSearchInput");
-            if (searchInput) {
-                searchInput.addEventListener("input", (e) => {
-                    renderTeachers(e.target.value);
-                });
-            }
+                    <div class="floating-card floating-two">
+                        <i class="fas fa-route"></i>
+                        <div>
+                            <strong>Roadmap Generator</strong>
+                            <p>Track multiple skill paths together</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Feature Section -->
+        <section class="section" id="features">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-tag">Platform Features</span>
+                    <h2>Everything needed for collaborative learning</h2>
+                    <p>
+                        From finding teachers to joining sessions and tracking growth,
+                        skiLLup gives both learners and teachers a structured workflow.
+                    </p>
+                </div>
+
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-search"></i></div>
+                        <h3>Smart Teacher Discovery</h3>
+                        <p>Browse teachers by skill or name and request sessions quickly from the student dashboard.</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-coins"></i></div>
+                        <h3>Credits & Store</h3>
+                        <p>Buy credit packages, manage balances, and keep learning sessions organized through a simple flow.</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-video"></i></div>
+                        <h3>Live Session Joining</h3>
+                        <p>Create or join secure video rooms with session validation using room ID and join code.</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-comments"></i></div>
+                        <h3>Real-time Chat</h3>
+                        <p>Students can chat with accepted teachers directly for smoother communication before and after sessions.</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-history"></i></div>
+                        <h3>History & Summaries</h3>
+                        <p>Completed sessions, summaries, hours, and credits spent are all visible in one history section.</p>
+                    </div>
+
+                    <div class="feature-card">
+                        <div class="feature-icon"><i class="fas fa-chart-line"></i></div>
+                        <h3>Growth & Financial Stats</h3>
+                        <p>Track earned, spent, redeemable credits, money earned, and account progress from settings.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Role Section -->
+        <section class="section alt-section" id="roles">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-tag">Two Main Experiences</span>
+                    <h2>Built for both learners and teachers</h2>
+                    <p>Each dashboard is focused, practical, and designed around actual user flow.</p>
+                </div>
+
+                <div class="roles-grid">
+                    <div class="role-card">
+                        <div class="role-top">
+                            <div class="role-icon student"><i class="fas fa-user-graduate"></i></div>
+                            <div>
+                                <h3>/learn</h3>
+                                <p>Student dashboard</p>
+                            </div>
+                        </div>
+
+                        <ul>
+                            <li>Search teachers by skill or name</li>
+                            <li>Request sessions using available credits</li>
+                            <li>View accepted and rejected requests</li>
+                            <li>Join live sessions with meeting details</li>
+                            <li>Chat with accepted teachers in real time</li>
+                        </ul>
+                    </div>
+
+                    <div class="role-card">
+                        <div class="role-top">
+                            <div class="role-icon teacher"><i class="fas fa-chalkboard-teacher"></i></div>
+                            <div>
+                                <h3>/teach</h3>
+                                <p>Teacher dashboard</p>
+                            </div>
+                        </div>
+
+                        <ul>
+                            <li>Manage incoming session requests</li>
+                            <li>Accept or reject with optional messages</li>
+                            <li>Start or join live teaching sessions</li>
+                            <li>Add session summaries after completion</li>
+                            <li>Track teaching activity and growth</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Roadmap / extra modules -->
+        <section class="section" id="roadmap">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-tag">More Than Just Sessions</span>
+                    <h2>Extra modules that make the platform stronger</h2>
+                </div>
+
+                <div class="modules-grid">
+                    <div class="module-card">
+                        <i class="fas fa-map-signs"></i>
+                        <h3>/roadmap</h3>
+                        <p>Generate random learning paths, track checkbox progress, and manage multiple roadmaps at once.</p>
+                    </div>
+
+                    <div class="module-card">
+                        <i class="fas fa-clock-rotate-left"></i>
+                        <h3>/history</h3>
+                        <p>See completed sessions with summaries plus stats like total sessions, hours, and credits spent.</p>
+                    </div>
+
+                    <div class="module-card">
+                        <i class="fas fa-gear"></i>
+                        <h3>/settings</h3>
+                        <p>Update profile, skills, avatar, password, financial data, and advanced earning settings by level.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA -->
+        <section class="cta-section">
+            <div class="container">
+                <div class="cta-card">
+                    <div class="cta-text">
+                        <span class="section-tag">Ready to begin?</span>
+                        <h2>Start building your learning network today</h2>
+                        <p>
+                            Whether you want to improve a skill, teach others, or grow your profile,
+                            skiLLup gives you one simple platform to do it all.
+                        </p>
+                    </div>
+
+                    <div class="cta-actions">
+                        <% if (typeof user !== 'undefined' && user) { %>
+                            <a href="/learn" class="btn btn-primary btn-lg">Go to Learn</a>
+                            <a href="/teach" class="btn btn-outline btn-lg">Go to Teach</a>
+                        <% } else { %>
+                            <a href="/register" class="btn btn-primary btn-lg">Create Account</a>
+                            <a href="/login" class="btn btn-outline btn-lg">Sign In</a>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ -->
+        <section class="section alt-section" id="faq">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-tag">FAQ</span>
+                    <h2>Common questions</h2>
+                </div>
+
+                <div class="faq-grid">
+                    <div class="faq-card">
+                        <h3>How do students book sessions?</h3>
+                        <p>Students browse teachers, send a request, and use credits to access the session flow.</p>
+                    </div>
+
+                    <div class="faq-card">
+                        <h3>Can teachers manage requests easily?</h3>
+                        <p>Yes, teachers can accept or reject requests and add optional messages directly from their dashboard.</p>
+                    </div>
+
+                    <div class="faq-card">
+                        <h3>What happens after a session ends?</h3>
+                        <p>Completed sessions appear in history, and teachers can add summaries for better tracking.</p>
+                    </div>
+
+                    <div class="faq-card">
+                        <h3>Does the platform support progression?</h3>
+                        <p>Yes, roadmaps, financial stats, skill management, and level-based features support long-term growth.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="container footer-inner">
+                <div>
+                    <h3>skiLLup</h3>
+                    <p>Learn smarter. Teach better. Grow together.</p>
+                </div>
+
+                <div class="footer-links">
+                    <a href="/">Home</a>
+                    <a href="/learn">Learn</a>
+                    <a href="/teach">Teach</a>
+                    <a href="/store">Store</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+
+        mobileMenuBtn?.addEventListener('click', () => {
+            mobileMenu.classList.toggle('show');
         });
 
-        // Copy join code function
-        function copyJoinCode() {
-            const code = "PT3X4K";
-            navigator.clipboard.writeText(code).then(() => {
-                const btn = document.querySelector('.copy-btn');
-                const originalIcon = btn.innerHTML;
-                btn.innerHTML = '<i class="fas fa-check"></i>';
-                setTimeout(() => {
-                    btn.innerHTML = originalIcon;
-                }, 2000);
-            }).catch(err => {
-                console.error('Failed to copy:', err);
-                alert('Failed to copy join code');
+        document.querySelectorAll('.mobile-menu a').forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.remove('show');
             });
-        }
-
-        // Request session function
-        function requestSession(teacherName) {
-             if (user) {
-                alert(`Session requested with ${teacherName}! You will be contacted shortly.`);
-             } else { 
-                alert(`Please login to request a session with ${teacherName}.`);
-                window.location.href = '/auth/login';
-            } 
-        }
+        });
     </script>
 </body>
 </html>
