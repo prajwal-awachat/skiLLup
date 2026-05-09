@@ -40,7 +40,8 @@ const {
 
     // Level Features
     getLevelFeatures,
-    updateCreditRate
+    updateCreditRate,
+    sendSessionSummaryToStudent 
 } = require('../controllers/teacherController');
 
 router.use(protect);
@@ -84,5 +85,8 @@ router.get('/credits-earnings', getCreditsAndEarnings);
 // Level Features
 router.get('/level/features', getLevelFeatures);
 router.put('/level/credit-rate', updateCreditRate);
+
+//post request of session summary resources add
+router.post('/sessions/:sessionId/summary/send', protect, sendSessionSummaryToStudent);
 
 module.exports = router;

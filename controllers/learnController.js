@@ -277,7 +277,8 @@ exports.createSessionRequest = async (req, res, next) => {
             });
         }
 
-        const credits = Number(proposedCredits) || teacher.getCreditRate() * Math.ceil(durationMinutes / 60);
+        const teacherCreditRate = await teacher.getCreditRate();
+const credits = Number(proposedCredits) || teacherCreditRate * Math.ceil(durationMinutes / 60);
 
         const validation = await validateProposedSlot({
             teacherId,
@@ -692,7 +693,7 @@ exports.checkChatAccess = async (req, res, next) => {
 const acceptedRequest = await SessionRequest.findOne({
     student: req.user.id,
     teacher: teacherId,
-    status: { $in: ['confirmed'] }
+    status: { $in: ['confirmed', 'ongoing'] }
 });
 
 const activeSession = await Session.findOne({

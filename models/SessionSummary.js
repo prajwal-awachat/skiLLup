@@ -32,20 +32,26 @@ const sessionSummarySchema = new mongoose.Schema({
     }],
     teacherNotes: {
         type: String,
-        maxlength: 2000
+        
     },
     studentNotes: {
         type: String,
-        maxlength: 2000
+        
     },
     homework: {
         type: String,
         maxlength: 1000
     },
-    nextSessionTopics: [{
-        type: String,
-        trim: true
-    }],
+  
+teacherEdited: {
+    type: Boolean,
+    default: false
+},
+
+hiddenFromTeacher: {
+    type: Boolean,
+    default: false
+},
     recordings: [{
         url: String,
         duration: Number,
@@ -68,7 +74,13 @@ const sessionSummarySchema = new mongoose.Schema({
     updatedAt: {
         type: Date,
         default: Date.now
-    }
+    },sentToStudent: {
+    type: Boolean,
+    default: false
+},
+sentAt: {
+    type: Date
+}
 });
 
 module.exports = mongoose.model('SessionSummary', sessionSummarySchema);

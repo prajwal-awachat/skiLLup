@@ -125,6 +125,26 @@ const sessionSchema = new mongoose.Schema({
     },
     actualStartTime: Date,
     actualEndTime: Date,
+    participantsJoined: {
+    teacher: {
+        type: Boolean,
+        default: false
+    },
+    student: {
+        type: Boolean,
+        default: false
+    }
+},
+
+meetingStartedAt: {
+    type: Date,
+    default: null
+},
+
+meetingEndedAt: {
+    type: Date,
+    default: null
+},
     actualDuration: {
         type: Number,
         default: 0

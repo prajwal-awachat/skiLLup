@@ -75,10 +75,21 @@
 
             <!-- Generate Button Section -->
             <div class="generate-section">
-                <button class="btn-generate" id="generateNewRoadmap">
-                    <i class="fas fa-magic"></i> Generate New Roadmap
-                </button>
-            </div>
+    <form id="roadmapForm" class="roadmap-form">
+        <input
+            type="text"
+            id="goalInput"
+            name="goal"
+            placeholder="Enter your career goal (e.g. Web Developer, Data Analyst)"
+            required
+            class="roadmap-input"
+        />
+
+        <button type="submit" class="btn-generate">
+            <i class="fas fa-magic"></i> Generate Roadmap
+        </button>
+    </form>
+</div>
 
             <!-- Roadmaps Grid -->
             <div class="roadmaps-grid" id="roadmapsGrid">
@@ -148,351 +159,524 @@
         </div>
     </template>
 
-    <script>
-        // ========================
-        // Mock user data (replace with actual <%= user %> from EJS)
-        // ========================
-        const currentUser = {
-            id: '<%= user ? user._id : "guest123" %>',
-            name: '<%= user ? user.name : "Guest User" %>',
-            email: '<%= user ? user.email : "guest@example.com" %>',
-            credits: 250
-        };
+   <script>
+    // Current logged-in user data
+   const currentUser = {
+    id: '<%= user ? user._id : "" %>',
+    name: '<%= user ? user.name : "" %>',
+    email: '<%= user ? user.email : "" %>',
+    balance: <%= user ? user.balance || 0 : 0 %>,
+    credits: <%= user ? user.credits || 0 : 0 %>,
+    level: <%= user ? user.level || 1 : 1 %>
+};
 
-        // Master list of all available skills
-        const allSkills = [
-            "Python", "SQL", "Data Science", "Machine Learning", "Web Development",
-            "Cybersecurity", "Full Stack", "Game Development", "Digital Marketing",
-            "Blockchain", "DevOps", "Cloud Computing", "Artificial Intelligence",
-            "Data Analytics", "Software Engineering", "Mobile App Development",
-            "Frontend Development", "Backend Development", "Full Stack Development"
-        ];
+    // -----------------------------
+    // Utility Functions
+    // -----------------------------
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `toast-message ${type}`;
+        toast.innerHTML = `
+            <i class="fas ${
+                type === 'success'
+                    ? 'fa-check-circle'
+                    : type === 'error'
+                    ? 'fa-exclamation-circle'
+                    : 'fa-info-circle'
+            }"></i>
+            ${message}
+        `;
 
-        // Course data mapping for each skill
-        const courseData = {
-            "Python": ["Python Basics", "Advanced Python", "Python OOP", "Python for Data Science", "Django Framework"],
-            "SQL": ["SQL Fundamentals", "Advanced Queries", "Database Design", "SQL Optimization", "NoSQL Basics"],
-            "Data Science": ["Statistics Basics", "Data Visualization", "Pandas & NumPy", "Machine Learning Intro", "Data Mining"],
-            "Machine Learning": ["ML Fundamentals", "Supervised Learning", "Unsupervised Learning", "Neural Networks", "Deep Learning"],
-            "Web Development": ["HTML/CSS", "JavaScript Basics", "Frontend Frameworks", "Backend Development", "Full Stack Projects"],
-            "Cybersecurity": ["Security Fundamentals", "Network Security", "Cryptography", "Ethical Hacking", "Security Auditing"],
-            "Full Stack": ["Frontend Basics", "Backend APIs", "Database Integration", "Deployment", "Project Management"],
-            "Game Development": ["Game Design", "Unity Basics", "C# Programming", "3D Modeling", "Game Physics"],
-            "Digital Marketing": ["SEO Basics", "Social Media Marketing", "Content Strategy", "Analytics", "Email Marketing"],
-            "Blockchain": ["Blockchain Basics", "Smart Contracts", "Ethereum", "Web3 Development", "Crypto Economics"],
-            "DevOps": ["Linux Basics", "CI/CD Pipelines", "Docker", "Kubernetes", "Cloud Deployment"],
-            "Cloud Computing": ["Cloud Fundamentals", "AWS Basics", "Azure Services", "Cloud Architecture", "Serverless"],
-            "Artificial Intelligence": ["AI Fundamentals", "Natural Language Processing", "Computer Vision", "Reinforcement Learning", "AI Ethics"],
-            "Data Analytics": ["Excel Analytics", "SQL for Analytics", "Tableau", "Power BI", "Business Intelligence"],
-            "Software Engineering": ["Software Design", "Version Control", "Testing", "Agile Methodology", "System Architecture"],
-            "Mobile App Development": ["iOS Basics", "Android Development", "React Native", "Flutter", "App Deployment"],
-            "Frontend Development": ["HTML/CSS Advanced", "JavaScript ES6", "React.js", "Vue.js", "Responsive Design"],
-            "Backend Development": ["Node.js", "Python Backend", "Database Design", "REST APIs", "Microservices"],
-            "Full Stack Development": ["MERN Stack", "MEAN Stack", "GraphQL", "Authentication", "Cloud Deployment"]
-        };
+        document.body.appendChild(toast);
 
-        let roadmapCounter = 0;
+        setTimeout(() => {
+            toast.classList.add('show');
 
-        // Helper: show toast notification
-        function showToast(message, type = "info") {
-            const toast = document.createElement('div');
-            toast.className = `toast-message ${type}`;
-            toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i> ${message}`;
-            document.body.appendChild(toast);
             setTimeout(() => {
-                toast.classList.add('show');
+                toast.classList.remove('show');
+
                 setTimeout(() => {
-                    toast.classList.remove('show');
-                    setTimeout(() => toast.remove(), 300);
-                }, 3000);
-            }, 100);
-        }
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        }, 100);
+    }
 
-        // Fetch credits (mock / API)
-        async function fetchCredits() {
-            try {
-                // Simulate API call
-                const creditsElem = document.getElementById('creditAmount');
-                if (creditsElem) creditsElem.textContent = currentUser.credits.toLocaleString();
-                return currentUser.credits;
-            } catch (error) {
-                console.error('Error fetching credits:', error);
-                return 0;
+async function fetchCredits() {
+    try {
+        // Same endpoint used in store.ejs
+        const response = await fetch('/api/store/balance');
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+            // Update current user values
+            currentUser.credits = data.data.credits || 0;
+            currentUser.balance = data.data.balance || 0;
+            currentUser.level = data.data.level || 1;
+
+            // Update Available Credits in roadmap page
+            const creditAmount = document.getElementById('creditAmount');
+            if (creditAmount) {
+                creditAmount.textContent =
+                    currentUser.credits.toLocaleString();
+            }
+        } else {
+            const creditAmount = document.getElementById('creditAmount');
+            if (creditAmount) {
+                creditAmount.textContent = '0';
             }
         }
+    } catch (error) {
+        console.error('Error fetching credits:', error);
 
-        // Random level between 1-13
-        function getRandomLevel() {
-            return Math.floor(Math.random() * 13) + 1;
+        const creditAmount = document.getElementById('creditAmount');
+        if (creditAmount) {
+            creditAmount.textContent = '0';
         }
+    }
+}
 
-        // Get time based on level (more realistic)
-        function getTimeFromLevel(level) {
-            const baseDays = 3;
-            const extra = Math.floor(level / 2);
-            const days = baseDays + extra + Math.floor(Math.random() * 3);
-            return `${days} days`;
-        }
+    function escapeHtml(text) {
+        if (!text) return '';
 
-        function getRandomSkill() {
-            return allSkills[Math.floor(Math.random() * allSkills.length)];
-        }
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
 
-        function getCoursesForSkill(skill) {
-            return courseData[skill] || [
-                `${skill} Fundamentals`,
-                `Advanced ${skill}`,
-                `${skill} Projects`,
-                `${skill} Certification Prep`,
-                `Mastering ${skill}`
-            ];
-        }
+    function checkEmptyState() {
+        const grid = document.getElementById('roadmapsGrid');
 
-        // Get related skills (avoid duplication and ensure variety)
-        function getRelatedSkills(mainSkill) {
-            let available = allSkills.filter(s => s !== mainSkill);
-            // Shuffle and pick 4-7 related skills
-            for (let i = available.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [available[i], available[j]] = [available[j], available[i]];
-            }
-            const count = Math.floor(Math.random() * 5) + 4; // 4 to 8 skills total including main
-            const selected = [mainSkill, ...available.slice(0, count - 1)];
-            return selected;
-        }
+        if (!grid) return;
 
-        // Update skill icon based on skill name
-        function updateSkillIcon(iconElement, skillName) {
-            const iconMap = {
-                "Python": "fab fa-python",
-                "SQL": "fas fa-database",
-                "Data Science": "fas fa-chart-line",
-                "Machine Learning": "fas fa-brain",
-                "Web Development": "fab fa-html5",
-                "Cybersecurity": "fas fa-shield-alt",
-                "Full Stack": "fas fa-layer-group",
-                "Game Development": "fas fa-gamepad",
-                "Digital Marketing": "fas fa-chart-simple",
-                "Blockchain": "fas fa-link",
-                "DevOps": "fas fa-code-branch",
-                "Cloud Computing": "fas fa-cloud",
-                "Artificial Intelligence": "fas fa-robot",
-                "Data Analytics": "fas fa-chart-bar",
-                "Software Engineering": "fas fa-laptop-code",
-                "Mobile App Development": "fas fa-mobile-alt",
-                "Frontend Development": "fab fa-js",
-                "Backend Development": "fas fa-server",
-                "Full Stack Development": "fas fa-code"
-            };
-            const iconClass = iconMap[skillName] || "fas fa-graduation-cap";
-            iconElement.className = iconClass;
-        }
-
-        // Update roadmap progress based on checkbox completion
-        function updateRoadmapProgress(roadmapCard) {
-            const checkboxes = roadmapCard.querySelectorAll('input[type="checkbox"]');
-            const total = checkboxes.length;
-            const checked = Array.from(checkboxes).filter(cb => cb.checked).length;
-            const progressPercent = total > 0 ? (checked / total) * 100 : 0;
-            
-            const progressFill = roadmapCard.querySelector('.progress-fill');
-            if (progressFill) {
-                progressFill.style.width = `${progressPercent}%`;
-            }
-            
-            // Update level based on progress (1-13 scale)
-            const levelValueElem = roadmapCard.querySelector('.level-value');
-            if (levelValueElem && total > 0) {
-                const newLevel = Math.max(1, Math.min(13, Math.floor((checked / total) * 13) + 1));
-                levelValueElem.textContent = newLevel;
-                
-                // Also update the skill meta level display
-                const metaLevelSpan = roadmapCard.querySelector('.skill-meta .meta-item:first-child');
-                if (metaLevelSpan) {
-                    metaLevelSpan.innerHTML = `<i class="fas fa-chart-line"></i> Level: ${newLevel}`;
-                }
-            }
-        }
-
-        // Generate a new roadmap card
-        function generateRoadmap() {
-            const template = document.getElementById('roadmapTemplate');
-            const clone = template.content.cloneNode(true);
-            const roadmapCard = clone.querySelector('.roadmap-card');
-            
-            const roadmapId = `roadmap_${Date.now()}_${roadmapCounter++}`;
-            roadmapCard.setAttribute('data-id', roadmapId);
-            
-            // Randomize skill and level
-            const skillName = getRandomSkill();
-            const currentLevel = getRandomLevel();
-            const totalLevels = 13;
-            const timeRequired = getTimeFromLevel(currentLevel);
-            
-            // Update title
-            const titleElem = roadmapCard.querySelector('.roadmap-title');
-            titleElem.textContent = `${skillName} Roadmap`;
-            
-            // Level display
-            const levelValueElem = roadmapCard.querySelector('.level-value');
-            levelValueElem.textContent = currentLevel;
-            
-            // Progress bar starts at 0% (based on completion, not level)
-            const progressFill = roadmapCard.querySelector('.progress-fill');
-            progressFill.style.width = `0%`;
-            
-            // Main skill section
-            const skillNameElem = roadmapCard.querySelector('.skill-name');
-            skillNameElem.textContent = skillName;
-            
-            const skillIcon = roadmapCard.querySelector('.skill-icon i');
-            updateSkillIcon(skillIcon, skillName);
-            
-            // Update meta items
-            const metaItems = roadmapCard.querySelectorAll('.skill-meta .meta-item');
-            metaItems[0].innerHTML = `<i class="fas fa-chart-line"></i> Level: ${currentLevel}`;
-            metaItems[1].innerHTML = `<i class="fas fa-clock"></i> Time: ${timeRequired}`;
-            
-            // Generate skills list
-            const skillsList = roadmapCard.querySelector('.skills-list');
-            const relatedSkills = getRelatedSkills(skillName);
-            const skillsCount = relatedSkills.length;
-            
-            const skillsTabCount = roadmapCard.querySelector('.tab-btn[data-tab="skills"] .tab-count');
-            skillsTabCount.textContent = skillsCount;
-            
-            relatedSkills.forEach(skill => {
-                const skillItem = document.createElement('div');
-                skillItem.className = 'skill-item';
-                const uniqueId = `${skill.replace(/\s/g, '_')}_${roadmapId}`;
-                skillItem.innerHTML = `
-                    <input type="checkbox" id="${uniqueId}">
-                    <label for="${uniqueId}">
-                        <i class="fas fa-check-circle"></i>
-                        <span>${escapeHtml(skill)}</span>
-                    </label>
-                `;
-                skillsList.appendChild(skillItem);
-            });
-            
-            // Generate courses list
-            const coursesList = roadmapCard.querySelector('.courses-list');
-            const courses = getCoursesForSkill(skillName);
-            const coursesCount = courses.length;
-            
-            const coursesTabCount = roadmapCard.querySelector('.tab-btn[data-tab="courses"] .tab-count');
-            coursesTabCount.textContent = coursesCount;
-            
-            courses.forEach((course, index) => {
-                const courseItem = document.createElement('div');
-                courseItem.className = 'course-item';
-                const uniqueId = `course_${index}_${roadmapId}`;
-                courseItem.innerHTML = `
-                    <input type="checkbox" id="${uniqueId}">
-                    <label for="${uniqueId}">
-                        <i class="fas fa-graduation-cap"></i>
-                        <span>${escapeHtml(course)}</span>
-                    </label>
-                `;
-                coursesList.appendChild(courseItem);
-            });
-            
-            // Tab switching
-            const tabBtns = roadmapCard.querySelectorAll('.tab-btn');
-            const tabContents = roadmapCard.querySelectorAll('.tab-content');
-            tabBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const tabName = btn.getAttribute('data-tab');
-                    tabBtns.forEach(b => b.classList.remove('active'));
-                    tabContents.forEach(c => c.classList.remove('active'));
-                    btn.classList.add('active');
-                    const activeContent = roadmapCard.querySelector(`.tab-content[data-content="${tabName}"]`);
-                    if (activeContent) activeContent.classList.add('active');
-                });
-            });
-            
-            // Delete functionality
-            const deleteBtn = roadmapCard.querySelector('.btn-delete-roadmap');
-            deleteBtn.addEventListener('click', () => {
-                if (confirm('Are you sure you want to delete this roadmap?')) {
-                    roadmapCard.remove();
-                    checkEmptyState();
-                    showToast('Roadmap deleted', 'info');
-                }
-            });
-            
-            // Checkbox change listeners for progress
-            const allCheckboxes = roadmapCard.querySelectorAll('input[type="checkbox"]');
-            allCheckboxes.forEach(checkbox => {
-                checkbox.addEventListener('change', () => {
-                    updateRoadmapProgress(roadmapCard);
-                });
-            });
-            
-            return roadmapCard;
-        }
-        
-        // Escape HTML to prevent XSS
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-        
-        // Check empty state and show placeholder
-        function checkEmptyState() {
-            const grid = document.getElementById('roadmapsGrid');
-            const existingEmpty = document.querySelector('.empty-state');
-            
-            if (grid.children.length === 0 && !existingEmpty) {
-                const emptyState = document.createElement('div');
-                emptyState.className = 'empty-state';
-                emptyState.innerHTML = `
+        if (grid.children.length === 0) {
+            grid.innerHTML = `
+                <div class="empty-state">
                     <i class="fas fa-map-marked-alt"></i>
                     <h3>No Roadmaps Yet</h3>
-                    <p>Click "Generate New Roadmap" to start your learning journey!</p>
+                    <p>Enter your career goal and generate your first roadmap.</p>
+                </div>
+            `;
+        }
+    }
+
+    // -----------------------------
+    // API Calls
+    // -----------------------------
+    async function generateRoadmapFromAPI(goal) {
+        const response = await fetch('/api/roadmap/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ goal })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Failed to generate roadmap.');
+        }
+
+        return data.roadmap;
+    }
+
+    async function deleteRoadmapFromAPI(roadmapId) {
+        const response = await fetch(`/api/roadmap/${roadmapId}`, {
+            method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Failed to delete roadmap.');
+        }
+    }
+
+    async function toggleMilestoneInAPI(roadmapId, milestoneIndex) {
+        const response = await fetch(
+            `/api/roadmap/${roadmapId}/milestone`,
+            {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    milestoneIndex
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Failed to update progress.');
+        }
+
+        return data.roadmap;
+    }
+
+    // -----------------------------
+    // Rendering Helpers
+    // -----------------------------
+    function getIconForCareer(predictedCareer) {
+        const iconMap = {
+            web_developer: 'fab fa-html5',
+            fullstack_developer: 'fas fa-layer-group',
+            backend_developer: 'fas fa-server',
+            data_analyst: 'fas fa-chart-bar',
+            data_scientist: 'fas fa-chart-line',
+            ml_engineer: 'fas fa-brain',
+            python_developer: 'fab fa-python',
+            software_engineer: 'fas fa-laptop-code',
+            mobile_app_developer: 'fas fa-mobile-alt',
+            cybersecurity: 'fas fa-shield-alt',
+            devops_engineer: 'fas fa-code-branch',
+            cloud_engineer: 'fas fa-cloud',
+            game_developer: 'fas fa-gamepad',
+            blockchain_developer: 'fas fa-link'
+        };
+
+        return iconMap[predictedCareer] || 'fas fa-graduation-cap';
+    }
+// to load all roadmaps of logged in user
+    async function fetchUserRoadmaps() {
+    const response = await fetch('/api/roadmap');
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Failed to load roadmaps.');
+    }
+
+    return data.roadmaps;
+}
+
+    function createRoadmapCard(roadmap) {
+        const template = document.getElementById('roadmapTemplate');
+
+        if (!template) return null;
+
+        const clone = template.content.cloneNode(true);
+        const card = clone.querySelector('.roadmap-card');
+
+        card.dataset.id = roadmap._id;
+
+        // Title
+        card.querySelector('.roadmap-title').textContent = roadmap.title;
+
+        // Level
+        card.querySelector('.level-value').textContent =
+            roadmap.currentLevel || 1;
+        card.querySelector('.level-total').textContent =
+            '/ ' + (roadmap.targetLevel || roadmap.milestones.length);
+
+        // Progress
+        card.querySelector('.progress-fill').style.width =
+            (roadmap.progress || 0) + '%';
+
+        // Main Skill Title
+        const skillNameElem = card.querySelector('.skill-name');
+        skillNameElem.textContent = roadmap.predictedCareer
+            .replace(/_/g, ' ')
+            .replace(/\b\w/g, (c) => c.toUpperCase());
+
+        // Icon
+        const iconElem = card.querySelector('.skill-icon i');
+        iconElem.className = getIconForCareer(
+            roadmap.predictedCareer
+        );
+
+        // Meta Info
+        const metaItems = card.querySelectorAll(
+            '.skill-meta .meta-item'
+        );
+
+        if (metaItems.length >= 2) {
+            metaItems[0].innerHTML = `
+                <i class="fas fa-chart-line"></i>
+                Level: ${roadmap.currentLevel || 1}
+            `;
+
+            metaItems[1].innerHTML = `
+                <i class="fas fa-clock"></i>
+                Time: ${roadmap.estimatedDays || 0} days
+            `;
+        }
+
+        // Skills Tab Count
+        const skillsTabCount = card.querySelector(
+            '.tab-btn[data-tab="skills"] .tab-count'
+        );
+        skillsTabCount.textContent = roadmap.milestones.length;
+
+        // Courses Tab Count
+        const coursesTabCount = card.querySelector(
+            '.tab-btn[data-tab="courses"] .tab-count'
+        );
+        coursesTabCount.textContent = roadmap.courses
+            ? roadmap.courses.length
+            : 0;
+
+        // Skills List (Milestones)
+        const skillsList = card.querySelector('.skills-list');
+        skillsList.innerHTML = '';
+
+        roadmap.milestones.forEach((milestone, index) => {
+            const uniqueId = `milestone_${roadmap._id}_${index}`;
+
+            const item = document.createElement('div');
+            item.className = 'skill-item';
+
+            item.innerHTML = `
+                <input
+                    type="checkbox"
+                    id="${uniqueId}"
+                    ${milestone.isCompleted ? 'checked' : ''}
+                >
+                <label for="${uniqueId}">
+                    <i class="fas fa-check-circle"></i>
+                    <span>${escapeHtml(milestone.title)}</span>
+                </label>
+            `;
+
+            const checkbox = item.querySelector('input');
+
+            checkbox.addEventListener('change', async () => {
+                try {
+                    const updatedRoadmap =
+                        await toggleMilestoneInAPI(
+                            roadmap._id,
+                            index
+                        );
+
+                    // Re-render updated card
+                    const newCard =
+                        createRoadmapCard(updatedRoadmap);
+
+                    card.replaceWith(newCard);
+
+                    showToast(
+                        'Progress updated successfully.',
+                        'success'
+                    );
+                } catch (error) {
+                    checkbox.checked = !checkbox.checked;
+
+                    showToast(error.message, 'error');
+                }
+            });
+
+            skillsList.appendChild(item);
+        });
+
+        // Courses List
+        const coursesList = card.querySelector('.courses-list');
+        coursesList.innerHTML = '';
+
+        if (roadmap.courses && roadmap.courses.length > 0) {
+            roadmap.courses.forEach((course) => {
+                const item = document.createElement('div');
+                item.className = 'course-item';
+
+                item.innerHTML = `
+                    <label>
+                        <i class="fas fa-graduation-cap"></i>
+                        <span>${escapeHtml(course.title)}</span>
+                    </label>
                 `;
-                grid.appendChild(emptyState);
-            } else if (grid.children.length > 0 && existingEmpty) {
-                existingEmpty.remove();
-            }
+
+                coursesList.appendChild(item);
+            });
+        } else {
+            coursesList.innerHTML = `
+                <div class="course-item">
+                    <label>
+                        <i class="fas fa-book"></i>
+                        <span>No courses added yet</span>
+                    </label>
+                </div>
+            `;
         }
-        
-        // Initialize with 3 sample roadmaps
-        function initializeRoadmaps() {
-            const grid = document.getElementById('roadmapsGrid');
-            grid.innerHTML = '';
-            for (let i = 0; i < 3; i++) {
-                const roadmap = generateRoadmap();
-                grid.appendChild(roadmap);
+
+        // Tab Switching
+        const tabButtons = card.querySelectorAll('.tab-btn');
+        const tabContents = card.querySelectorAll('.tab-content');
+
+        tabButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const tabName =
+                    button.getAttribute('data-tab');
+
+                tabButtons.forEach((btn) =>
+                    btn.classList.remove('active')
+                );
+
+                tabContents.forEach((content) =>
+                    content.classList.remove('active')
+                );
+
+                button.classList.add('active');
+
+                const activeContent =
+                    card.querySelector(
+                        `.tab-content[data-content="${tabName}"]`
+                    );
+
+                if (activeContent) {
+                    activeContent.classList.add('active');
+                }
+            });
+        });
+
+        // Delete Roadmap
+        const deleteButton = card.querySelector(
+            '.btn-delete-roadmap'
+        );
+
+        deleteButton.addEventListener('click', async () => {
+            const confirmed = confirm(
+                'Are you sure you want to delete this roadmap?'
+            );
+
+            if (!confirmed) return;
+
+            try {
+                await deleteRoadmapFromAPI(roadmap._id);
+
+                card.remove();
+
+                checkEmptyState();
+
+                showToast(
+                    'Roadmap deleted successfully.',
+                    'success'
+                );
+            } catch (error) {
+                showToast(error.message, 'error');
             }
+        });
+
+        return card;
+    }
+
+    // -----------------------------
+    // Generate Roadmap Handler
+    // -----------------------------
+    async function handleGenerateRoadmap() {
+        const input = document.getElementById('goalInput');
+
+        if (!input) {
+            showToast(
+                'Goal input field not found.',
+                'error'
+            );
+            return;
         }
-        
-        // Setup infinite scroll? Not needed but we keep generate button
-        function setupEventListeners() {
-            const generateBtn = document.getElementById('generateNewRoadmap');
-            if (generateBtn) {
-                generateBtn.addEventListener('click', () => {
-                    const grid = document.getElementById('roadmapsGrid');
-                    const newRoadmap = generateRoadmap();
-                    grid.appendChild(newRoadmap);
-                    newRoadmap.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    showToast('New roadmap generated!', 'success');
-                    checkEmptyState();
+
+        const goal = input.value.trim();
+
+        if (!goal) {
+            showToast(
+                'Please enter your career goal.',
+                'error'
+            );
+            return;
+        }
+
+        const button = document.querySelector(
+            '#roadmapForm .btn-generate'
+        );
+
+        try {
+            if (button) {
+                button.disabled = true;
+                button.innerHTML =
+                    '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            }
+
+            const roadmap =
+                await generateRoadmapFromAPI(goal);
+
+            const grid =
+                document.getElementById('roadmapsGrid');
+
+            // Remove empty state if present
+            if (
+                grid.firstElementChild &&
+                grid.firstElementChild.classList.contains(
+                    'empty-state'
+                )
+            ) {
+                grid.innerHTML = '';
+            }
+
+            const card = createRoadmapCard(roadmap);
+
+            if (card) {
+                grid.prepend(card);
+
+                card.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
                 });
             }
-            
+
+            input.value = '';
+
+            showToast(
+                'Roadmap generated successfully!',
+                'success'
+            );
+        } catch (error) {
+            showToast(error.message, 'error');
+        } finally {
+            if (button) {
+                button.disabled = false;
+                button.innerHTML =
+                    '<i class="fas fa-magic"></i> Generate Roadmap';
+            }
         }
-        
-        // Initialize page
-        async function init() {
-            await fetchCredits();
-            initializeRoadmaps();
-            setupEventListeners();
+    }
+
+    // -----------------------------
+    // Initialization
+    // -----------------------------
+   async function init() {
+    await fetchCredits();
+
+    const grid = document.getElementById('roadmapsGrid');
+    grid.innerHTML = '';
+
+    try {
+        const roadmaps = await fetchUserRoadmaps();
+
+        if (roadmaps.length === 0) {
+            checkEmptyState();
+        } else {
+            roadmaps.forEach((roadmap) => {
+                const card = createRoadmapCard(roadmap);
+
+                if (card) {
+                    grid.appendChild(card);
+                }
+            });
         }
-        
-        document.addEventListener('DOMContentLoaded', init);
-    </script>
+    } catch (error) {
+        console.error(error);
+        checkEmptyState();
+    }
+
+    const form = document.getElementById('roadmapForm');
+
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await handleGenerateRoadmap();
+        });
+    }
+}
+
+    document.addEventListener('DOMContentLoaded', init);
+</script>
 </body>
 </html>

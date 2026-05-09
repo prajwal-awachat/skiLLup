@@ -413,6 +413,57 @@
         </div>
     </div>
 
+    <!-- SEND SUMMARY MODAL -->
+<div class="modal" id="sendSummaryModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-paper-plane"></i> Send Session Details</h3>
+            <button class="close-modal" id="closeSummaryModal">&times;</button>
+        </div>
+
+        <form id="sendSummaryForm" class="modal-form">
+            <input type="hidden" id="summarySessionId">
+
+            <div class="form-group">
+                <label>Guidance / Message to Student</label>
+                <textarea id="summaryTeacherNotes" rows="4" placeholder="Example: Revise closures and practice 2 problems before next request..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Homework / Practice</label>
+                <textarea id="summaryHomework" rows="3" placeholder="Example: Build one CRUD API and test it using Postman..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Resources</label>
+
+                <div id="resourcesContainer">
+                    <div class="resource-row">
+                        <input type="text" class="resource-title" placeholder="Resource title">
+                        <input type="url" class="resource-url" placeholder="https://youtube.com/... or PDF/image link">
+                        <select class="resource-type">
+                            <option value="youtube">YouTube</option>
+                            <option value="pdf">PDF</option>
+                            <option value="image">Image</option>
+                            <option value="article">Article</option>
+                            <option value="github">GitHub</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="button" class="submit-btn" id="addResourceBtn">
+                    <i class="fas fa-plus"></i> Add Another Resource
+                </button>
+            </div>
+
+            <button type="submit" class="submit-btn">
+                Send to Student
+            </button>
+        </form>
+    </div>
+</div>
+
     <%- include('partials/chat-modal') %>
 
     <script>
@@ -1066,10 +1117,12 @@
                         </button>
                     `;
                 } else if (type === 'completed') {
-                    actionButtons = `
-                        <span class="request-note">${session.sessionValidity || 'completed'}</span>
-                    `;
-                }
+    actionButtons = `
+        <button class="send-summary-btn" data-session-id="${session._id}">
+            <i class="fas fa-paper-plane"></i> Add / Send Summary
+        </button>
+    `;
+}
 
                 return `
                     <div class="session-card">
@@ -1146,6 +1199,12 @@
                     }
                 });
             });
+
+            document.querySelectorAll('.send-summary-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        openSendSummaryModal(btn.getAttribute('data-session-id'));
+    });
+});
         }
 
         function renderUpcomingPreview(sessions) {
@@ -1538,7 +1597,105 @@
                     showToast('Failed to reject request', 'error');
                 }
             });
+
+            document.getElementById('addResourceBtn')?.addEventListener('click', () => {
+    const container = document.getElementById('resourcesContainer');
+
+    container.insertAdjacentHTML('beforeend', `
+        <div class="resource-row">
+            <input type="text" class="resource-title" placeholder="Resource title">
+            <input type="url" class="resource-url" placeholder="https://youtube.com/... or PDF/image link">
+            <select class="resource-type">
+                <option value="youtube">YouTube</option>
+                <option value="pdf">PDF</option>
+                <option value="image">Image</option>
+                <option value="article">Article</option>
+                <option value="github">GitHub</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
+    `);
+});
+
+document.getElementById('sendSummaryForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const sessionId = document.getElementById('summarySessionId').value;
+
+    const payload = {
+        teacherNotes: document.getElementById('summaryTeacherNotes').value.trim(),
+        homework: document.getElementById('summaryHomework').value.trim(),
+        resources: collectResources()
+    };
+
+    try {
+        const response = await fetch(`/api/teacher/sessions/${sessionId}/summary/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showToast('Summary details sent to student', 'success');
+            document.getElementById('sendSummaryModal').classList.remove('show');
+            document.getElementById('sendSummaryForm').reset();
+
+            fetchSessions('completed');
+        } else {
+            showToast(data.message || 'Failed to send summary', 'error');
         }
+    } catch (error) {
+        console.error(error);
+        showToast('Failed to send summary', 'error');
+    }
+});
+        }
+
+        function openSendSummaryModal(sessionId) {
+    document.getElementById('summarySessionId').value = sessionId;
+    document.getElementById('summaryTeacherNotes').value = '';
+    document.getElementById('summaryHomework').value = '';
+
+    document.getElementById('resourcesContainer').innerHTML = `
+        <div class="resource-row">
+            <input type="text" class="resource-title" placeholder="Resource title">
+            <input type="url" class="resource-url" placeholder="https://youtube.com/... or PDF/image link">
+            <select class="resource-type">
+                <option value="youtube">YouTube</option>
+                <option value="pdf">PDF</option>
+                <option value="image">Image</option>
+                <option value="article">Article</option>
+                <option value="github">GitHub</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
+    `;
+
+    document.getElementById('sendSummaryModal').classList.add('show');
+}
+
+function collectResources() {
+    const rows = document.querySelectorAll('.resource-row');
+    const resources = [];
+
+    rows.forEach(row => {
+        const title = row.querySelector('.resource-title')?.value.trim();
+        const url = row.querySelector('.resource-url')?.value.trim();
+        const type = row.querySelector('.resource-type')?.value || 'other';
+
+        if (url) {
+            resources.push({
+                title: title || 'Resource',
+                url,
+                type
+            });
+        }
+    });
+
+    return resources;
+}
 
         async function init() {
             initSocket();

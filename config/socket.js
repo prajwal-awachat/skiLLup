@@ -2,7 +2,9 @@ const { Message, Conversation } = require('../models/Message');
 const User = require('../models/User');
 const Session = require('../models/Session');
 const GroupSession = require('../models/GroupSession');
-
+const {
+    completeSession
+} = require('../utils/sessionCompletionHelper');
 const meetingTimers = new Map();
 const groupMeetingTimers = new Map();
 
@@ -198,15 +200,40 @@ socket.on('join_meeting_room', async ({ roomId, userId, isReconnect = false }) =
 
     if (!session) return;
 
-    if (!session.actualStartTime) {
+  if (
+    String(session.teacher) === String(userId)
+) {
+    session.participantsJoined.teacher = true;
+} else {
+    session.participantsJoined.student = true;
+}
+
+const bothJoined =
+    session.participantsJoined.teacher &&
+    session.participantsJoined.student;
+
+if (bothJoined && !session.actualStartTime) {
+
     session.actualStartTime = new Date();
+    session.meetingStartedAt = new Date();
+    session.status = 'ongoing';
+
+    console.log("⏱ Actual session started");
+
     await session.save();
 
-    console.log("⏱ Session timer started");
+    await scheduleOneToOneReminders(io, session);
 
-    await scheduleOneToOneReminders(io, session);
-} else if (!meetingTimers.has(roomId)) {
-    await scheduleOneToOneReminders(io, session);
+} else {
+
+    await session.save();
+
+    if (
+        session.actualStartTime &&
+        !meetingTimers.has(roomId)
+    ) {
+        await scheduleOneToOneReminders(io, session);
+    }
 }
 
     socket.to(`meeting_${roomId}`).emit('user-joined', { userId, isReconnect });
@@ -217,43 +244,52 @@ socket.on('join-meeting', ({ roomId, userId }) => {
     socket.to(`meeting_${roomId}`).emit('user-joined', { userId });
 });
 
-socket.on('leave-meeting', async ({ roomId, userId, userName }) => {
+socket.on('leave-meeting', async ({
+    roomId,
+    userId,
+    userName
+}) => {
+
     try {
-        const Session = require('../models/Session');
-        const session = await Session.findOne({ roomId });
 
-        if (!session || session.status === 'completed') {
-            socket.leave(`meeting_${roomId}`);
-            return;
-        }
-
-        const now = new Date();
-
-        if (session.actualStartTime) {
-            session.actualEndTime = now;
-            session.actualDuration = Math.max(
-                0,
-                Math.floor((now - session.actualStartTime) / (1000 * 60))
-            );
-        }
-
-        session.endedBy = userId;
-        session.endedByRole = session.teacher.toString() === String(userId) ? 'teacher' : 'student';
-        session.endedReason = `${userName || 'A participant'} left the meeting`;
-        await session.save();
-
-        io.to(`meeting_${roomId}`).emit('meeting-ended', {
-            roomId,
-            sessionId: session._id,
-            endedBy: userId,
-            endedByName: userName || 'Participant',
-            message: `${userName || 'A participant'} left the meeting. Session ended for both users.`
+        const session = await Session.findOne({
+            roomId
         });
 
+        if (!session) return;
+
+        const completedSession =
+            await completeSession({
+                session,
+                endedBy: userId,
+                endedByRole:
+                    String(session.teacher) === String(userId)
+                        ? 'teacher'
+                        : 'student',
+                reason:
+                    `${userName} left the meeting`
+            });
+
+        io.to(`meeting_${roomId}`).emit(
+            'meeting-ended',
+            {
+                roomId,
+                sessionId: completedSession._id,
+                endedBy: userId,
+                endedByName: userName,
+                sessionValidity:
+                    completedSession.sessionValidity,
+                ratingEligible:
+                    completedSession.ratingEligible,
+                message:
+                    `${userName} ended the meeting`
+            }
+        );
+
         clearMeetingTimerSet(roomId, false);
-        io.in(`meeting_${roomId}`).socketsLeave(`meeting_${roomId}`);
+
     } catch (error) {
-        console.error('leave-meeting error:', error);
+        console.error(error);
     }
 });
 

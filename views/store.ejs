@@ -83,6 +83,18 @@
                         </div>
                     </div>
 
+                    <!-- Redeemable Credits Card -->
+<div class="redeemable-card">
+    <div class="redeemable-icon">
+        <i class="fas fa-hand-holding-heart"></i>
+    </div>
+    <div class="redeemable-info">
+        <span class="redeemable-label">Redeemable Credits</span>
+        <span class="redeemable-amount" id="redeemableAmount">0</span>
+        <small class="redeemable-money" id="redeemableMoneyValue">₹0 value</small>
+    </div>
+</div>
+
                     <!-- Withdraw Button -->
                     <button class="withdraw-btn" id="withdrawBtn">
                         <i class="fas fa-hand-holding-usd"></i> Withdraw Credits
@@ -139,7 +151,7 @@
             <div class="modal-body">
                 <div class="info-box">
                     <i class="fas fa-info-circle"></i>
-                    <p>1 credit = ₹10<br>Minimum withdrawal: 10 credits</p>
+                    <p>1 credit = ₹20<br>Minimum withdrawal: 10 credits</p>
                 </div>
                 <div class="form-group">
                     <label>Available Credits: <strong id="availableCredits">0</strong></label>
@@ -180,6 +192,7 @@
     };
 
     let creditPackages = [];
+    let currentWithdrawalRate = 20;
 
     function showToast(message, type = "info") {
         const toast = document.createElement('div');
@@ -197,9 +210,13 @@
             if (data.success) {
                 document.getElementById('creditAmount').textContent = data.data.credits;
                 document.getElementById('walletAmount').textContent = `₹${data.data.balance}`;
+                  currentWithdrawalRate = data.data.withdrawalRate || 20;
                 currentUser.credits = data.data.credits;
                 currentUser.balance = data.data.balance;
                 currentUser.level = data.data.level;
+                 document.getElementById('redeemableAmount').textContent = data.data.redeemableCredits || 0;
+            const withdrawalRate = data.data.withdrawalRate || 20;
+document.getElementById('redeemableMoneyValue').textContent = `₹${(data.data.redeemableCredits || 0) * withdrawalRate} value`;
                 
                 // Update withdrawal UI based on level
                 updateWithdrawalUI(data.data);
@@ -219,6 +236,7 @@
         const userLevelBadge = document.getElementById('userLevelBadge');
         const withdrawLevelStatus = document.getElementById('withdrawLevelStatus');
         const withdrawLevelMessage = document.getElementById('withdrawLevelMessage');
+        const withdrawalRate = userData.withdrawalRate || currentWithdrawalRate; 
         
         if (userLevelBadge) {
             userLevelBadge.textContent = `Level ${level}`;
@@ -246,14 +264,14 @@
         } else if (level >= 3) {
             // Can withdraw
             if (withdrawBtn) {
-                withdrawBtn.title = `Level ${level} - You can withdraw credits (1 credit = ₹10)`;
+                withdrawBtn.title = `Level ${level} - You can withdraw credits (1 credit = ₹${withdrawalRate})`;
             }
             if (withdrawLevelStatus) {
                 withdrawLevelStatus.innerHTML = '<i class="fas fa-check-circle"></i> Withdrawal Available';
                 withdrawLevelStatus.style.color = '#10b981';
             }
             if (withdrawLevelMessage) {
-                withdrawLevelMessage.textContent = `Level ${level}: You can withdraw your credits! Minimum 10 credits. 1 credit = ₹10.`;
+                withdrawLevelMessage.textContent = `Level ${level}: You can withdraw your credits! Minimum 10 credits. 1 credit = ₹${withdrawalRate}.`;
             }
             if (levelInfoBanner) {
                 levelInfoBanner.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
@@ -418,7 +436,7 @@
     document.getElementById('withdrawAmount')?.addEventListener('input', (e) => {
         const amount = parseInt(e.target.value) || 0;
         const preview = document.getElementById('previewAmount');
-        preview.textContent = `₹${amount * 10}`;
+         preview.textContent = `₹${amount * currentWithdrawalRate}`;
     });
 
     document.getElementById('confirmWithdrawBtn')?.addEventListener('click', async () => {

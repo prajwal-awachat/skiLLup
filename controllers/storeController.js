@@ -71,62 +71,62 @@ exports.purchasePackage = async (req, res) => {
 };
 
 // Withdraw credits to wallet balance (1 credit = ₹10)
-// Withdraw credits to wallet balance (1 credit = ₹10) with level check
 exports.withdrawCredits = async (req, res) => {
     try {
         const { credits } = req.body;
         const userId = req.user._id;
+        
+        // Import helpers at the beginning
+        const { getWithdrawalRate, getMinWithdrawalCredits, getTeacherLevelForWithdrawal } = require('../utils/settingsHelper');
         
         const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({ success: false, message: 'User not found' });
         }
         
-        // **LEVEL CHECK - CRITICAL**
-        if (user.level === 1 || user.level === 2) {
-            return res.status(403).json({ 
-                success: false, 
-                message: `Withdrawal not available for Level ${user.level}. You need to reach Level 3 to withdraw credits. Complete more teaching sessions to level up!` 
-            });
-        }
+        // Get dynamic settings
+        const withdrawalRate = await getWithdrawalRate();
+        const minWithdrawal = await getMinWithdrawalCredits();
+        const requiredLevel = await getTeacherLevelForWithdrawal();
         
-        if (user.level < 3) {
+        // LEVEL CHECK using dynamic required level
+        if (user.level < requiredLevel) {
             return res.status(403).json({ 
                 success: false, 
-                message: `Level ${user.level} teachers cannot withdraw credits. Reach Level 3 to unlock withdrawals.` 
+                message: `Withdrawal not available for Level ${user.level}. You need to reach Level ${requiredLevel} to withdraw credits. Complete more teaching sessions to level up!` 
             });
         }
         
         // Additional check using model method
-        if (!user.canRedeemCredits()) {
+        if (!await user.canRedeemCreditsSync()) {  // Use sync version
             return res.status(403).json({ 
                 success: false, 
                 message: `Your current level (${user.level}) does not allow withdrawals.` 
             });
         }
         
-        // Minimum withdrawal check
-        if (credits < 10) {
+        // Minimum withdrawal check (using dynamic minWithdrawal)
+        if (credits < minWithdrawal) {
             return res.status(400).json({ 
                 success: false, 
-                message: 'Minimum withdrawal is 10 credits' 
+                message: `Minimum withdrawal is ${minWithdrawal} credits` 
             });
         }
         
         // Check if user has enough credits
-       if (user.redeemableCredits < credits) {
-    return res.status(400).json({ 
-        success: false, 
-        message: `Insufficient redeemable credits. You have ${user.redeemableCredits} available.` 
-    });
-}
+        if (user.redeemableCredits < credits) {
+            return res.status(400).json({ 
+                success: false, 
+                message: `Insufficient redeemable credits. You have ${user.redeemableCredits} available.` 
+            });
+        }
         
-        // Convert credits to money (1 credit = ₹10)
-        const moneyValue = credits * 10;
+        // Convert credits to money using dynamic rate
+        const moneyValue = credits * withdrawalRate;
         
         // Deduct credits and add to balance
         user.redeemableCredits = Math.max(0, user.redeemableCredits - credits);
-        user.credits -= credits; // optional: only if you want both reduced
+        user.credits -= credits;
         user.balance += moneyValue;
         user.moneyEarned = (user.moneyEarned || 0) + moneyValue;
         await user.save();
@@ -137,7 +137,7 @@ exports.withdrawCredits = async (req, res) => {
             type: 'credit_withdrawn',
             amount: moneyValue,
             credits: -credits,
-            description: `Withdrew ${credits} credits for ₹${moneyValue} (Level ${user.level})`,
+            description: `Withdrew ${credits} credits for ₹${moneyValue} (Rate: ₹${withdrawalRate}/credit) (Level ${user.level})`,
             status: 'completed'
         });
         
@@ -147,7 +147,8 @@ exports.withdrawCredits = async (req, res) => {
             data: {
                 newBalance: user.balance,
                 newCredits: user.credits,
-                level: user.level
+                level: user.level,
+                withdrawalRate: withdrawalRate
             }
         });
     } catch (error) {
@@ -160,30 +161,35 @@ exports.withdrawCredits = async (req, res) => {
 exports.checkWithdrawalEligibility = async (req, res) => {
     try {
         const user = await User.findById(req.user._id);
+
+        const { getWithdrawalRate, getMinWithdrawalCredits, getTeacherLevelForWithdrawal } = require('../utils/settingsHelper');
+        const withdrawalRate = await getWithdrawalRate();
+        const minWithdrawal = await getMinWithdrawalCredits();
+        const requiredLevel = await getTeacherLevelForWithdrawal();
         
         let canWithdraw = false;
         let message = '';
         
-        if (user.level === 1) {
-            message = `Level 1: Cannot withdraw. Complete 5+ sessions to reach Level 2, then more to reach Level 3.`;
-        } else if (user.level === 2) {
-            message = `Level 2: Cannot withdraw. Complete more sessions to reach Level 3.`;
-        } else if (user.level >= 3) {
-            canWithdraw = true;
-            message = `Level ${user.level}: You can withdraw credits! Minimum 10 credits. 1 credit = ₹10.`;
-        }
+       if (user.level < requiredLevel) {
+    message = `Level ${user.level}: Cannot withdraw. Need Level ${requiredLevel}.`;
+} else {
+    canWithdraw = true;
+    message = `Level ${user.level}: You can withdraw credits! Minimum ${minWithdrawal} credits. 1 credit = ₹${withdrawalRate}.`;
+}
         
-        res.json({
-            success: true,
-            data: {
-                canWithdraw,
-                message,
-                currentLevel: user.level,
-                credits: user.credits,
-               redeemableCredits: user.redeemableCredits || 0,
-                minWithdrawal: 10
-            }
-        });
+       res.json({
+    success: true,
+    data: {
+        canWithdraw,
+        message,
+        currentLevel: user.level,
+        requiredLevel,
+        credits: user.credits,
+        redeemableCredits: user.redeemableCredits || 0,
+        minWithdrawal,
+        withdrawalRate
+    }
+});
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
@@ -193,6 +199,12 @@ exports.checkWithdrawalEligibility = async (req, res) => {
 exports.getUserBalance = async (req, res) => {
     try {
         const user = await User.findById(req.user._id);
+        const { getWithdrawalRate, getMinWithdrawalCredits, getTeacherLevelForWithdrawal } = require('../utils/settingsHelper');
+        
+        const withdrawalRate = await getWithdrawalRate();
+        const minWithdrawal = await getMinWithdrawalCredits();
+        const requiredLevel = await getTeacherLevelForWithdrawal();
+        
         res.json({ 
             success: true, 
             data: { 
@@ -200,7 +212,10 @@ exports.getUserBalance = async (req, res) => {
                 balance: user.balance || 0,
                 redeemableCredits: user.redeemableCredits || 0,
                 level: user.level,
-                canRedeem: user.canRedeemCredits()
+                canRedeem: user.level >= requiredLevel,
+                withdrawalRate,
+                minWithdrawal,
+                requiredLevelForWithdrawal: requiredLevel
             } 
         });
     } catch (error) {

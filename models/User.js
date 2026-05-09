@@ -180,11 +180,29 @@ const userSchema = new mongoose.Schema({
     timestamps: true
 });
 
-userSchema.methods.getCreditRate = function () {
-    if (this.level >= 4 && this.customCreditRate > 0) {
+userSchema.methods.getCreditRate = async function () {
+    const customRateUnlockLevel = await require('../utils/settingsHelper')
+        .getTeacherLevelForCustomRate();
+    
+    if (this.level >= customRateUnlockLevel && this.customCreditRate > 0) {
         return this.customCreditRate;
     }
 
+    switch (this.level) {
+        case 1: return 1;
+        case 2: return 2;
+        case 3: return 2;
+        case 4: return 3;
+        case 5: return 5;
+        default: return 1;
+    }
+};
+
+// Sync version for non-async contexts (uses defaults)
+userSchema.methods.getCreditRateSync = function () {
+    if (this.level >= 4 && this.customCreditRate > 0) {
+        return this.customCreditRate;
+    }
     switch (this.level) {
         case 1: return 1;
         case 2: return 2;
@@ -208,8 +226,15 @@ userSchema.methods.calculateLevelFromRating = function () {
     return 5;
 };
 
-userSchema.methods.canRedeemCredits = function () {
-    return this.level >= 3;
+userSchema.methods.canRedeemCredits = async function () {
+    const minLevel = await require('../utils/settingsHelper')
+        .getTeacherLevelForWithdrawal();
+    return this.level >= minLevel;
+};
+
+// Sync version for non-async contexts
+userSchema.methods.canRedeemCreditsSync = function () {
+    return this.level >= 3; // Default fallback
 };
 
 userSchema.methods.canHaveGroupSessions = function () {
@@ -251,7 +276,7 @@ userSchema.methods.deductCredits = async function (amount, sessionId = null) {
 };
 
 userSchema.methods.addEarnings = async function (credits, sessionId = null) {
-    const creditRate = this.getCreditRate();
+    const creditRate =await this.getCreditRate();
 
     this.credits += credits;
     this.totalCreditsEarned += credits;
@@ -265,7 +290,7 @@ userSchema.methods.addEarnings = async function (credits, sessionId = null) {
     await Transaction.create({
         user: this._id,
         type: 'credit_earned',
-        amount: credits * creditRate,
+        amount: 0,
         credits: credits,
         session: sessionId,
         description: `Earned ${credits} credits from session`,
@@ -274,7 +299,7 @@ userSchema.methods.addEarnings = async function (credits, sessionId = null) {
 };
 
 userSchema.methods.redeemCredits = async function (creditsToRedeem) {
-    if (!this.canRedeemCredits()) {
+    if (!await this.canRedeemCredits()) {
         throw new Error('You cannot redeem credits at your current level');
     }
 
@@ -286,7 +311,9 @@ userSchema.methods.redeemCredits = async function (creditsToRedeem) {
         throw new Error('Insufficient redeemable credits');
     }
 
-    const moneyValue = creditsToRedeem * 10;
+    const { getWithdrawalRate } = require('../utils/settingsHelper');
+    const withdrawalRate = await getWithdrawalRate();
+    const moneyValue = creditsToRedeem * withdrawalRate;
 
     this.redeemableCredits -= creditsToRedeem;
     this.moneyEarned += moneyValue;

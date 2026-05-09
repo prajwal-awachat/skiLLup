@@ -198,6 +198,8 @@ let hasRemoteParticipant = false;
 let isReconnectingFlow = false;
 let reconnectAttemptCount = 0;
 let manualDisconnect = false;
+let mediaRecorder;
+let recordedChunks = [];
         
         // Configuration
         const configuration = {
@@ -207,6 +209,47 @@ let manualDisconnect = false;
                 { urls: 'stun:stun2.l.google.com:19302' }
             ]
         };
+
+        // Recording Functions
+function startSessionRecording(stream) {
+    recordedChunks = [];
+    mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'video/webm'
+    });
+    
+    mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+            recordedChunks.push(event.data);
+        }
+    };
+    
+    mediaRecorder.start(5000); // Record in 5-second chunks
+    console.log('Recording started');
+}
+
+async function stopAndUploadRecording(sessionId) {
+    if (!mediaRecorder) return;
+    
+    return new Promise((resolve) => {
+        mediaRecorder.onstop = async () => {
+            const blob = new Blob(recordedChunks, { type: 'video/webm' });
+            const formData = new FormData();
+            formData.append('recording', blob, `session_${sessionId}.webm`);
+            
+            try {
+                await fetch(`/api/recordings/session/${sessionId}/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                console.log('Recording uploaded successfully');
+            } catch (error) {
+                console.error('Failed to upload recording:', error);
+            }
+            resolve();
+        };
+        mediaRecorder.stop();
+    });
+}
         
         // Initialize
        async function init() {
@@ -271,42 +314,47 @@ let manualDisconnect = false;
     });
 
     socket.on('meeting-ended', async (data) => {
-        meetingAlreadyEnding = true;
-        manualDisconnect = true;
+    if (meetingAlreadyEnding) return;
+    meetingAlreadyEnding = true;
+    manualDisconnect = true;
 
-        showToast(data.message || `Session ended by ${data.endedByName || 'teacher'}`, 'info');
+    showToast(data.message || `Session ended by ${data.endedByName || 'teacher'}`, 'info');
 
-        if (localStream) {
-            localStream.getTracks().forEach(track => track.stop());
-        }
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+    }
 
-        if (peerConnection) {
-            peerConnection.close();
-        }
+    if (peerConnection) {
+        peerConnection.close();
+    }
 
-        if (socket) {
-            socket.disconnect();
-        }
+    if (socket) {
+        socket.disconnect();
+    }
 
-        if (!sessionData.isTeacher) {
-            const shouldShowRating =
-                data &&
-                data.sessionValidity === 'valid' &&
-                data.ratingEligible === true;
+    if (!sessionData.isTeacher) {
+        // Student side
+        const shouldShowRating = data && data.sessionValidity === 'valid' && data.ratingEligible === true;
 
-            if (shouldShowRating) {
-                openRatingModal();
-            } else {
-                setTimeout(() => {
-                    window.location.href = '/learn';
-                }, 1000);
-            }
+        if (shouldShowRating) {
+            openRatingModal();
         } else {
+            if (data.sessionValidity === 'partial') {
+                showToast('Session ended early. Rating not available for partial sessions.', 'info');
+            } else if (data.sessionValidity === 'invalid') {
+                showToast('Session too short. Rating not available.', 'info');
+            }
             setTimeout(() => {
-                window.location.href = '/teach';
-            }, 1000);
+                window.location.href = '/learn';
+            }, 2000);
         }
-    });
+    } else {
+        // Teacher side - no rating needed
+        setTimeout(() => {
+            window.location.href = '/teach';
+        }, 1000);
+    }
+});
 
     try {
         await ensureLocalMedia();
@@ -328,12 +376,17 @@ let manualDisconnect = false;
     setupRatingStars();
 }
         
-       async function ensureLocalMedia() {
+     async function ensureLocalMedia() {
     if (localStream) return;
 
     localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     document.getElementById('localVideo').srcObject = localStream;
     updateVideoFallbacks();
+    
+    // START RECORDING if teacher
+    if (sessionData.isTeacher) {
+        startSessionRecording(localStream);
+    }
 }
 
 function resetPeerConnection() {
@@ -395,6 +448,46 @@ function createPeerConnection() {
             await handleReconnectFlow(true);
         }
     };
+}
+
+function startSessionRecording(stream) {
+    recordedChunks = [];
+
+    mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'video/webm'
+    });
+
+    mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+            recordedChunks.push(event.data);
+        }
+    };
+
+    mediaRecorder.start(5000);
+}
+
+async function stopRecordingAndUpload(sessionId) {
+    if (!mediaRecorder) return;
+
+    return new Promise((resolve) => {
+        mediaRecorder.onstop = async () => {
+            const blob = new Blob(recordedChunks, {
+                type: 'video/webm'
+            });
+
+            const formData = new FormData();
+            formData.append('recording', blob, `session_${sessionId}.webm`);
+
+            await fetch(`/api/recordings/session/${sessionId}/upload`, {
+                method: 'POST',
+                body: formData
+            });
+
+            resolve();
+        };
+
+        mediaRecorder.stop();
+    });
 }
 
 async function createAndSendOffer() {
@@ -788,13 +881,14 @@ function hideRemoteVideo() {
     updateVideoFallbacks();
 }
 
- async function endCall() {
+async function endCall() {
     try {
         if (meetingAlreadyEnding) return;
         meetingAlreadyEnding = true;
         manualDisconnect = true;
 
         if (sessionData.isTeacher) {
+            // Teacher ending the session
             const response = await fetch(`/api/teacher/sessions/${sessionData.id}/complete`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -809,7 +903,9 @@ function hideRemoteVideo() {
                 showToast(data.message || 'Failed to complete session', 'error');
                 return;
             }
-
+            
+            if (mediaRecorder) await stopAndUploadRecording(sessionData.id);
+            
             if (socket) {
                 socket.emit('meeting-ended', {
                     roomId: sessionData.roomId,
@@ -817,15 +913,29 @@ function hideRemoteVideo() {
                     endedBy: currentUser.id,
                     endedByName: currentUser.name,
                     message: `${currentUser.name} ended the session.`,
-                    sessionValidity: data.data?.sessionValidity || null,
+                    sessionValidity: data.data?.sessionValidity || 'valid',
                     ratingEligible: data.data?.ratingEligible || false
                 });
             }
+            
+            // Teacher doesn't rate, just redirect
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+            if (peerConnection) {
+                peerConnection.close();
+            }
+            if (socket) {
+                socket.disconnect();
+            }
+            window.location.href = '/teach';
+            
         } else {
-            const wantsEarlyEnd = confirm('If you are ending within first 20 minutes due to poor teaching or issue, press OK. Otherwise press Cancel to just leave.');
+            // Student ending the session
+            const wantsEarlyEnd = confirm('Do you want to end this session? Credits will NOT be refunded.');
 
             if (wantsEarlyEnd) {
-                const reason = prompt('Enter reason: teacher not teaching well / technical issue / other') || 'Student ended early';
+                const reason = prompt('Enter reason (teacher not teaching well / technical issue / other):') || 'Student ended early';
 
                 const response = await fetch(`/meeting/api/end-early/${sessionData.id}`, {
                     method: 'POST',
@@ -841,32 +951,33 @@ function hideRemoteVideo() {
                     showToast(data.message || 'Failed to end session early', 'error');
                     return;
                 }
-            } else {
-                if (socket) {
-                    socket.emit('leave-meeting', {
-                        roomId: sessionData.roomId,
-                        userId: currentUser.id,
-                        userName: currentUser.name
-                    });
+                
+                // Clean up media and connection
+                if (localStream) {
+                    localStream.getTracks().forEach(track => track.stop());
                 }
+                if (peerConnection) {
+                    peerConnection.close();
+                }
+                if (socket) {
+                    socket.disconnect();
+                }
+                
+                // Show rating modal if session is valid
+                if (data.data && data.data.sessionValidity === 'valid' && data.data.ratingEligible === true) {
+                    openRatingModal();
+                } else {
+                    showToast('Session ended. Rating not available for short sessions.', 'info');
+                    setTimeout(() => {
+                        window.location.href = '/learn';
+                    }, 2000);
+                }
+            } else {
+                // User canceled - don't end
+                meetingAlreadyEnding = false;
+                manualDisconnect = false;
             }
         }
-
-        if (localStream) {
-            localStream.getTracks().forEach(track => track.stop());
-        }
-
-        if (peerConnection) {
-            peerConnection.close();
-        }
-
-        if (socket) {
-            socket.disconnect();
-        }
-
-        const redirectUrl = sessionData.isTeacher ? '/teach' : '/learn';
-        window.location.href = redirectUrl;
-
     } catch (error) {
         console.error('End call error:', error);
         meetingAlreadyEnding = false;

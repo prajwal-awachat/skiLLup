@@ -10,6 +10,9 @@ const connectDB = require("./config/database");
 const http = require('http');
 const socketIO = require('socket.io');
 const currUser = require("./middleware/userMiddleware");
+const recordingRoutes = require('./routes/recordingRoutes');
+const historyRoutes = require('./routes/historyRoutes');
+const roadmapRoutes = require('./routes/roadmapRoutes');
 
 // Load environment variables
 dotenv.config();
@@ -80,7 +83,9 @@ app.use('/meeting', meetingRoutes);
 app.use('/api/store', storeRoutes);
 app.use('/api/group-sessions', groupSessionRoutes);
 app.use('/api/settings', settingsRoutes);
-
+app.use('/api/recordings', recordingRoutes);
+app.use('/api/history', historyRoutes);
+app.use('/api/roadmap', roadmapRoutes);
 // ============ VIEW ROUTES ============
 // Auth page routes (public)
 app.get('/auth/login', (req, res) => {

@@ -4,6 +4,7 @@ const Skill = require('../models/Skill');
 const SessionRequest = require('../models/SessionRequest');
 const Session = require('../models/Session');
 const Transaction = require('../models/Transaction');
+const SessionSummary = require('../models/SessionSummary');
 const { Message, Conversation } = require('../models/Message');
 const {
     calculateEndTime,
@@ -12,6 +13,10 @@ const {
     finalizeSessionRequest,
     isSameCalendarDay
 } = require('../utils/schedulingHelper');
+
+const {
+    completeSessionInternal
+} = require('../utils/sessionCompletionHelper');
 
 // ==================== SKILL MANAGEMENT ====================
 
@@ -81,7 +86,7 @@ exports.addTeacherSkill = async (req, res) => {
             type: 'teach',
             proficiencyLevel: proficiencyLevel || 'intermediate',
             yearsOfExperience: yearsOfExperience || 0,
-            hourlyRate: hourlyRate || req.user.getCreditRate(),
+            hourlyRate: hourlyRate || await req.user.getCreditRate(),
             isAvailable: true
         });
 
@@ -232,8 +237,8 @@ const totalCompleted = validCompletedSessions.length;
                 user,
                 teachingSkills,
                 level: user.level,
-                creditRate: user.getCreditRate(),
-                canRedeem: user.canRedeemCredits(),
+                creditRate:await user.getCreditRate(),
+                canRedeem:await user.canRedeemCredits(),
                 canHaveGroupSessions: user.canHaveGroupSessions(),
                 stats: {
                     totalStudents: uniqueStudents.size || user.studentsCount || 0,
@@ -661,20 +666,26 @@ exports.getCompletedSessions = async (req, res) => {
         })
             .populate('student', 'name email avatar')
             .populate('skill', 'name')
+            .populate('summary')
             .sort({ scheduledDate: -1 })
             .limit(50);
-        
-        // Calculate earnings
+
+        // Show only completed sessions where teacher has NOT sent summary details yet
+        const pendingSummarySessions = sessions.filter(session => {
+            return !session.summary || session.summary.sentToStudent !== true;
+        });
+
+        // Calculate earnings from all completed sessions, not only pending summary sessions
         const totalEarned = sessions.reduce((sum, session) => {
-    return sum + (session.sessionValidity === 'valid' ? session.creditsPerSession : 0);
-}, 0);
-        
+            return sum + (session.sessionValidity === 'valid' ? session.creditsPerSession : 0);
+        }, 0);
+
         res.json({
             success: true,
             data: {
-                sessions,
+                sessions: pendingSummarySessions,
                 totalEarned,
-                totalSessions: sessions.length
+                totalSessions: pendingSummarySessions.length
             }
         });
     } catch (error) {
@@ -712,11 +723,9 @@ exports.startSession = async (req, res) => {
             session.joinCode = Math.random().toString(36).substr(2, 6).toUpperCase();
         }
         
-        session.status = 'ongoing';
-if (!session.actualStartTime) {
-    session.actualStartTime = new Date();
-}
-await session.save();
+       session.status = 'confirmed';
+        
+        await session.save();
         
         // Notify student that session has started
         const io = req.app.get('io');
@@ -786,130 +795,30 @@ exports.getSessionDetails = async (req, res) => {
 };
 
 exports.completeSession = async (req, res) => {
+
     try {
+
         const { sessionId } = req.params;
-        const { notes } = req.body;
 
-        const session = await Session.findById(sessionId);
-
-        if (!session) {
-            return res.status(404).json({
-                success: false,
-                message: 'Session not found'
-            });
-        }
-
-        if (session.teacher.toString() !== req.user._id.toString()) {
-            return res.status(403).json({
-                success: false,
-                message: 'Not authorized'
-            });
-        }
-
-        if (session.status === 'completed') {
-            return res.status(400).json({
-                success: false,
-                message: 'Session already completed'
-            });
-        }
-
-        if (!session.actualStartTime) {
-            return res.status(400).json({
-                success: false,
-                message: 'Session was not properly started'
-            });
-        }
-
-        const endTime = new Date();
-        session.actualEndTime = endTime;
-
-        const duration = Math.max(
-            0,
-            Math.floor((session.actualEndTime - session.actualStartTime) / (1000 * 60))
-        );
-
-        session.actualDuration = duration;
-
-        if (duration < 20) {
-            session.sessionValidity = 'invalid';
-
-            const student = await User.findById(session.student);
-            student.credits += session.creditsPerSession;
-            student.totalCreditsSpent = Math.max(
-                0,
-                (student.totalCreditsSpent || 0) - session.creditsPerSession
-            );
-            await student.save();
-
-            await Transaction.create({
-                user: student._id,
-                type: 'refund',
-                amount: session.creditsPerSession,
-                credits: session.creditsPerSession,
-                session: session._id,
-                description: `Refunded ${session.creditsPerSession} credits for invalid session`,
-                status: 'completed',
-                completedAt: new Date()
-            });
-
-            session.ratingEligible = false;
-        } else if (duration >= 20 && duration < 35) {
-            session.sessionValidity = 'partial';
-            session.ratingEligible = false;
-        } else {
-            session.sessionValidity = 'valid';
-            session.ratingEligible = true;
-
-            await req.user.addEarnings(session.creditsPerSession, session._id);
-        }
-
-        session.status = 'completed';
-        session.isCompleted = true;
-        session.endedBy = req.user._id;
-        session.endedByRole = 'teacher';
-        session.endedReason = 'Teacher completed the session';
-        session.updatedAt = new Date();
-
-        if (notes) session.notes = notes;
-
-        session.set('roomId', undefined);
-        session.set('joinCode', undefined);
-        session.meetingLink = '';
-
-        await session.save();
-
-     await SessionRequest.findOneAndUpdate(
-    { session: session._id },
-    {
-        $set: {
-            updatedAt: new Date(),
-            teacherMessage: 'Session completed'
-        }
-    }
-);
-
-        const io = req.app.get('io');
-        if (io) {
-            io.to(`user_${session.student}`).emit('session_completed', {
-                sessionId: session._id,
-                teacherName: req.user.name
-            });
-        }
-
-        res.json({
-            success: true,
-            message: `Session completed with status: ${session.sessionValidity}`,
-            data: {
-                actualDuration: session.actualDuration,
-                sessionValidity: session.sessionValidity,
-                ratingEligible: session.ratingEligible
-            }
+        const session = await completeSessionInternal({
+            sessionId,
+            endedBy: req.user._id,
+            endedByRole: 'teacher',
+            reason: 'Teacher ended meeting'
         });
+
+        return res.json({
+            success: true,
+            data: session
+        });
+
     } catch (error) {
-        console.error('Complete session error:', error);
-        res.status(500).json({
+
+        console.error(error);
+
+        return res.status(500).json({
             success: false,
-            message: 'Failed to complete session: ' + error.message
+            message: 'Failed to complete session'
         });
     }
 };
@@ -1170,9 +1079,9 @@ exports.getCreditsAndEarnings = async (req, res) => {
                 totalCreditsEarned: req.user.totalCreditsEarned,
                 redeemableCredits: req.user.redeemableCredits,
                 moneyEarned: req.user.moneyEarned,
-                creditRate: req.user.getCreditRate(),
+                creditRate: await req.user.getCreditRate(),
                 level: req.user.level,
-                canRedeem: req.user.canRedeemCredits(),
+                canRedeem: await req.user.canRedeemCredits(),
                 transactions
             }
         });
@@ -1195,7 +1104,7 @@ exports.getLevelFeatures = async (req, res) => {
         
         const features = {
             level: level,
-            creditRate: req.user.getCreditRate(),
+            creditRate:await req.user.getCreditRate(),
             canSetOwnRate: level >= 4,
             canWithdraw: level >= 3,
             canHaveGroupSessions: level >= 5,
@@ -1328,6 +1237,83 @@ exports.deleteMessage = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to delete message'
+        });
+    }
+};
+
+//sendsessionsummarytostudent
+exports.sendSessionSummaryToStudent = async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        const { teacherNotes, homework, resources } = req.body;
+
+        const session = await Session.findById(sessionId);
+
+        if (!session) {
+            return res.status(404).json({
+                success: false,
+                message: 'Session not found'
+            });
+        }
+
+        if (session.teacher.toString() !== req.user._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Unauthorized'
+            });
+        }
+
+        if (session.status !== 'completed') {
+            return res.status(400).json({
+                success: false,
+                message: 'Only completed sessions can be sent'
+            });
+        }
+
+        const cleanResources = Array.isArray(resources)
+            ? resources
+                .filter(r => r && r.url && r.url.trim())
+                .map(r => ({
+                    title: r.title || 'Resource',
+                    url: r.url.trim(),
+                    type: r.type || 'other'
+                }))
+            : [];
+
+        const summary = await SessionSummary.findOneAndUpdate(
+            { session: session._id },
+            {
+    $set: {
+        teacherNotes: teacherNotes || '',
+        homework: homework || '',
+        resources: cleanResources,
+
+        sentToStudent: true,
+        sentAt: new Date()
+    },
+    $setOnInsert: {
+        session: session._id,
+        teacher: session.teacher,
+        student: session.student
+    }
+},
+            { upsert: true, new: true }
+        );
+
+        session.summary = summary._id;
+        await session.save();
+
+        return res.json({
+            success: true,
+            message: 'Summary details sent to student',
+            data: summary
+        });
+
+    } catch (error) {
+        console.error('Send summary error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to send summary details'
         });
     }
 };

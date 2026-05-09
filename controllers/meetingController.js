@@ -1,6 +1,10 @@
 const Session = require('../models/Session');
 const User = require('../models/User');
 const SessionRequest = require('../models/SessionRequest');
+const Transaction = require('../models/Transaction');
+const {
+    completeSessionInternal
+} = require('../utils/sessionCompletionHelper');
 
 // Render meeting page with validation
 exports.joinMeeting = async (req, res) => {
@@ -102,107 +106,30 @@ exports.getMeetingInfo = async (req, res) => {
     }
 };
 
+
 exports.endMeetingEarlyByStudent = async (req, res) => {
     try {
+
         const { sessionId } = req.params;
-        const { reason } = req.body;
 
-        const session = await Session.findById(sessionId);
-
-        if (!session) {
-            return res.status(404).json({
-                success: false,
-                message: 'Session not found'
-            });
-        }
-
-        const isStudent = session.student && session.student.toString() === req.user._id.toString();
-
-        if (!isStudent) {
-            return res.status(403).json({
-                success: false,
-                message: 'Only the student can use this action'
-            });
-        }
-
-        if (session.status !== 'ongoing') {
-            return res.status(400).json({
-                success: false,
-                message: 'Session is not ongoing'
-            });
-        }
-
-        const now = new Date();
-        const startTime = session.actualStartTime || now;
-        const duration = Math.max(0, Math.floor((now - startTime) / (1000 * 60)));
-
-        // student special early exit allowed only within first 20 min
-        if (duration >= 20) {
-            return res.status(400).json({
-                success: false,
-                message: 'Early student exit is allowed only within first 20 minutes'
-            });
-        }
-
-        const student = await User.findById(session.student);
-
-        session.actualEndTime = now;
-        session.actualDuration = duration;
-        session.sessionValidity = 'invalid';
-        session.status = 'completed';
-        session.isCompleted = true;
-        session.endedBy = req.user._id;
-        session.endedByRole = 'student';
-        session.endedReason = reason || 'Student ended early within first 20 minutes';
-        session.ratingEligible = false;
-        session.updatedAt = now;
-
-        const roomIdToEmit = session.roomId;
-
-        session.set('roomId', undefined);
-        session.set('joinCode', undefined);
-        session.meetingLink = '';
-
-        await session.save();
-
-        // refund student
-        student.credits += session.creditsPerSession;
-        student.totalCreditsSpent = Math.max(0, (student.totalCreditsSpent || 0) - session.creditsPerSession);
-        await student.save();
-
-       await SessionRequest.findOneAndUpdate(
-    { session: session._id },
-    {
-        $set: {
-            teacherMessage: 'Session ended early by student',
-            updatedAt: new Date()
-        }
-    }
-);
-
-        const io = req.app.get('io');
-        if (io && roomIdToEmit) {
-           io.to(`meeting_${roomIdToEmit}`).emit('meeting-ended', {
-    sessionId: session._id,
-    endedBy: req.user._id,
-    endedByName: req.user.name,
-    message: 'Student ended the session within first 20 minutes.',
-    sessionValidity: 'invalid',
-    ratingEligible: false
-});
-
-            io.in(`meeting_${roomIdToEmit}`).socketsLeave(`meeting_${roomIdToEmit}`);
-        }
+        const session = await completeSessionInternal({
+            sessionId,
+            endedBy: req.user._id,
+            endedByRole: 'student',
+            reason: 'Student ended meeting'
+        });
 
         return res.json({
             success: true,
-            message: 'Session ended early. Credits refunded to student.'
+            data: session
         });
+
     } catch (error) {
-        console.error('End early by student error:', error);
+        console.error(error);
+
         return res.status(500).json({
             success: false,
-            message: 'Failed to end session early'
+            message: 'Failed to end session'
         });
     }
 };

@@ -243,7 +243,17 @@
                 
                 // Get summary if available
                 const summary = session.summary;
-                const hasSummary = summary && (summary.topicsCovered?.length > 0 || summary.keyLearnings?.length > 0 || summary.teacherNotes);
+              const hasSummary =
+    summary &&
+    summary.sentToStudent === true &&
+    (
+        summary.topicsCovered?.length > 0 ||
+        summary.keyLearnings?.length > 0 ||
+        summary.studentNotes ||
+        summary.teacherNotes ||
+        summary.homework ||
+        summary.resources?.length > 0
+    );
                 
                 return `
                     <div class="session-card" data-id="${session._id}">
@@ -292,12 +302,25 @@
                                                 <ul>${summary.keyLearnings.map(l => `<li>${escapeHtml(l)}</li>`).join('')}</ul>
                                             </div>
                                         ` : ''}
-                                        ${summary.teacherNotes ? `
-                                            <div class="summary-section">
-                                                <strong><i class="fas fa-sticky-note"></i> Teacher's Notes:</strong>
-                                                <p>${escapeHtml(summary.teacherNotes)}</p>
-                                            </div>
-                                        ` : ''}
+                                        ${summary.studentNotes ? `
+    <div class="summary-section">
+        <strong><i class="fas fa-scroll"></i> Session Notes:</strong>
+        <p>${escapeHtml(summary.studentNotes)}</p>
+    </div>
+` : ''}
+                                       ${summary.teacherNotes ? `
+    <div class="summary-section">
+        <strong><i class="fas fa-message"></i> Teacher Guidance:</strong>
+        <p>${escapeHtml(summary.teacherNotes)}</p>
+    </div>
+` : ''}
+
+${summary.homework ? `
+    <div class="summary-section">
+        <strong><i class="fas fa-tasks"></i> Homework / Practice:</strong>
+        <p>${escapeHtml(summary.homework)}</p>
+    </div>
+` : ''}
                                         ${summary.resources && summary.resources.length > 0 ? `
                                             <div class="summary-section">
                                                 <strong><i class="fas fa-link"></i> Resources:</strong>
