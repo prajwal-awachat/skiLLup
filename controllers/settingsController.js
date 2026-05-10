@@ -96,7 +96,7 @@ exports.addSkill = async (req, res) => {
         if (type === 'teach') {
             payload.proficiencyLevel = 'intermediate';
             payload.yearsOfExperience = 0;
-            payload.hourlyRate = req.user.getCreditRate();
+            payload.hourlyRate = await req.user.getCreditRate();
         }
 
         await UserSkill.create(payload);
@@ -156,15 +156,15 @@ exports.removeSkill = async (req, res) => {
             });
         }
 
-        if (type === 'teach') {
-            await Skill.findByIdAndUpdate(skillId, {
-                $inc: { totalTeachers: -1 }
-            });
-        } else {
-            await Skill.findByIdAndUpdate(skillId, {
-                $inc: { totalLearners: -1 }
-            });
-        }
+       const skill = await Skill.findById(skillId);
+        if (skill) {
+           if (type === 'teach') {
+             skill.totalTeachers = Math.max(0, skill.totalTeachers - 1);
+            } else {
+                 skill.totalLearners = Math.max(0, skill.totalLearners - 1);
+             }
+              await skill.save();
+         }
 
         res.json({
             success: true,
@@ -229,8 +229,15 @@ exports.updateProfile = async (req, res) => {
                 });
             }
 
+
             user.email = normalizedEmail;
         }
+        if (name !== undefined && !name.trim()) {
+    return res.status(400).json({
+        success: false,
+        message: 'Name cannot be empty'
+    });
+}
 
         await user.save();
 
@@ -267,6 +274,13 @@ exports.updatePassword = async (req, res) => {
             });
         }
 
+        if (newPassword.length < 6) {
+    return res.status(400).json({
+        success: false,
+        message: 'Password must be at least 6 characters long'
+    });
+}
+
         user.password = await bcrypt.hash(newPassword, 10);
         await user.save();
 
@@ -294,6 +308,21 @@ exports.uploadAvatar = async (req, res) => {
 
         const b64 = Buffer.from(req.file.buffer).toString('base64');
         const dataURI = `data:${req.file.mimetype};base64,${b64}`;
+        const user = await User.findById(req.user._id);
+
+if (user.avatar && user.avatar.includes('cloudinary.com')) {
+    try {
+        const publicId = user.avatar
+            .split('/')
+            .slice(-3)
+            .join('/')
+            .replace(/\.[^/.]+$/, '');
+
+        await cloudinary.uploader.destroy(publicId);
+    } catch (err) {
+        console.error('Failed to delete old avatar:', err.message);
+    }
+}
 
         const result = await cloudinary.uploader.upload(dataURI, {
             folder: 'skill-exchange/avatars',
@@ -302,7 +331,6 @@ exports.uploadAvatar = async (req, res) => {
             crop: 'fill'
         });
 
-        const user = await User.findById(req.user._id);
         user.avatar = result.secure_url;
         await user.save();
 
@@ -334,12 +362,12 @@ exports.updateCustomRate = async (req, res) => {
             });
         }
 
-        if (!customCreditRate || Number(customCreditRate) < 1) {
-            return res.status(400).json({
-                success: false,
-                message: 'Custom rate must be at least 1'
-            });
-        }
+       if (!Number.isInteger(Number(customCreditRate)) || Number(customCreditRate) < 1) {
+    return res.status(400).json({
+        success: false,
+        message: 'Custom rate must be at least 1'
+    });
+}
 
         user.customCreditRate = Number(customCreditRate);
         await user.save();
@@ -378,9 +406,17 @@ exports.redeemCredits = async (req, res) => {
             }
         });
     } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-    }
+    const userErrors = [
+        'You cannot redeem credits at your current level',
+        'Invalid credit amount',
+        'Insufficient redeemable credits'
+    ];
+
+    const statusCode = userErrors.includes(error.message) ? 400 : 500;
+
+    res.status(statusCode).json({
+        success: false,
+        message: error.message
+    });
+}
 };

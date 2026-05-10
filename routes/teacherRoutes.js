@@ -29,12 +29,6 @@ const {
     getSessionDetails,
     completeSession,
 
-    // Chat
-    canChatWithStudent,
-    teacherGetConversation,
-    teacherSendMessage,
-    deleteMessage,
-
     // Credits & Earnings
     getCreditsAndEarnings,
 
@@ -43,6 +37,13 @@ const {
     updateCreditRate,
     sendSessionSummaryToStudent 
 } = require('../controllers/teacherController');
+
+const {
+    checkChatAccess,
+    getOrCreateConversation,
+    sendMessage,
+    deleteMessage
+} = require('../controllers/messageController');
 
 router.use(protect);
 
@@ -73,11 +74,12 @@ router.post('/sessions/:sessionId/start', startSession);
 router.get('/sessions/:sessionId', getSessionDetails);
 router.post('/sessions/:sessionId/complete', completeSession);
 
-// Chat
-router.get('/chat/check/:studentId', canChatWithStudent);
-router.get('/chat/conversation/:studentId', teacherGetConversation);
-router.post('/chat/message', teacherSendMessage);
+// Chat Routes
+router.get('/chat/check/:userId', checkChatAccess);
+router.get('/chat/conversation/:userId', getOrCreateConversation);
+router.post('/chat/message', sendMessage);
 router.delete('/chat/message/:messageId', deleteMessage);
+
 
 // Credits & Earnings
 router.get('/credits-earnings', getCreditsAndEarnings);

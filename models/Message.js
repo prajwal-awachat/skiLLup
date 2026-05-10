@@ -46,6 +46,15 @@ const messageSchema = new mongoose.Schema({
     readAt: {
         type: Date
     },
+        isDeleted: {
+        type: Boolean,
+        default: false
+    },
+
+    deletedAt: {
+        type: Date,
+        default: null
+    },
     createdAt: {
         type: Date,
         default: Date.now
@@ -61,6 +70,7 @@ const conversationSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Message'
     },
+    
     lastMessageAt: {
         type: Date,
         default: Date.now
@@ -79,6 +89,12 @@ const conversationSchema = new mongoose.Schema({
         default: Date.now
     }
 });
+
+conversationSchema.index({ participants: 1 });
+conversationSchema.index({ lastMessageAt: -1 });
+
+messageSchema.index({ sender: 1, receiver: 1, createdAt: -1 });
+messageSchema.index({ session: 1 });
 
 module.exports = {
     Message: mongoose.model('Message', messageSchema),

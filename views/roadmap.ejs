@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Skill Roadmap Generator | Multiple Learning Paths</title>
+    <link rel="stylesheet" href="/sidebar.css">
     <link rel="stylesheet" href="/roadmap.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -11,45 +12,7 @@
 <body>
     <div class="app-container">
         <!-- Sidebar (matching learn.ejs style) -->
-        <aside class="sidebar">
-            <div class="logo">
-                <span class="logo-icon">📚</span>
-                <span class="logo-text">skiLLup</span>
-            </div>
-            <nav class="nav-menu">
-                <a href="/learn" class="nav-item">
-                    <span class="nav-icon">🎓</span>
-                    <span>Learn</span>
-                </a>
-                <a href="/teach" class="nav-item">
-                    <span class="nav-icon">👨‍🏫</span>
-                    <span>Teach</span>
-                </a>
-                <a href="/store" class="nav-item">
-                    <span class="nav-icon">🛒</span>
-                    <span>Store</span>
-                </a>
-                <a href="/history" class="nav-item">
-                    <span class="nav-icon">📜</span>
-                    <span>History</span>
-                </a>
-                <a href="/roadmap" class="nav-item active">
-                    <span class="nav-icon">🗺️</span>
-                    <span>Roadmap</span>
-                </a>
-                <a href="/settings" class="nav-item">
-                    <span class="nav-icon">⚙️</span>
-                    <span>Settings</span>
-                </a>
-            </nav>
-            <div class="user-profile">
-                <div class="avatar"><%= user ? user.name.charAt(0).toUpperCase() + (user.name.split(' ')[1] ? user.name.split(' ')[1].charAt(0).toUpperCase() : '') : 'U' %></div>
-                <div class="user-info">
-                    <span class="user-name"><%= user ? user.name : 'User' %></span>
-                    <span class="user-email"><%= user ? user.email : 'user@example.com' %></span>
-                </div>
-            </div>
-        </aside>
+       <%- include('partials/sidebar', { user: user, activePage: 'roadmap' }) %>
 
         <!-- Main Content -->
         <main class="main-content">

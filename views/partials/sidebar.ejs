@@ -1,0 +1,72 @@
+<aside class="sidebar">
+    <!-- Logo -->
+    <div class="logo">
+        <span class="logo-icon">📚</span>
+        <span class="logo-text">skiLLup</span>
+    </div>
+
+    <!-- Navigation -->
+    <nav class="nav-menu">
+        <a href="/learn" class="nav-item <%= activePage === 'learn' ? 'active' : '' %>">
+            <span class="nav-icon">🎓</span>
+            <span>Learn</span>
+        </a>
+
+        <a href="/teach" class="nav-item <%= activePage === 'teach' ? 'active' : '' %>">
+            <span class="nav-icon">👨‍🏫</span>
+            <span>Teach</span>
+        </a>
+
+        <a href="/store" class="nav-item <%= activePage === 'store' ? 'active' : '' %>">
+            <span class="nav-icon">🛒</span>
+            <span>Store</span>
+        </a>
+
+        <a href="/history" class="nav-item <%= activePage === 'history' ? 'active' : '' %>">
+            <span class="nav-icon">📜</span>
+            <span>History</span>
+        </a>
+
+        <a href="/messages" class="nav-item <%= activePage === 'messages' ? 'active' : '' %>">
+             <span class="nav-icon">💬</span>
+             <span>Messages</span>
+        </a>
+
+        <a href="/roadmap" class="nav-item <%= activePage === 'roadmap' ? 'active' : '' %>">
+            <span class="nav-icon">🗺️</span>
+            <span>Roadmap</span>
+        </a>
+
+        <a href="/settings" class="nav-item <%= activePage === 'settings' ? 'active' : '' %>">
+            <span class="nav-icon">⚙️</span>
+            <span>Settings</span>
+        </a>
+    </nav>
+
+    <!-- Bottom Section -->
+    <div class="sidebar-footer">
+        <!-- User Profile -->
+        <div class="user-profile">
+            <div class="avatar">
+                <%= user
+                    ? user.name.charAt(0).toUpperCase() +
+                      (user.name.split(' ')[1]
+                        ? user.name.split(' ')[1].charAt(0).toUpperCase()
+                        : '')
+                    : 'U'
+                %>
+            </div>
+
+            <div class="user-info">
+                <span class="user-name"><%= user ? user.name : 'User' %></span>
+                <span class="user-email"><%= user ? user.email : 'user@example.com' %></span>
+            </div>
+        </div>
+
+        <!-- Logout Button -->
+        <a href="/auth/logout" class="logout-btn">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Logout</span>
+        </a>
+    </div>
+</aside>

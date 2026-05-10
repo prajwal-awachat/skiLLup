@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Messages | skiLLup</title>
+
+    <link rel="stylesheet" href="/sidebar.css">
+    <link rel="stylesheet" href="/messages.css">
+
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body>
+    <div class="app-container">
+        <%- include('partials/sidebar', {
+            user: user,
+            activePage: 'messages'
+        }) %>
+
+        <main class="main-content">
+            <div class="messages-layout">
+
+               <!-- LEFT SIDEBAR -->
+<aside class="conversations-panel">
+    <section class="conversation-section">
+        <h3 class="section-title">
+            💬 All Messages
+        </h3>
+
+        <div id="conversationsList" class="conversation-list">
+            <% if (conversations.length === 0) { %>
+                <p class="empty-text">No conversations yet</p>
+            <% } %>
+        </div>
+    </section>
+</aside>
+                <!-- CHAT PANEL -->
+                <section class="chat-panel">
+                    <div id="chatPlaceholder" class="chat-placeholder">
+                        <i class="fas fa-comments"></i>
+                        <h2>Select a conversation</h2>
+                        <p>Choose a chat from the left panel.</p>
+                    </div>
+
+                    <div id="chatContainer" class="chat-container hidden">
+
+                        <!-- Header -->
+                        <div class="chat-header">
+                            <div class="chat-user-info">
+                                <div id="chatAvatar" class="chat-avatar">U</div>
+                                <div>
+                                    <h3 id="chatUserName">User</h3>
+                                    <p id="chatUserRole">Teacher</p>
+                                </div>
+                            </div>
+
+                            <button id="deleteConversationBtn"
+                                    class="delete-conversation-btn">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+
+                        <!-- Messages -->
+                        <div id="messagesContainer" class="messages-container"></div>
+
+                        <!-- Input -->
+                        <div class="message-input-container">
+                            <input
+                                type="text"
+                                id="messageInput"
+                                placeholder="Type your message..."
+                                autocomplete="off"
+                            >
+                            <button id="sendMessageBtn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Global variables -->
+    <script>
+        window.currentUser = {
+            id: "<%= user._id %>",
+            name: "<%= user.name %>"
+        };
+
+       window.initialConversations = <%- JSON.stringify(conversations) %>;
+    </script>
+
+    <!-- Socket.IO -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        window.socket = io();
+    </script>
+
+    <!-- Page JS -->
+    <script>
+document.addEventListener('DOMContentLoaded', function () {
+    // ==========================================
+    // STATE
+    // ==========================================
+    const currentUser = window.currentUser;
+    const initialConversations = window.initialConversations || [];
+
+    let selectedConversation = null;
+    let selectedOtherUser = null;
+
+    // ==========================================
+    // DOM ELEMENTS
+    // ==========================================
+   const conversationsContainer =
+    document.getElementById('conversationsList');
+
+    const chatPlaceholder = document.getElementById('chatPlaceholder');
+    const chatContainer = document.getElementById('chatContainer');
+
+    const chatAvatar = document.getElementById('chatAvatar');
+    const chatUserName = document.getElementById('chatUserName');
+    const chatUserRole = document.getElementById('chatUserRole');
+
+    const messagesContainer = document.getElementById('messagesContainer');
+
+    const messageInput = document.getElementById('messageInput');
+    const sendMessageBtn = document.getElementById('sendMessageBtn');
+    const deleteConversationBtn = document.getElementById('deleteConversationBtn');
+
+    const socket = window.socket;
+
+    // ==========================================
+    // INITIALIZE
+    // ==========================================
+    renderConversationLists();
+
+    if (sendMessageBtn) {
+        sendMessageBtn.addEventListener('click', sendMessage);
+    }
+
+    if (messageInput) {
+        messageInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    }
+
+    if (deleteConversationBtn) {
+        deleteConversationBtn.addEventListener('click', deleteConversation);
+    }
+
+    // Join personal socket room
+    if (socket && currentUser && currentUser.id) {
+        socket.emit('join_user_room', currentUser.id);
+
+        socket.on('new_message', function (data) {
+            handleIncomingMessage(data);
+        });
+    }
+
+    // ==========================================
+    // RENDER CONVERSATIONS
+    // ==========================================
+   function renderConversationLists() {
+    renderConversationSection(
+        conversationsContainer,
+        initialConversations
+    );
+}
+
+    function renderConversationSection(container, conversations) {
+        if (!container) return;
+
+        if (!conversations.length) {
+            container.innerHTML =
+                '<p class="empty-text">No conversations yet</p>';
+            return;
+        }
+
+        container.innerHTML = conversations
+            .map(conversation => {
+                const otherUser = conversation.otherUser;
+                const initials = getInitials(otherUser.name);
+                const preview = conversation.lastMessage
+                    ? escapeHtml(conversation.lastMessage.content || '')
+                    : 'No messages yet';
+
+                const time = conversation.lastMessageAt
+                    ? formatTime(conversation.lastMessageAt)
+                    : '';
+
+                const unread = conversation.unreadCount || 0;
+
+                return `
+                    <div class="conversation-card"
+                         data-id="${conversation._id}">
+                        <div class="conversation-avatar">
+                            ${initials}
+                        </div>
+
+                        <div class="conversation-info">
+                            <div class="conversation-name">
+                                ${escapeHtml(otherUser.name)}
+                            </div>
+                            <div class="conversation-preview">
+                                ${preview}
+                            </div>
+                        </div>
+
+                        <div class="conversation-meta">
+                            <div class="conversation-time">
+                                ${time}
+                            </div>
+                            ${
+                                unread > 0
+                                    ? `<div class="unread-badge">${unread}</div>`
+                                    : ''
+                            }
+                        </div>
+                    </div>
+                `;
+            })
+            .join('');
+
+        container.querySelectorAll('.conversation-card').forEach((card, index) => {
+            card.addEventListener('click', function () {
+                openConversation(conversations[index], card);
+            });
+        });
+    }
+
+    // ==========================================
+    // OPEN CONVERSATION
+    // ==========================================
+    async function openConversation(conversation, clickedCard) {
+        selectedConversation = conversation;
+        selectedOtherUser = conversation.otherUser;
+
+        // Highlight active card
+        document
+            .querySelectorAll('.conversation-card')
+            .forEach(card => card.classList.remove('active'));
+
+        if (clickedCard) {
+            clickedCard.classList.add('active');
+        }
+
+        // Show chat panel
+        chatPlaceholder.classList.add('hidden');
+        chatContainer.classList.remove('hidden');
+
+        // Update header
+        chatAvatar.textContent = getInitials(selectedOtherUser.name);
+        chatUserName.textContent = selectedOtherUser.name;
+       chatUserRole.textContent = 'Conversation';
+
+        // Load messages
+        await loadMessages();
+
+        // Mark as read
+        await fetch(
+            `/api/messages/conversations/${conversation._id}/read`,
+            {
+                method: 'PUT'
+            }
+        );
+    }
+
+    // ==========================================
+    // LOAD MESSAGES
+    // ==========================================
+    async function loadMessages() {
+        if (!selectedConversation) return;
+
+        try {
+            const response = await fetch(
+                `/api/messages/conversations/${selectedConversation._id}/messages`
+            );
+
+            const result = await response.json();
+
+            if (!result.success) {
+                alert(result.message || 'Failed to load messages');
+                return;
+            }
+
+            renderMessages(result.data);
+        } catch (error) {
+            console.error('Load messages error:', error);
+            alert('Failed to load messages');
+        }
+    }
+
+    // ==========================================
+    // RENDER MESSAGES
+    // ==========================================
+    function renderMessages(messages) {
+        if (!messagesContainer) return;
+
+        if (!messages.length) {
+            messagesContainer.innerHTML = `
+                <div class="chat-placeholder">
+                    <p>No messages yet. Start the conversation!</p>
+                </div>
+            `;
+            return;
+        }
+
+        messagesContainer.innerHTML = messages
+            .map(message => {
+                const isMine =
+                    message.sender &&
+                    message.sender._id.toString() === currentUser.id.toString();
+
+                const time = formatTime(message.createdAt);
+
+                return `
+                    <div class="message-row ${isMine ? 'sent' : 'received'}"
+                         data-message-id="${message._id}">
+                        <div class="message-bubble">
+                            <div class="message-content">
+                                ${escapeHtml(message.content)}
+                            </div>
+
+                            <div class="message-time">
+                                ${time}
+                            </div>
+
+                            ${
+                                isMine
+                                    ? `
+                                        <button
+                                            class="delete-message-btn"
+                                            onclick="deleteMessage('${message._id}')"
+                                            title="Delete message"
+                                        >
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                      `
+                                    : ''
+                            }
+                        </div>
+                    </div>
+                `;
+            })
+            .join('');
+
+        scrollToBottom();
+    }
+
+    // ==========================================
+    // SEND MESSAGE
+    // ==========================================
+    async function sendMessage() {
+        if (!selectedOtherUser) return;
+
+        const content = messageInput.value.trim();
+
+        if (!content) return;
+
+        sendMessageBtn.disabled = true;
+
+        try {
+            const response = await fetch('/api/messages/message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    receiverId: selectedOtherUser._id,
+                    content: content
+                })
+            });
+
+            const result = await response.json();
+
+            if (!result.success) {
+                alert(result.message || 'Failed to send message');
+                return;
+            }
+
+            messageInput.value = '';
+
+            // Reload current conversation
+            await loadMessages();
+            await refreshConversationLists();
+        } catch (error) {
+            console.error('Send message error:', error);
+            alert('Failed to send message');
+        } finally {
+            sendMessageBtn.disabled = false;
+            messageInput.focus();
+        }
+    }
+
+    // ==========================================
+    // DELETE SINGLE MESSAGE
+    // ==========================================
+    async function deleteMessage(messageId) {
+        if (!confirm('Delete this message?')) return;
+
+        try {
+            const response = await fetch(
+                `/api/messages/message/${messageId}`,
+                {
+                    method: 'DELETE'
+                }
+            );
+
+            const result = await response.json();
+
+            if (!result.success) {
+                alert(result.message || 'Failed to delete message');
+                return;
+            }
+
+            await loadMessages();
+            await refreshConversationLists();
+        } catch (error) {
+            console.error('Delete message error:', error);
+            alert('Failed to delete message');
+        }
+    }
+
+    // Make accessible to inline onclick
+    window.deleteMessage = deleteMessage;
+
+    // ==========================================
+    // DELETE ENTIRE CONVERSATION
+    // ==========================================
+    async function deleteConversation() {
+        if (!selectedConversation) return;
+
+        if (!confirm('Delete this entire conversation?')) return;
+
+        try {
+            const response = await fetch(
+                `/api/messages/conversations/${selectedConversation._id}`,
+                {
+                    method: 'DELETE'
+                }
+            );
+
+            const result = await response.json();
+
+            if (!result.success) {
+                alert(result.message || 'Failed to delete conversation');
+                return;
+            }
+
+            // Reset UI
+            selectedConversation = null;
+            selectedOtherUser = null;
+
+            chatContainer.classList.add('hidden');
+            chatPlaceholder.classList.remove('hidden');
+
+            await refreshConversationLists();
+        } catch (error) {
+            console.error('Delete conversation error:', error);
+            alert('Failed to delete conversation');
+        }
+    }
+
+    // ==========================================
+    // SOCKET HANDLING
+    // ==========================================
+    async function handleIncomingMessage(data) {
+        // If current conversation is open, reload messages
+        if (
+            selectedConversation &&
+            data.conversationId === selectedConversation._id
+        ) {
+            await loadMessages();
+        }
+
+        // Always refresh sidebar
+        await refreshConversationLists();
+    }
+
+    // ==========================================
+    // REFRESH CONVERSATIONS
+    // ==========================================
+    async function refreshConversationLists() {
+        try {
+            const response = await fetch('/api/messages/conversations');
+            const result = await response.json();
+
+            if (!result.success) return;
+
+            initialConversations.splice( 0,initialConversations.length,...(result.data || []));
+
+            renderConversationLists();
+        } catch (error) {
+            console.error('Refresh conversations error:', error);
+        }
+    }
+
+    // ==========================================
+    // HELPERS
+    // ==========================================
+    function getInitials(name) {
+        if (!name) return 'U';
+
+        return name
+            .split(' ')
+            .slice(0, 2)
+            .map(part => part.charAt(0).toUpperCase())
+            .join('');
+    }
+
+    function formatTime(date) {
+        return new Date(date).toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    function scrollToBottom() {
+        messagesContainer.scrollTop =
+            messagesContainer.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
+    }
+});
+</script>
+</body>
+</html>

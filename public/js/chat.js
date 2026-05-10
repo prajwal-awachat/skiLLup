@@ -7,7 +7,7 @@ class ChatModule {
     constructor(socket, currentUser, options = {}) {
         this.socket = socket;
         this.currentUser = currentUser;
-        this.apiBase = options.apiBase || '/api/learn';
+       this.apiBase = options.apiBase || '/api/messages';
         this.currentConversationId = null;
         this.currentChatUser = null;
         this.onMessageReceived = options.onMessageReceived || null;
@@ -345,13 +345,19 @@ class ChatModule {
 window.ChatModule = ChatModule;
 
 // Helper function to initialize chat module
-window.initChatModule = function(apiBase = '/api/learn') {
+window.initChatModule = function(apiBase = '/api/messages') {
     if (window.socket && window.currentUser && !window.chatModule) {
-        window.chatModule = new ChatModule(window.socket, window.currentUser, {
-            apiBase: '/api/teacher'
-        });
+        window.chatModule = new ChatModule(
+            window.socket,
+            window.currentUser,
+            {
+                apiBase: apiBase
+            }
+        );
+
         console.log('Chat module initialized successfully');
         return true;
     }
+
     return false;
 };

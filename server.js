@@ -25,6 +25,7 @@ const meetingRoutes = require('./routes/meeting');
 const storeRoutes = require('./routes/storeRoutes');
 const groupSessionRoutes = require('./routes/groupSessionRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
+const messagesRoutes = require('./routes/messages');
 
 const { globalRateLimiter } = require('./middleware/rateLimiter');
 const errorHandler = require('./middleware/errorHandler');
@@ -86,6 +87,8 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/recordings', recordingRoutes);
 app.use('/api/history', historyRoutes);
 app.use('/api/roadmap', roadmapRoutes);
+app.use('/messages', messagesRoutes);  //message page 
+app.use('/api/messages', messagesRoutes);  //message routing
 // ============ VIEW ROUTES ============
 // Auth page routes (public)
 app.get('/auth/login', (req, res) => {

@@ -243,6 +243,7 @@ userSchema.methods.canHaveGroupSessions = function () {
 
 userSchema.methods.addCredits = async function (amount) {
     this.credits += amount;
+    this.totalCreditsEarned += amount;
     await this.save();
 
     await Transaction.create({

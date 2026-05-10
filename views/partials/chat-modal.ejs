@@ -20,14 +20,25 @@
     </div>
 </div>
 
+
 <script src="/js/chat.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         setTimeout(function () {
-            if (!window.chatModule && typeof ChatModule !== 'undefined' && window.socket && window.currentUser) {
-                window.chatModule = new ChatModule(window.socket, window.currentUser, {
-                    apiBase: '<%= "/api/teacher" || "/api/learn" %>'
-                });
+            if (
+                !window.chatModule &&
+                typeof ChatModule !== 'undefined' &&
+                window.socket &&
+                window.currentUser
+            ) {
+                window.chatModule = new ChatModule(
+                    window.socket,
+                    window.currentUser,
+                    {
+                        apiBase: '/api/messages'
+                    }
+                );
+
                 console.log('Chat module initialized from partial');
             }
         }, 500);

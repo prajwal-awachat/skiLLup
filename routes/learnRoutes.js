@@ -11,17 +11,19 @@ const {
     suggestAlternateSlotByStudent,
 acceptNegotiatedRequestByStudent,
 rejectNegotiatedRequestByStudent,
-    checkChatAccess,
-    getConversation,
-    sendMessage,
     getCreditsBalance,
     getAvailableSkills,
     getUpcomingSessions,
     getSessionHistory,
-    deleteMessage,
     deleteRejectedRequest
 } = require('../controllers/learnController');
 
+const {
+    checkChatAccess,
+    getOrCreateConversation,
+    sendMessage,
+    deleteMessage
+} = require('../controllers/messageController');
 // All routes require authentication
 router.use(protect);
 
@@ -48,12 +50,13 @@ router.post('/session-requests/:requestId/reject', rejectNegotiatedRequestByStud
 router.get('/upcoming-sessions', getUpcomingSessions);
 router.get('/session-history', getSessionHistory);
 
-// Chat
-router.get('/chat/check/:teacherId', checkChatAccess);
-router.get('/chat/conversation/:teacherId', getConversation);
-router.post('/chat/message', sendMessage);
-router.delete('/chat/message/:messageId', deleteMessage);
 // Delete rejected session request
 router.delete('/session-requests/:requestId/delete',deleteRejectedRequest);
+
+// Chat Routes
+router.get('/chat/check/:userId', checkChatAccess);
+router.get('/chat/conversation/:userId', getOrCreateConversation);
+router.post('/chat/message', sendMessage);
+router.delete('/chat/message/:messageId', deleteMessage);
 
 module.exports = router;
