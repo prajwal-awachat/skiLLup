@@ -5,9 +5,8 @@ import tempfile
 import subprocess
 import requests
 import time
-from requests.exceptions import HTTPError, RequestException
 from faster_whisper import WhisperModel
-from transformers import pipeline
+from transformers import pipeline, M2M100ForConditionalGeneration, M2M100Tokenizer
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 os.chdir(BASE_DIR)
@@ -23,6 +22,12 @@ SUMMARIZER = pipeline(
     "summarization",
     model="sshleifer/distilbart-cnn-12-6"
 )
+
+# Initialize M2M100 for translation (English-centric model good for code-switching)
+print("Loading M2M100 translation model (this may take 1-2 minutes first time)...", file=sys.stderr)
+M2M_MODEL = M2M100ForConditionalGeneration.from_pretrained("facebook/m2m100_418M")
+M2M_TOKENIZER = M2M100Tokenizer.from_pretrained("facebook/m2m100_418M")
+print("M2M100 model loaded successfully!", file=sys.stderr)
 
 def log(message):
     """Print logs to stderr so they don't interfere with JSON output"""
@@ -91,110 +96,88 @@ def transcribe_audio(audio_path):
     log(f"Transcription complete: {segment_count} segments, language: {info.language}")
     return transcript.strip(), info.language
 
-def translate_to_english_with_gemini(text, api_key, max_retries=5):
-    """Translate text using Gemini API with retry logic and exponential backoff"""
+def translate_with_m2m100(text, source_lang="hi", target_lang="en"):
+    """
+    Translate text using M2M100 model (handles mixed languages well)
+    M2M100 is English-centric but works well for code-switching
+    """
+    log(f"Translating with M2M100 (source: {source_lang} -> target: {target_lang})...")
     
-    # Truncate text if too long (Gemini has token limits)
-    max_chars = 30000
-    if len(text) > max_chars:
-        log(f"Text too long ({len(text)} chars), truncating to {max_chars} chars")
-        text = text[:max_chars]
+    # Split long text into chunks to avoid memory issues
+    max_chunk_length = 500  # words per chunk
+    words = text.split()
+    chunks = [words[i:i+max_chunk_length] for i in range(0, len(words), max_chunk_length)]
     
-    prompt = f"""
-Convert the following transcript into clear English.
-Do not summarize.
-Do not remove important technical points.
-Keep the meaning same.
-
-Transcript:
-{text}
-"""
+    if len(chunks) > 1:
+        log(f"Text too long, splitting into {len(chunks)} chunks for translation")
     
-    # Try multiple models in case one is rate limited
-    models_to_try = [
-        "gemini-2.0-flash",
-        "gemini-1.5-flash",
-        "gemini-1.5-pro"
-    ]
+    translated_chunks = []
     
-    for model in models_to_try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    for idx, chunk in enumerate(chunks):
+        chunk_text = " ".join(chunk)
+        log(f"Translating chunk {idx + 1}/{len(chunks)} ({len(chunk_text)} chars)...")
         
-        for attempt in range(max_retries):
-            try:
-                log(f"Attempting translation with {model} (attempt {attempt + 1}/{max_retries})...")
-                
-                response = requests.post(
-                    url,
-                    headers={
-                        "Content-Type": "application/json",
-                        "x-goog-api-key": api_key
-                    },
-                    json={
-                        "contents": [
-                            {
-                                "parts": [
-                                    {"text": prompt}
-                                ]
-                            }
-                        ]
-                    },
-                    timeout=90
-                )
-                
-                # Handle rate limiting
-                if response.status_code == 429:
-                    wait_time = (2 ** attempt) + (attempt * 2)
-                    log(f"Rate limited (429) on {model}. Waiting {wait_time} seconds...")
-                    time.sleep(wait_time)
-                    continue
-                
-                # Handle 404 - model not found
-                if response.status_code == 404:
-                    log(f"Model {model} not found (404), trying next model...")
-                    break  # Break out of retry loop for this model
-                
-                # Handle other errors
-                if response.status_code != 200:
-                    log(f"Error {response.status_code} on {model}: {response.text[:200]}")
-                    if attempt == max_retries - 1:
-                        continue
-                    wait_time = 2 ** attempt
-                    time.sleep(wait_time)
-                    continue
-                
-                # Success
-                response.raise_for_status()
-                data = response.json()
-                
-                if "candidates" in data and len(data["candidates"]) > 0:
-                    translated_text = data["candidates"][0]["content"]["parts"][0]["text"]
-                    log(f"Translation successful with {model}")
-                    return translated_text
-                else:
-                    log(f"No candidates in response for {model}")
-                    continue
-                    
-            except HTTPError as e:
-                log(f"HTTP error on {model} attempt {attempt + 1}: {str(e)[:100]}")
-                if attempt == max_retries - 1:
-                    continue
-                time.sleep(2 ** attempt)
-                
-            except RequestException as e:
-                log(f"Request error on {model} attempt {attempt + 1}: {str(e)[:100]}")
-                if attempt == max_retries - 1:
-                    continue
-                time.sleep(2 ** attempt)
-                
-            except Exception as e:
-                log(f"Unexpected error on {model} attempt {attempt + 1}: {str(e)[:100]}")
-                if attempt == max_retries - 1:
-                    continue
-                time.sleep(2 ** attempt)
+        # Set source language (auto-detect or use detected language)
+        M2M_TOKENIZER.src_lang = source_lang
+        
+        # Tokenize and translate
+        encoded = M2M_TOKENIZER(chunk_text, return_tensors="pt", truncation=True, max_length=512)
+        generated_tokens = M2M_MODEL.generate(
+            **encoded,
+            forced_bos_token_id=M2M_TOKENIZER.get_lang_id(target_lang),
+            max_length=600,
+            num_beams=5
+        )
+        
+        translated = M2M_TOKENIZER.batch_decode(generated_tokens, skip_special_tokens=True)[0]
+        translated_chunks.append(translated)
+        
+        # Small delay between chunks to avoid CPU spike
+        if idx < len(chunks) - 1:
+            time.sleep(0.5)
     
-    # If all models and retries fail
-    raise Exception("All Gemini models failed after multiple retries")
+    # Combine all translated chunks
+    full_translation = " ".join(translated_chunks)
+    log(f"Translation complete! Output length: {len(full_translation)} chars")
+    
+    return full_translation
+
+def translate_in_batches_long(text, source_lang="auto", target_lang="en"):
+    """
+    Intelligent batching for very long texts
+    Uses M2M100 which has no rate limits and handles mixed languages
+    """
+    # M2M100 can handle up to 512 tokens per batch
+    # ~500 words per batch is safe
+    max_batch_chars = 3000
+    batches = []
+    
+    # Split by sentences for better context
+    sentences = text.split('. ')
+    current_batch = ""
+    
+    for sentence in sentences:
+        if len(current_batch) + len(sentence) < max_batch_chars:
+            current_batch += sentence + ". "
+        else:
+            if current_batch:
+                batches.append(current_batch)
+            current_batch = sentence + ". "
+    
+    if current_batch:
+        batches.append(current_batch)
+    
+    log(f"Split text into {len(batches)} batches for translation (max {max_batch_chars} chars each)")
+    
+    translated_batches = []
+    for i, batch in enumerate(batches):
+        log(f"Translating batch {i+1}/{len(batches)}...")
+        translated = translate_with_m2m100(batch, source_lang, target_lang)
+        translated_batches.append(translated)
+        
+        # No rate limiting needed! M2M100 is local
+    
+    return " ".join(translated_batches)
 
 def summarize_english_text(text):
     """Summarize English text using Hugging Face pipeline"""
@@ -256,18 +239,19 @@ def summarize_english_text(text):
     }
 
 def main():
-    if len(sys.argv) < 3:
+    if len(sys.argv) < 2:
         print(json.dumps({
             "success": False,
-            "error": "Missing arguments. Usage: python process_session.py <cloudinary_url> <gemini_api_key>"
+            "error": "Missing arguments. Usage: python process_session.py <cloudinary_url>"
         }))
         sys.exit(1)
     
     cloudinary_url = sys.argv[1]
-    gemini_api_key = sys.argv[2]
+    # No API key needed for M2M100!
     
     log(f"Starting session processing...")
     log(f"Cloudinary URL: {cloudinary_url[:50]}...")
+    log("Using M2M100 for translation (no API limits, completely free!)")
     
     temp_dir = tempfile.mkdtemp()
     video_path = os.path.join(temp_dir, "session_video.webm")
@@ -289,10 +273,29 @@ def main():
         
         log(f"Original transcript length: {len(original_transcript)} chars, Language: {detected_language}")
         
-        # Step 4: Translate to English using Gemini
+        # Step 4: Translate to English using M2M100 (NO API KEY NEEDED!)
         english_transcript = original_transcript  # fallback
         try:
-            english_transcript = translate_to_english_with_gemini(original_transcript, gemini_api_key)
+            # Map detected language to M2M100 language codes
+            lang_map = {
+                'hi': 'hi',      # Hindi
+                'en': 'en',      # English
+                'mr': 'mr',      # Marathi
+                'ta': 'ta',      # Tamil
+                'te': 'te',      # Telugu
+                'bn': 'bn',      # Bengali
+                'gu': 'gu',      # Gujarati
+                'kn': 'kn',      # Kannada
+                'ml': 'ml',      # Malayalam
+            }
+            source_lang = lang_map.get(detected_language[:2], 'hi')
+            
+            # Use batch processing for long texts
+            if len(original_transcript) > 5000:
+                english_transcript = translate_in_batches_long(original_transcript, source_lang, 'en')
+            else:
+                english_transcript = translate_with_m2m100(original_transcript, source_lang, 'en')
+            
             log(f"English translation length: {len(english_transcript)} chars")
         except Exception as e:
             log(f"Translation failed: {str(e)}")
@@ -305,8 +308,8 @@ def main():
         result = {
             "success": True,
             "detectedLanguage": detected_language,
-            "originalTranscript": original_transcript[:5000],
-            "englishTranscript": english_transcript[:5000],
+            "originalTranscript": original_transcript,  # FULL transcript - NO DATA LOSS
+            "englishTranscript": english_transcript,    # FULL translation - NO DATA LOSS
             "summary": summary
         }
         
