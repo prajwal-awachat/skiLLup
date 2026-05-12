@@ -345,23 +345,39 @@ document.getElementById('redeemableMoneyValue').textContent = `₹${(data.data.r
     }
 
     function renderTransactions(transactions) {
-        const tbody = document.getElementById('transactionBody');
-        
-        if (!transactions || transactions.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="loading-text">No transactions found</td></tr>';
-            return;
-        }
+    const tbody = document.getElementById('transactionBody');
 
-        tbody.innerHTML = transactions.slice(0, 10).map(transaction => `
+    if (!transactions || transactions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="loading-text">No transactions found</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = transactions.slice(0, 10).map(transaction => {
+        // Amount column: show — if 0 (no money involved), else show +/- value
+        const amountDisplay = transaction.amount === 0
+            ? '<span style="color:#64748b">—</span>'
+            : transaction.amount > 0
+                ? `<span class="positive">+₹${transaction.amount}</span>`
+                : `<span class="negative">-₹${Math.abs(transaction.amount)}</span>`;
+
+        // Credits column: always show +/- value
+        const creditsDisplay = transaction.credits > 0
+            ? `<span class="positive">+${transaction.credits}</span>`
+            : `<span class="negative">${transaction.credits}</span>`;
+
+        return `
             <tr>
                 <td>${new Date(transaction.createdAt).toLocaleDateString()}</td>
                 <td>${transaction.description}</td>
-                <td class="${transaction.amount > 0 ? 'positive' : 'negative'}">${transaction.amount > 0 ? '+' : ''}₹${Math.abs(transaction.amount)}</td>
-                <td class="${transaction.credits > 0 ? 'positive' : 'negative'}">${transaction.credits > 0 ? '+' : ''}${transaction.credits}</td>
-                <td><span class="status-badge success"><i class="fas fa-check-circle"></i> ${transaction.status}</span></td>
+                <td>${amountDisplay}</td>
+                <td>${creditsDisplay}</td>
+                <td><span class="status-badge success">
+                    <i class="fas fa-check-circle"></i> ${transaction.status}
+                </span></td>
             </tr>
-        `).join('');
-    }
+        `;
+    }).join('');
+}
 
     // Withdraw functionality with level check
     document.getElementById('withdrawBtn')?.addEventListener('click', async () => {

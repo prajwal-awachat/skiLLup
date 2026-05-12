@@ -71,12 +71,12 @@ const defaultSettings = [
     },
    {
     key: 'session_partial_minutes',
-    value: 20,
+    value: 2,
     description: 'Minimum minutes for partially valid session'
 },
 {
     key: 'session_validity_minutes',
-    value: 35,
+    value: 3,
     description: 'Minimum minutes for fully valid session'
 }
 ];

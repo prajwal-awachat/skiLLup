@@ -109,7 +109,6 @@ exports.getMeetingInfo = async (req, res) => {
 
 exports.endMeetingEarlyByStudent = async (req, res) => {
     try {
-
         const { sessionId } = req.params;
 
         const session = await completeSessionInternal({
@@ -119,20 +118,77 @@ exports.endMeetingEarlyByStudent = async (req, res) => {
             reason: 'Student ended meeting'
         });
 
+        const io = req.app.get('io');
+        const roomId = session.closedRoomId || session.roomId;
+
+        if (io && roomId) {
+            io.to(`meeting_${roomId}`).emit('meeting-ended', {
+                sessionId: session._id,
+                endedBy: req.user._id,
+                endedByName: req.user.name,
+                message: `${req.user.name} ended the session.`,
+                sessionValidity: session.sessionValidity,
+                ratingEligible: session.ratingEligible
+            });
+
+            // Force all sockets to leave room
+            io.in(`meeting_${roomId}`).socketsLeave(`meeting_${roomId}`);
+        }
+
         return res.json({
             success: true,
             data: session
         });
-
     } catch (error) {
-        console.error(error);
-
+        console.error('End meeting early error:', error);
         return res.status(500).json({
             success: false,
-            message: 'Failed to end session'
+            message: error.message || 'Failed to end session'
         });
     }
 };
+
+exports.endMeetingByTeacher = async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+
+        const session = await completeSessionInternal({
+            sessionId,
+            endedBy: req.user._id,
+            endedByRole: 'teacher',
+            reason: 'Teacher ended meeting'
+        });
+
+        const io = req.app.get('io');
+        const roomId = session.closedRoomId || session.roomId;
+
+        if (io && roomId) {
+            io.to(`meeting_${roomId}`).emit('meeting-ended', {
+                sessionId: session._id,
+                endedBy: req.user._id,
+                endedByName: req.user.name,
+                message: `${req.user.name} ended the session.`,
+                sessionValidity: session.sessionValidity,
+                ratingEligible: session.ratingEligible
+            });
+
+            // Force all sockets to leave room
+            io.in(`meeting_${roomId}`).socketsLeave(`meeting_${roomId}`);
+        }
+
+        return res.json({
+            success: true,
+            data: session
+        });
+    } catch (error) {
+        console.error('Teacher end meeting error:', error);
+        return res.status(500).json({
+            success: false,
+            message: error.message || 'Failed to end session'
+        });
+    }
+};
+
 
 exports.submitRating = async (req, res) => {
     try {

@@ -940,3 +940,13 @@ body {
 .gradient-border {
     border-image: linear-gradient(135deg, #facc15, #ffcc00) 1;
 }
+
+.positive {
+    color: #14b8a6;
+    font-weight: 600;
+}
+
+.negative {
+    color: #ef4444;
+    font-weight: 600;
+}

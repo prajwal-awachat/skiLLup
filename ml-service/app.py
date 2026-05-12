@@ -1,11 +1,13 @@
 from flask import Flask, request, jsonify
 import joblib
+import os
 
 # Create Flask app
 app = Flask(__name__)
 
 # Load trained model once when the server starts
-model = joblib.load("model.pkl")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+model = joblib.load(os.path.join(BASE_DIR, "model.pkl"))
 
 
 @app.route("/predict", methods=["POST"])

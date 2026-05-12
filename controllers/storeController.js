@@ -132,14 +132,14 @@ exports.withdrawCredits = async (req, res) => {
         await user.save();
         
         // Create transaction record
-        await Transaction.create({
-            user: user._id,
-            type: 'credit_withdrawn',
-            amount: moneyValue,
-            credits: -credits,
-            description: `Withdrew ${credits} credits for ₹${moneyValue} (Rate: ₹${withdrawalRate}/credit) (Level ${user.level})`,
-            status: 'completed'
-        });
+       await Transaction.create({
+    user: user._id,
+    type: 'credit_withdrawn',
+    amount: +moneyValue,     // positive = money gained by user
+    credits: -credits,       // negative = credits spent
+    description: `Withdrew ${credits} credits → ₹${moneyValue} added to wallet`,
+    status: 'completed'
+});
         
         res.json({ 
             success: true, 

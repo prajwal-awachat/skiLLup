@@ -12,11 +12,25 @@ const upload = multer({
     }
 });
 
+// Apply long timeout only for recording upload route
+router.use('/session/:sessionId/upload', (req, res, next) => {
+    req.setTimeout(15 * 60 * 1000);
+    res.setTimeout(15 * 60 * 1000);
+    next();
+});
+
 router.post(
     '/session/:sessionId/upload',
     protect,
     upload.single('recording'),
     recordingController.uploadSessionRecording
+);
+
+router.post(
+    '/session/:sessionId/chunk',
+    protect,
+    upload.single('chunk'),
+    recordingController.uploadSessionChunk
 );
 
 module.exports = router;

@@ -1,5 +1,6 @@
 import pandas as pd
 import joblib
+import os
 
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
@@ -7,9 +8,10 @@ from sklearn.pipeline import Pipeline
 
 
 def main():
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     # Load dataset
-    df = pd.read_csv("dataset.csv")
-
+    df = pd.read_csv(os.path.join(BASE_DIR, "dataset.csv"))
+    
     # Features and labels
     X = df["text"]
     y = df["label"]
@@ -25,7 +27,7 @@ def main():
     model.fit(X, y)
 
     # Save the entire pipeline
-    joblib.dump(model, "model.pkl")
+    joblib.dump(model, os.path.join(BASE_DIR, "model.pkl"))
 
     print("Model trained successfully.")
     print("Saved model.pkl")

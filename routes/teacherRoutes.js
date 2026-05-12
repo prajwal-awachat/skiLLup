@@ -27,7 +27,6 @@ const {
     getCompletedSessions,
     startSession,
     getSessionDetails,
-    completeSession,
 
     // Credits & Earnings
     getCreditsAndEarnings,
@@ -72,7 +71,7 @@ router.get('/sessions/ongoing', getOngoingSessions);
 router.get('/sessions/completed', getCompletedSessions);
 router.post('/sessions/:sessionId/start', startSession);
 router.get('/sessions/:sessionId', getSessionDetails);
-router.post('/sessions/:sessionId/complete', completeSession);
+
 
 // Chat Routes
 router.get('/chat/check/:userId', checkChatAccess);

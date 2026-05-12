@@ -66,9 +66,10 @@ async function completeSessionInternal({
     session.endedByRole = endedByRole;
     session.endedReason = reason;
 
-    session.roomId = undefined;
-    session.joinCode = undefined;
-    session.meetingLink = '';
+   session.closedRoomId = session.roomId;
+session.roomId = undefined;
+session.joinCode = undefined;
+session.meetingLink = '';
 
     // teacher earnings only for valid session
     if (session.sessionValidity === 'valid') {
@@ -78,10 +79,6 @@ async function completeSessionInternal({
             session._id
         );
 
-        await session.student.deductCredits(
-            session.creditsPerSession,
-            session._id
-        );
     }
 
     await session.save();

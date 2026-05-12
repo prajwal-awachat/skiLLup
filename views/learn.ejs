@@ -205,7 +205,6 @@
         let currentSearchTerm = '';
         let currentChatTeacher = null;
         let currentConversationId = null;
-        let acceptedRequestSessions = [];
 
         function escapeHtml(text) {
             if (!text) return '';
@@ -505,27 +504,9 @@ async function fetchSessionRequests() {
             throw new Error(data.message || 'Failed to fetch requests');
         }
 
-        const pending = data.data.pending || [];
+        const pending = (data.data.pending || []).filter(request => !request.session);
         const rejected = data.data.rejected || [];
-        const accepted = data.data.accepted || [];
-
-        acceptedRequestSessions = accepted.map(request => {
-            const session = request.session || {};
-
-            return {
-                _id: session._id || `accepted-request-${request._id}`,
-                requestId: request._id,
-                teacher: session.teacher || request.teacher || {},
-                skill: session.skill || request.skill || {},
-                title: session.title || request.title || request.skill?.name || 'Session',
-                duration: session.duration || request.duration || 60,
-                scheduledDate: session.scheduledDate || combineDateAndTime(request.currentProposedDate, request.currentStartTime),
-                roomId: session.roomId || '',
-                joinCode: session.joinCode || '',
-                status: session.status || 'confirmed',
-                fromAcceptedRequest: true
-            };
-        });
+        
 
         renderPendingRequests(pending);
         renderRejectedRequests(rejected);
@@ -540,7 +521,7 @@ async function fetchSessionRequests() {
     }
 }
 
-      async function fetchUpcomingSessions() {
+async function fetchUpcomingSessions() {
     try {
         const response = await fetch('/api/learn/upcoming-sessions');
         const data = await response.json();
@@ -549,32 +530,25 @@ async function fetchSessionRequests() {
             throw new Error(data.message || 'Failed to fetch upcoming sessions');
         }
 
-        const apiSessions = data.data || [];
-        const mergedMap = new Map();
-
-        apiSessions.forEach(session => {
-            mergedMap.set(String(session._id), session);
-        });
-
-        acceptedRequestSessions.forEach(session => {
-            const key = session._id ? String(session._id) : String(session.requestId);
-            if (!mergedMap.has(key)) {
-                mergedMap.set(key, session);
-            }
-        });
-
-        const sessions = Array.from(mergedMap.values()).sort((a, b) => {
-            const aTime = a.scheduledDate ? new Date(a.scheduledDate).getTime() : 0;
-            const bTime = b.scheduledDate ? new Date(b.scheduledDate).getTime() : 0;
+        const sessions = (data.data || []).sort((a, b) => {
+            const aTime = a.scheduledDate
+                ? new Date(a.scheduledDate).getTime()
+                : 0;
+            const bTime = b.scheduledDate
+                ? new Date(b.scheduledDate).getTime()
+                : 0;
             return aTime - bTime;
         });
 
         renderUpcomingSessions(sessions);
 
-        document.getElementById('upcomingCount').textContent = sessions.length;
-        document.getElementById('upcomingOverviewCount').textContent = sessions.length;
+        document.getElementById('upcomingCount').textContent =
+            sessions.length;
+        document.getElementById('upcomingOverviewCount').textContent =
+            sessions.length;
     } catch (error) {
         console.error('Error fetching upcoming sessions:', error);
+
         document.getElementById('upcomingSessionsList').innerHTML = `
             <div class="empty-sessions">
                 <i class="fas fa-calendar-times"></i>

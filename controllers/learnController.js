@@ -225,10 +225,10 @@ exports.createSessionRequest = async (req, res, next) => {
         }
 
         const existingOpenRequest = await SessionRequest.findOne({
-            teacher: teacherId,
-            student: req.user.id,
-            status: { $in: ['pending', 'negotiating', 'confirmed'] }
-        });
+              teacher: teacherId,
+              student: req.user.id,
+              status: { $in: ['pending', 'negotiating'] }
+            });
 
         if (existingOpenRequest) {
             await expireRequestIfNeeded(existingOpenRequest);
@@ -571,14 +571,22 @@ exports.getStudentSessionRequests = async (req, res, next) => {
         const pending = [];
         const expired = [];
 
-        for (const request of refreshedRequests) {
-            const requestObj = request.toObject();
+     for (const request of refreshedRequests) {
+    const requestObj = request.toObject();
 
-            if (request.status === 'confirmed') accepted.push(requestObj);
-            else if (request.status === 'rejected') rejected.push(requestObj);
-            else if (request.status === 'expired') expired.push(requestObj);
-            else if (['pending', 'negotiating'].includes(request.status)) pending.push(requestObj);
-        }
+    if (request.status === 'confirmed') {
+        accepted.push(requestObj);
+    } else if (request.status === 'rejected') {
+        rejected.push(requestObj);
+    } else if (request.status === 'expired') {
+        expired.push(requestObj);
+    } else if (
+        ['pending', 'negotiating'].includes(request.status) &&
+        !request.session
+    ) {
+        pending.push(requestObj);
+    }
+}
 
         res.status(200).json({
             success: true,

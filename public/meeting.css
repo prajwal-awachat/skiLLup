@@ -182,23 +182,56 @@ body {
 
 .end-call-btn {
     border: none;
-    border-radius: 14px;
+    border-radius: 12px;
     background: linear-gradient(135deg, #ef4444, #dc2626);
     color: white;
-    min-height: 48px;
-    padding: 0 18px;
+    min-height: 44px;
+    padding: 0 16px;
+    font-size: 0.92rem;
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     font-weight: 600;
     cursor: pointer;
-    transition: 0.2s ease;
+    user-select: none;
+    box-shadow: 0 10px 24px rgba(239, 68, 68, 0.28);
+    transition:
+        transform 0.12s ease,
+        filter 0.2s ease,
+        box-shadow 0.2s ease,
+        opacity 0.2s ease;
+}
+
+
+.end-call-btn i {
+    font-size: 0.9rem;
 }
 
 .end-call-btn:hover {
     transform: translateY(-1px);
     filter: brightness(1.05);
+    box-shadow: 0 14px 28px rgba(239, 68, 68, 0.35);
 }
+
+.end-call-btn.processing {
+    transform: scale(0.96);
+    opacity: 0.85;
+    cursor: wait;
+    pointer-events: none;
+}
+
+
+.end-call-btn:active {
+    transform: scale(0.96);
+    filter: brightness(0.96);
+}
+
+.end-call-btn:disabled {
+    opacity: 0.75;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 
 .meeting-main {
     flex: 1;

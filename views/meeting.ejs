@@ -200,6 +200,7 @@ let reconnectAttemptCount = 0;
 let manualDisconnect = false;
 let mediaRecorder;
 let recordedChunks = [];
+let lastChunkUploadPromise = null;
         
         // Configuration
         const configuration = {
@@ -211,44 +212,85 @@ let recordedChunks = [];
         };
 
         // Recording Functions
+let chunkIndex = 0;
+let isUploadingLastChunk = false;
+
 function startSessionRecording(stream) {
     recordedChunks = [];
-    mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'video/webm'
-    });
-    
-    mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
+    chunkIndex = 0;
+    mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+
+    mediaRecorder.ondataavailable = async (event) => {
+        if (event.data && event.data.size > 0) {
+            if (lastChunkUploadPromise !== null) return;
             recordedChunks.push(event.data);
+            const currentIndex = chunkIndex++;
+            const chunkBlob = event.data;
+            try {
+                const fd = new FormData();
+                fd.append('chunk', chunkBlob, `chunk_${currentIndex}.webm`);
+                fd.append('chunkIndex', currentIndex);
+                await fetch(`/api/recordings/session/${sessionData.id}/chunk`, {
+                    method: 'POST',
+                    body: fd
+                });
+                console.log(`Chunk ${currentIndex} uploaded`);
+            } catch (err) {
+                console.warn(`Chunk ${currentIndex} upload failed:`, err);
+            }
         }
     };
-    
-    mediaRecorder.start(5000); // Record in 5-second chunks
+
+    mediaRecorder.start(10000); // 10 second chunks
     console.log('Recording started');
 }
 
-async function stopAndUploadRecording(sessionId) {
-    if (!mediaRecorder) return;
-    
-    return new Promise((resolve) => {
-        mediaRecorder.onstop = async () => {
-            const blob = new Blob(recordedChunks, { type: 'video/webm' });
-            const formData = new FormData();
-            formData.append('recording', blob, `session_${sessionId}.webm`);
-            
-            try {
-                await fetch(`/api/recordings/session/${sessionId}/upload`, {
-                    method: 'POST',
-                    body: formData
-                });
-                console.log('Recording uploaded successfully');
-            } catch (error) {
-                console.error('Failed to upload recording:', error);
+function stopRecordingAndUploadLastChunk(sessionId) {
+    if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+        return Promise.resolve();
+    }
+
+    lastChunkUploadPromise = new Promise((resolve) => {
+        let finalHandled = false;
+
+        mediaRecorder.ondataavailable = async (event) => {
+            if (finalHandled) return;
+            finalHandled = true;
+
+            if (event.data && event.data.size > 0) {
+                const currentIndex = chunkIndex++;
+                try {
+                    const fd = new FormData();
+                    fd.append('chunk', event.data, `chunk_${currentIndex}.webm`);
+                    fd.append('chunkIndex', currentIndex);
+                    fd.append('isLastChunk', 'true');
+                    await fetch(`/api/recordings/session/${sessionId}/chunk`, {
+                        method: 'POST',
+                        body: fd
+                    });
+                    console.log(`Final chunk ${currentIndex} uploaded`);
+                } catch (err) {
+                    console.error('Final chunk upload error:', err);
+                } finally {
+                    resolve();
+                }
+            } else {
+                resolve();
             }
-            resolve();
         };
+
+        mediaRecorder.onstop = () => {
+            if (!finalHandled) {
+                finalHandled = true;
+                resolve();
+            }
+        };
+
+        mediaRecorder.requestData();
         mediaRecorder.stop();
     });
+
+    return lastChunkUploadPromise;
 }
         
         // Initialize
@@ -272,11 +314,11 @@ async function stopAndUploadRecording(sessionId) {
         updateConnectionStatus('Connected! Setting up call...', 'info');
     });
 
-    socket.on('disconnect', (reason) => {
-        if (meetingAlreadyEnding || manualDisconnect) return;
-        console.log('Socket disconnected:', reason);
-        updateConnectionStatus('Socket disconnected. Reconnecting...', 'warning');
-    });
+  socket.on('disconnect', (reason) => {
+    console.log('Socket disconnected:', reason);
+    if (meetingAlreadyEnding || manualDisconnect) return;
+    updateConnectionStatus('Socket disconnected. Reconnecting...', 'warning');
+});
 
     socket.on('reconnect', async () => {
         if (meetingAlreadyEnding) return;
@@ -313,47 +355,46 @@ async function stopAndUploadRecording(sessionId) {
         showToast(data.message, 'info');
     });
 
-    socket.on('meeting-ended', async (data) => {
+socket.on('meeting-ended', async (data) => {
+    // Teacher should not handle this event (they handle their own flow)
+    if (sessionData.isTeacher) return;
+    
     if (meetingAlreadyEnding) return;
     meetingAlreadyEnding = true;
     manualDisconnect = true;
 
-    showToast(data.message || `Session ended by ${data.endedByName || 'teacher'}`, 'info');
+    showToast(
+        data.message || `Session ended by ${data.endedByName || 'participant'}`,
+        'info'
+    );
 
-    if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
-    }
+    await cleanupMeeting();
 
-    if (peerConnection) {
-        peerConnection.close();
-    }
-
-    if (socket) {
-        socket.disconnect();
-    }
-
-    if (!sessionData.isTeacher) {
-        // Student side
-        const shouldShowRating = data && data.sessionValidity === 'valid' && data.ratingEligible === true;
-
-        if (shouldShowRating) {
-            openRatingModal();
-        } else {
-            if (data.sessionValidity === 'partial') {
-                showToast('Session ended early. Rating not available for partial sessions.', 'info');
-            } else if (data.sessionValidity === 'invalid') {
-                showToast('Session too short. Rating not available.', 'info');
-            }
-            setTimeout(() => {
-                window.location.href = '/learn';
-            }, 2000);
+    // ASK REASON ONLY for partial/invalid sessions (NOT for valid sessions)
+    if (data.sessionValidity === 'partial' || data.sessionValidity === 'invalid') {
+        const reason = prompt('Please provide a reason for ending the session early:') || 'Ended early';
+        window.earlyEndReason = reason;
+        
+        // Send reason to server
+        try {
+            await fetch(`/meeting/api/session/${sessionData.id}/early-end-reason`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    reason: reason, 
+                    validity: data.sessionValidity 
+                })
+            });
+            console.log('Early end reason submitted');
+        } catch (err) {
+            console.error('Failed to submit reason:', err);
         }
-    } else {
-        // Teacher side - no rating needed
-        setTimeout(() => {
-            window.location.href = '/teach';
-        }, 1000);
     }
+    
+    // SHOW RATING FOR ALL SESSIONS (valid, partial, invalid)
+    // Rating modal will handle eligibility internally
+    window._ratingEligible = data.ratingEligible;
+    openRatingModal(); // Show rating modal for EVERY session
 });
 
     try {
@@ -431,9 +472,16 @@ function createPeerConnection() {
     };
 
     peerConnection.onconnectionstatechange = async () => {
-        if (!peerConnection) return;
-        const state = peerConnection.connectionState;
-        console.log('Connection state:', state);
+    if (!peerConnection) return;
+    const state = peerConnection.connectionState;
+
+    // Suppress all state changes once ending has started
+    if (meetingAlreadyEnding || manualDisconnect) {
+        console.log(`Connection state change ignored (meeting ending): ${state}`);
+        return;
+    }
+
+    console.log('Connection state:', state);
 
         if (state === 'connected') {
             reconnectAttemptCount = 0;
@@ -450,45 +498,9 @@ function createPeerConnection() {
     };
 }
 
-function startSessionRecording(stream) {
-    recordedChunks = [];
 
-    mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'video/webm'
-    });
 
-    mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-            recordedChunks.push(event.data);
-        }
-    };
 
-    mediaRecorder.start(5000);
-}
-
-async function stopRecordingAndUpload(sessionId) {
-    if (!mediaRecorder) return;
-
-    return new Promise((resolve) => {
-        mediaRecorder.onstop = async () => {
-            const blob = new Blob(recordedChunks, {
-                type: 'video/webm'
-            });
-
-            const formData = new FormData();
-            formData.append('recording', blob, `session_${sessionId}.webm`);
-
-            await fetch(`/api/recordings/session/${sessionId}/upload`, {
-                method: 'POST',
-                body: formData
-            });
-
-            resolve();
-        };
-
-        mediaRecorder.stop();
-    });
-}
 
 async function createAndSendOffer() {
     if (!peerConnection || !socket) return;
@@ -577,6 +589,7 @@ async function handleReconnectFlow(force = false) {
 }
         
       function setupControls() {
+        const endCallBtn = document.getElementById('endCallBtn');
     const micBtn = document.getElementById('toggleMicBtn');
     let micEnabled = true;
 
@@ -610,10 +623,17 @@ async function handleReconnectFlow(force = false) {
         }
     });
 
-    const endCallBtn = document.getElementById('endCallBtn');
-    endCallBtn.addEventListener('click', () => {
-        endCall();
-    });
+    endCallBtn.addEventListener('click', async () => {
+    endCallBtn.classList.add('processing');
+    endCallBtn.disabled = true;
+
+    try {
+        await endCall();
+    } catch (error) {
+        endCallBtn.classList.remove('processing');
+        endCallBtn.disabled = false;
+    }
+});
 
     const submitRatingBtn = document.getElementById('submitRatingBtn');
     const skipRatingBtn = document.getElementById('skipRatingBtn');
@@ -812,6 +832,8 @@ async function submitSessionRating() {
         return;
     }
 
+    // Allow rating submission for ALL sessions
+    // Backend will check ratingEligibility and reject if not allowed
     submitBtn.disabled = true;
     submitBtn.textContent = 'Submitting...';
 
@@ -828,6 +850,14 @@ async function submitSessionRating() {
         const data = await response.json();
 
         if (!data.success) {
+            // If backend says rating not allowed, just redirect without error
+            if (data.message.includes('allowed only for valid sessions')) {
+                showToast('Thank you for your feedback', 'success');
+                setTimeout(() => {
+                    window.location.href = '/learn';
+                }, 800);
+                return;
+            }
             showToast(data.message || 'Failed to submit rating', 'error');
             submitBtn.disabled = false;
             submitBtn.textContent = 'Submit Rating';
@@ -881,108 +911,116 @@ function hideRemoteVideo() {
     updateVideoFallbacks();
 }
 
+async function cleanupMeeting() {
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+        localStream = null;
+    }
+
+    if (peerConnection) {
+        try { peerConnection.close(); } catch (e) {}
+        peerConnection = null;
+    }
+
+    if (socket) {
+        try { socket.disconnect(); } catch (e) {}
+        socket = null;
+    }
+    // Do NOT null mediaRecorder or recordedChunks here
+    // stopAndUploadLastChunk owns that lifecycle
+}
+
 async function endCall() {
     try {
         if (meetingAlreadyEnding) return;
         meetingAlreadyEnding = true;
         manualDisconnect = true;
 
-        if (sessionData.isTeacher) {
-            // Teacher ending the session
-            const response = await fetch(`/api/teacher/sessions/${sessionData.id}/complete`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ notes: '' })
-            });
-
-            const data = await response.json();
-
-            if (!data.success) {
-                meetingAlreadyEnding = false;
-                manualDisconnect = false;
-                showToast(data.message || 'Failed to complete session', 'error');
-                return;
-            }
-            
-            if (mediaRecorder) await stopAndUploadRecording(sessionData.id);
-            
-            if (socket) {
-                socket.emit('meeting-ended', {
-                    roomId: sessionData.roomId,
-                    sessionId: sessionData.id,
-                    endedBy: currentUser.id,
-                    endedByName: currentUser.name,
-                    message: `${currentUser.name} ended the session.`,
-                    sessionValidity: data.data?.sessionValidity || 'valid',
-                    ratingEligible: data.data?.ratingEligible || false
-                });
-            }
-            
-            // Teacher doesn't rate, just redirect
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-            }
-            if (peerConnection) {
-                peerConnection.close();
-            }
-            if (socket) {
-                socket.disconnect();
-            }
-            window.location.href = '/teach';
-            
-        } else {
-            // Student ending the session
-            const wantsEarlyEnd = confirm('Do you want to end this session? Credits will NOT be refunded.');
-
-            if (wantsEarlyEnd) {
-                const reason = prompt('Enter reason (teacher not teaching well / technical issue / other):') || 'Student ended early';
-
-                const response = await fetch(`/meeting/api/end-early/${sessionData.id}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ reason })
-                });
-
-                const data = await response.json();
-
-                if (!data.success) {
-                    meetingAlreadyEnding = false;
-                    manualDisconnect = false;
-                    showToast(data.message || 'Failed to end session early', 'error');
-                    return;
-                }
-                
-                // Clean up media and connection
-                if (localStream) {
-                    localStream.getTracks().forEach(track => track.stop());
-                }
-                if (peerConnection) {
-                    peerConnection.close();
-                }
-                if (socket) {
-                    socket.disconnect();
-                }
-                
-                // Show rating modal if session is valid
-                if (data.data && data.data.sessionValidity === 'valid' && data.data.ratingEligible === true) {
-                    openRatingModal();
-                } else {
-                    showToast('Session ended. Rating not available for short sessions.', 'info');
-                    setTimeout(() => {
-                        window.location.href = '/learn';
-                    }, 2000);
-                }
-            } else {
-                // User canceled - don't end
-                meetingAlreadyEnding = false;
-                manualDisconnect = false;
-            }
+if (sessionData.isTeacher) {
+    console.log('Teacher ending session - stopping recording and completing session');
+    
+    // First, mark session as complete in database
+    const response = await fetch(
+        `/meeting/api/teacher/sessions/${sessionData.id}/complete`,
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ notes: '' })
         }
-    } catch (error) {
-        console.error('End call error:', error);
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
         meetingAlreadyEnding = false;
         manualDisconnect = false;
-        showToast('Failed to end call properly', 'error');
+        throw new Error(data.message || 'Failed to complete session');
+    }
+
+    // IMPORTANT: Stop recording and wait for last chunk to upload completely
+    console.log('Waiting for last recording chunk to upload...');
+    showToast('Uploading session recording...', 'info');
+    
+    await stopRecordingAndUploadLastChunk(sessionData.id);
+    
+    console.log('Last chunk uploaded successfully. Redirecting to /teach');
+    showToast('Session recording saved. Redirecting...', 'success');
+    
+    await cleanupMeeting();
+    
+    // Small delay to ensure toast is seen
+    setTimeout(() => {
+        window.location.href = '/teach';
+    }, 1000);
+    
+    return;
+}
+
+// Student flow
+const wantsEarlyEnd = confirm(
+    'Do you want to leave this session? Credits will NOT be refunded.'
+);
+
+if (!wantsEarlyEnd) {
+    meetingAlreadyEnding = false;
+    manualDisconnect = false;
+    return;
+}
+
+const response = await fetch(
+    `/meeting/api/end-early/${sessionData.id}`,
+    {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            reason: 'Student ended meeting' // Temporary reason, actual reason will be asked in meeting-ended event
+        })
+    }
+);
+
+const data = await response.json();
+
+if (!response.ok || !data.success) {
+    meetingAlreadyEnding = false;
+    manualDisconnect = false;
+    throw new Error(data.message || 'Failed to end session');
+}
+
+// Do not cleanup or redirect here.
+// The meeting-ended socket event will:
+// - ask reason only for partial/invalid sessions
+// - always show rating modal
+// - redirect after rating
+return;
+    } catch (error) {
+        console.error('End call error:', error);
+
+        meetingAlreadyEnding = false;
+        manualDisconnect = false;
+
+        showToast(error.message || 'Failed to end call properly', 'error');
     }
 }
         

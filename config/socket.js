@@ -244,81 +244,26 @@ socket.on('join-meeting', ({ roomId, userId }) => {
     socket.to(`meeting_${roomId}`).emit('user-joined', { userId });
 });
 
-socket.on('leave-meeting', async ({
-    roomId,
-    userId,
-    userName
-}) => {
-
-    try {
-
-        const session = await Session.findOne({
-            roomId
-        });
-
-        if (!session) return;
-
-        const completedSession =
-            await completeSession({
-                session,
-                endedBy: userId,
-                endedByRole:
-                    String(session.teacher) === String(userId)
-                        ? 'teacher'
-                        : 'student',
-                reason:
-                    `${userName} left the meeting`
-            });
-
-        io.to(`meeting_${roomId}`).emit(
-            'meeting-ended',
-            {
-                roomId,
-                sessionId: completedSession._id,
-                endedBy: userId,
-                endedByName: userName,
-                sessionValidity:
-                    completedSession.sessionValidity,
-                ratingEligible:
-                    completedSession.ratingEligible,
-                message:
-                    `${userName} ended the meeting`
-            }
-        );
-
-        clearMeetingTimerSet(roomId, false);
-
-    } catch (error) {
-        console.error(error);
-    }
+  // This fires on beforeunload — just leave the room quietly
+socket.on('leave-meeting', ({ roomId, userId }) => {
+    socket.leave(`meeting_${roomId}`);
+    socket.to(`meeting_${roomId}`).emit('user-left', { userId });
 });
 
 socket.on('meeting-ended', async ({ roomId, sessionId, endedBy, endedByName, message, sessionValidity, ratingEligible }) => {
     try {
         const session = await Session.findById(sessionId);
+        if (!session) return;
 
-        if (session && session.actualStartTime && session.status !== 'completed') {
-            const now = new Date();
-            session.actualEndTime = now;
-            session.actualDuration = Math.max(
-                0,
-                Math.floor((now - session.actualStartTime) / (1000 * 60))
-            );
-            session.endedBy = endedBy;
-            session.endedByRole = session.teacher.toString() === String(endedBy) ? 'teacher' : 'student';
-            session.endedReason = message || 'Meeting manually ended';
-            await session.save();
-        }
-
-       io.to(`meeting_${roomId}`).emit('meeting-ended', {
-    roomId,
-    sessionId,
-    endedBy,
-    endedByName,
-    message: message || `${endedByName || 'Participant'} ended the session.`,
-    sessionValidity: sessionValidity || null,
-    ratingEligible: !!ratingEligible
-});
+        io.to(`meeting_${roomId}`).emit('meeting-ended', {
+            roomId,
+            sessionId,
+            endedBy,
+            endedByName,
+            message: message || `${endedByName || 'Participant'} ended the session.`,
+            sessionValidity: session.sessionValidity || sessionValidity || null,
+            ratingEligible: session.ratingEligible ?? !!ratingEligible
+        });
 
         clearMeetingTimerSet(roomId, false);
         io.in(`meeting_${roomId}`).socketsLeave(`meeting_${roomId}`);

@@ -168,7 +168,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
-     "ml": "cd ml-service && python app.py",
+     "ml": "cd ml-service && ..\\venv\\Scripts\\python.exe app.py",
     "dev": "concurrently \"npm run ml\" \"npm start\""
   },
   "keywords": [],

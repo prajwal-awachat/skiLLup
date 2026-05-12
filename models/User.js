@@ -245,15 +245,6 @@ userSchema.methods.addCredits = async function (amount) {
     this.credits += amount;
     this.totalCreditsEarned += amount;
     await this.save();
-
-    await Transaction.create({
-        user: this._id,
-        type: 'credit_purchase',
-        amount: amount,
-        credits: amount,
-        description: `Purchased ${amount} credits`,
-        status: 'completed'
-    });
 };
 
 userSchema.methods.deductCredits = async function (amount, sessionId = null) {
@@ -268,17 +259,15 @@ userSchema.methods.deductCredits = async function (amount, sessionId = null) {
     await Transaction.create({
         user: this._id,
         type: 'credit_spent',
-        amount: amount,
-        credits: -amount,
+        amount: 0,           
+        credits: -amount,    
         session: sessionId,
-        description: `Spent ${amount} credits`,
+        description: `Spent ${amount} credits on session`,
         status: 'completed'
     });
 };
 
 userSchema.methods.addEarnings = async function (credits, sessionId = null) {
-    const creditRate =await this.getCreditRate();
-
     this.credits += credits;
     this.totalCreditsEarned += credits;
 
@@ -291,10 +280,10 @@ userSchema.methods.addEarnings = async function (credits, sessionId = null) {
     await Transaction.create({
         user: this._id,
         type: 'credit_earned',
-        amount: 0,
-        credits: credits,
+        amount: 0,           // no money — teacher earns credits not cash
+        credits: +credits,   // positive = credits gained
         session: sessionId,
-        description: `Earned ${credits} credits from session`,
+        description: `Earned ${credits} credits from teaching session`,
         status: 'completed'
     });
 };
