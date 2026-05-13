@@ -225,8 +225,7 @@ function processRecordingWithPython(session, recording) {
     // Spawn Python process
     const pythonProcess = spawn('python', [
         pythonScript,
-        recording.cloudinaryUrl,
-        process.env.GEMINI_API_KEY
+        recording.cloudinaryUrl
     ]);
     
     console.log(`[${session._id}] Python process started (PID: ${pythonProcess.pid})`);
